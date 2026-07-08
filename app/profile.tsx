@@ -32,7 +32,8 @@ export default function ProfileScreen() {
     setEmail(user?.email || '');
     setDateOfBirth((user as any)?.dateOfBirth || '');
     setAvatarUrl((user as any)?.avatarUrl || null);
-  }, [user?.name, user?.phone, user?.email, (user as any)?.dateOfBirth, (user as any)?.avatarUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
 
@@ -163,8 +164,15 @@ export default function ProfileScreen() {
             </View>
 
             <Text style={[styles.label, { color: colors.textSecondary, marginTop: 14 }]}>Date of Birth</Text>
-            <Pressable 
-              onPress={() => setShowDatePicker(true)}
+            <Pressable
+              onPress={() => {
+                if (Platform.OS === 'android' && showDatePicker) {
+                  setShowDatePicker(false);
+                  setTimeout(() => setShowDatePicker(true), 0);
+                } else {
+                  setShowDatePicker(true);
+                }
+              }}
               style={[styles.inputRow, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
             >
               <Ionicons name="calendar-outline" size={18} color={colors.textTertiary} />
@@ -181,7 +189,10 @@ export default function ProfileScreen() {
                 maximumDate={new Date()}
                 themeVariant={isDark ? 'dark' : 'light'}
                 onChange={(event, date) => {
-                  if (Platform.OS === 'android') setShowDatePicker(false);
+                  if (Platform.OS === 'android') {
+                    setShowDatePicker(false);
+                    if (event.type === 'dismissed') return;
+                  }
                   if (date) {
                     setDobDate(date);
                     setDateOfBirth(date.toISOString().split('T')[0]);

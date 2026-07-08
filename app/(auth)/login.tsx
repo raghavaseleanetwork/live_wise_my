@@ -43,13 +43,6 @@ export default function LoginScreen() {
       setError('Please enter a valid email address');
       return;
     }
-    // The provided snippet seems to be for a different file (bills.tsx) and context.
-    // It refers to `intentPolicy`, `parsedAmount`, `derivedIntent`, and `setModalError`
-    // which are not defined in this LoginScreen component.
-    // I will skip adding the line `if (intentPolicy.shouldHaveAmount && parsedAmount <= 0)`
-    // as it would cause a reference error and is out of context for a login screen.
-    // I will proceed with the rest of the change as requested, assuming the user
-    // intended to provide a different snippet or that this part was a mistake for this file.
 
     setError('');
     setIsSubmitting(true);

@@ -137,13 +137,21 @@ export default function LeaksScreen() {
               <Text style={[styles.howItWorksTitle, { color: colors.text }]}>How it works?</Text>
             </View>
             <Text style={[styles.howItWorksText, { color: colors.textSecondary }]}>
-              Our AI analyzes your transaction frequency and identifies patterns. Leaks are detected when:
+              We scan your spending for patterns that quietly drain money. A leak is flagged when:
             </Text>
             <View style={styles.howItWorksList}>
-              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• High frequency of non-essential buys</Text>
-              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• Unexpected bill price hikes</Text>
-              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• Inactive legacy subscriptions</Text>
+              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• A merchant is paid 3+ times — frequent, avoidable spending</Text>
+              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• A recurring charge suddenly increases in price</Text>
+              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• A subscription is billed but hasn't been used in 45+ days</Text>
             </View>
+            <View style={[styles.howItWorksDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.howItWorksHeader}>
+              <Ionicons name="shield-checkmark-outline" size={16} color={colors.accentMint} />
+              <Text style={[styles.howItWorksTitle, { color: colors.text, fontSize: 13 }]}>What's never counted as a leak</Text>
+            </View>
+            <Text style={[styles.howItWorksText, { color: colors.textSecondary }]}>
+              Essential and important payments are always excluded — bills, EMIs/loans, insurance, medical/health, education, rent, taxes, and investments or savings. Only unnecessary or extra spending is considered.
+            </Text>
           </View>
 
           <View style={[styles.sectionBadge, { backgroundColor: colors.warningDim, marginTop: 24 }]}>
@@ -414,5 +422,9 @@ const styles = StyleSheet.create({
   howItWorksItem: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
+  },
+  howItWorksDivider: {
+    height: 1,
+    marginVertical: 12,
   },
 });

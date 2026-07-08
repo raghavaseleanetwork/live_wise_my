@@ -877,7 +877,7 @@ export default function VoiceReminderScreen() {
       </View>
 
       {/* Time picker dropdown */}
-      <CustomModal visible={showTimePicker} onClose={() => setShowTimePicker(false)}>
+      <CustomModal visible={showTimePicker} onClose={() => setShowTimePicker(false)} showCloseButton={false}>
         <Text style={[styles.modalTitle, { color: colors.text }]}>Select time</Text>
         <View style={styles.timePickerWrap}>
           <DateTimePicker
@@ -926,7 +926,7 @@ export default function VoiceReminderScreen() {
       </CustomModal>
 
       {/* Repeat picker dropdown */}
-      <CustomModal visible={showRepeatPicker} onClose={() => setShowRepeatPicker(false)}>
+      <CustomModal visible={showRepeatPicker} onClose={() => setShowRepeatPicker(false)} showCloseButton={false}>
         <Text style={[styles.modalTitle, { color: colors.text }]}>Repeat</Text>
         <ScrollView style={{ maxHeight: 260 }}>
           {REPEAT_OPTIONS.map((opt) => {

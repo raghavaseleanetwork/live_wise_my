@@ -129,11 +129,6 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     borderWidth: 1,
     paddingBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 25,
     overflow: 'hidden',
   },
   fullScreenSheet: {

@@ -441,7 +441,6 @@ function PrimaryCircleActions({ colors, onScanBill, onQuickAdd, onAutoTrack }: {
             {
               backgroundColor: purpleDim,
               borderColor: purple + '33',
-              shadowColor: purple,
             },
             circleStyle1,
           ]}
@@ -458,7 +457,6 @@ function PrimaryCircleActions({ colors, onScanBill, onQuickAdd, onAutoTrack }: {
             {
               backgroundColor: blueDim,
               borderColor: blue + '33',
-              shadowColor: blue,
             },
             circleStyle2,
           ]}
@@ -475,7 +473,6 @@ function PrimaryCircleActions({ colors, onScanBill, onQuickAdd, onAutoTrack }: {
             {
               backgroundColor: amberDim,
               borderColor: amber + '33',
-              shadowColor: amber,
             },
             circleStyle3,
           ]}
@@ -1087,12 +1084,16 @@ export default function HomeScreen() {
             <View style={[styles.heroDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)' }]} />
             <View style={styles.heroStats}>
               <View style={styles.heroStat}>
-                <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>Today</Text>
+                <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>
+                  {isLastMonthFallback ? 'Today (no spend yet)' : 'Today'}
+                </Text>
                 <Text style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{formatAmount(todaySpend)}</Text>
               </View>
               <View style={[styles.heroStatDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)' }]} />
               <View style={styles.heroStat}>
-                <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>Daily Avg</Text>
+                <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>
+                  {isLastMonthFallback ? 'Avg (last mo.)' : 'Daily Avg'}
+                </Text>
                 <Text style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
                   {formatAmount(Math.round(dailyAvg))}
                 </Text>
@@ -1228,7 +1229,9 @@ export default function HomeScreen() {
             <View style={styles.lifeInsightContent}>
               <Text style={[styles.lifeInsightTitle, { color: colors.text }]}>Spending Insight</Text>
               <Text style={[styles.lifeInsightText, { color: colors.textSecondary }]}>
-                {todaySpend > 500
+                {isLastMonthFallback
+                  ? "No spending recorded yet this month — figures below are from last month so you have something to compare against."
+                  : todaySpend > 500
                   ? `You've spent ${formatAmount(todaySpend)} today. Consider slowing down to stay within your daily average.`
                   : `Great discipline today! You've only spent ${formatAmount(todaySpend)} so far.`}
               </Text>
@@ -1408,15 +1411,9 @@ export default function HomeScreen() {
           )}
         </Pressable>
       </CustomModal>
-      <CustomModal visible={isSnoozeModalVisible} onClose={() => setIsSnoozeModalVisible(false)}>
+      <CustomModal visible={isSnoozeModalVisible} onClose={() => setIsSnoozeModalVisible(false)} showCloseButton={false}>
         <View style={styles.modalHeader}>
           <Text style={[styles.snoozeModalTitle, { color: colors.text }]}>Snooze Reminder</Text>
-          <Pressable
-            onPress={() => setIsSnoozeModalVisible(false)}
-            style={[styles.modalCloseBtn, { backgroundColor: colors.cardElevated }]}
-          >
-            <Ionicons name="close" size={20} color={colors.textSecondary} />
-          </Pressable>
         </View>
         <Text style={[styles.snoozeModalSubtitle, { color: colors.textSecondary }]}>
           When should we remind you again?

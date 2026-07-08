@@ -56,7 +56,6 @@ const TransactionItem = React.memo(({ item, colors, isDark, formatAmount, isSeni
         {
           backgroundColor: colors.card,
           borderColor: colors.border,
-          shadowColor: isDark ? '#000' : 'rgba(15, 23, 42, 0.08)',
         },
       ]}
     >
@@ -137,7 +136,6 @@ export default function TransactionsScreen() {
               {
                 backgroundColor: colors.card,
                 borderColor: colors.border,
-                shadowColor: isDark ? '#000' : 'rgba(15, 23, 42, 0.06)',
               },
             ]}
           >
@@ -262,10 +260,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20,
     marginBottom: 20,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 3,
   },
   summaryLeft: {
     flex: 1,
@@ -339,10 +333,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     padding: 16,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
   },
   txIconWrap: {
     width: 48,

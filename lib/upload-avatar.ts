@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { getApiUrl } from '@/lib/query-client';
 
 export async function uploadAvatar(token: string, uri: string): Promise<string> {
@@ -6,13 +5,13 @@ export async function uploadAvatar(token: string, uri: string): Promise<string> 
   const url = new URL('/api/avatar', baseUrl).toString();
   const form = new FormData();
   
-  // Clean URI for React Native FormData
-  const cleanUri = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+  // React Native's FormData needs the original file:// URI as given by the
+  // image picker (Android) — stripping it breaks the upload on-device.
   const fileName = uri.split('/').pop() || 'avatar.jpg';
   const fileType = fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
 
   form.append('avatar', {
-    uri: cleanUri,
+    uri,
     name: fileName,
     type: fileType,
   } as any);

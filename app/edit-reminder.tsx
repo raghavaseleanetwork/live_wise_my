@@ -120,7 +120,7 @@ export default function EditReminderScreen() {
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
           {/* Header */}
-          <View style={[styles.header, { height: headerHeight, paddingTop: insets.top, backgroundColor: '#1E1B4B' }]}>
+          <View style={[styles.header, { height: headerHeight, paddingTop: insets.top, backgroundColor: colors.accent }]}>
             <View style={styles.headerTop}>
               <Pressable onPress={() => router.back()} style={styles.backBtn}>
                 <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
@@ -133,13 +133,14 @@ export default function EditReminderScreen() {
 
             <View style={styles.headerNameBlock}>
               <TextInput
-                style={[styles.nameInput, { color: '#FFFFFF' }]}
+                style={[styles.nameInput, { color: '#FFFFFF', writingDirection: 'ltr' }]}
                 value={name}
                 onChangeText={setName}
                 placeholder="Name of Reminder"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 autoFocus={!existingBill}
                 textAlign="left"
+                textAlignVertical="center"
                 multiline={false}
                 numberOfLines={1}
                 scrollEnabled={true}
@@ -226,7 +227,7 @@ export default function EditReminderScreen() {
                   key={opt.key}
                   onPress={() => {
                     setRepeatType(opt.key);
-                    if (opt.key !== 'none') {
+                    if (opt.key === 'weekly' || opt.key === 'monthly') {
                       setShowDatePicker(true);
                     }
                   }}
@@ -285,19 +286,28 @@ export default function EditReminderScreen() {
 
         {/* Date/Time Pickers */}
         {showDatePicker && (
-          <DateTimePicker
-            value={dueDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, date) => {
-              if (Platform.OS === 'android') setShowDatePicker(false);
-              if (date) {
-                const newDate = new Date(dueDate);
-                newDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                setDueDate(newDate);
-              }
-            }}
-          />
+          <>
+            {(repeatType === 'weekly' || repeatType === 'monthly') && Platform.OS === 'ios' && (
+              <Text style={[styles.datePickerHint, { color: colors.textSecondary }]}>
+                {repeatType === 'weekly'
+                  ? 'Choose the day of the week this repeats on'
+                  : 'Choose the date of the month this repeats on'}
+              </Text>
+            )}
+            <DateTimePicker
+              value={dueDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                if (Platform.OS === 'android') setShowDatePicker(false);
+                if (date) {
+                  const newDate = new Date(dueDate);
+                  newDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                  setDueDate(newDate);
+                }
+              }}
+            />
+          </>
         )}
         {showTimePicker && (
           <DateTimePicker
@@ -352,6 +362,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     paddingVertical: 10,
     textAlign: 'left',
+    writingDirection: 'ltr',
     width: '100%',
     minWidth: 200,
   },
@@ -362,6 +373,13 @@ const styles = StyleSheet.create({
   },
   form: {
     paddingTop: 20,
+    paddingHorizontal: 20,
+  },
+  datePickerHint: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    textAlign: 'center',
+    paddingTop: 12,
     paddingHorizontal: 20,
   },
   errorBox: {

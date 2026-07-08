@@ -477,11 +477,6 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingHorizontal: 16,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   messageText: {
     fontSize: 15,

@@ -217,7 +217,7 @@ export default function SettingsScreen() {
         <Text style={[styles.versionText, { color: colors.textTertiary }]}>LifeWise v1.0.0</Text>
       </ScrollView>
 
-      <CustomModal visible={showCurrencyPicker} onClose={() => setShowCurrencyPicker(false)}>
+      <CustomModal visible={showCurrencyPicker} onClose={() => setShowCurrencyPicker(false)} showCloseButton={false}>
         <Text style={[styles.modalTitle, { color: colors.text }]}>Select Currency</Text>
         {CURRENCIES.map(curr => (
           <Pressable
@@ -244,7 +244,7 @@ export default function SettingsScreen() {
         </Pressable>
       </CustomModal>
 
-      <CustomModal visible={showBudgetModal} onClose={() => setShowBudgetModal(false)}>
+      <CustomModal visible={showBudgetModal} onClose={() => setShowBudgetModal(false)} showCloseButton={false}>
         <Text style={[styles.modalTitle, { color: colors.text }]}>Set Monthly Budget</Text>
         <Text style={[styles.budgetHint, { color: colors.textSecondary }]}>
           This amount is used for the home screen budget bar and remaining balance.

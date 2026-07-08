@@ -14,7 +14,6 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown, FadeIn, SlideInUp } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -394,12 +393,16 @@ export default function ScanBillScreen() {
 
         {step === 'preview' && photo && (
           <View style={styles.guideStepWrap}>
+            <Text style={[styles.previewHint, { color: colors.textSecondary }]}>
+              Make sure the amount and due date are clearly visible
+            </Text>
             <Image source={{ uri: photo.uri }} style={styles.previewImage} resizeMode="contain" />
             <View style={styles.actionsRow}>
               <Pressable
-                style={[styles.actionBtn, { backgroundColor: colors.inputBg }]}
+                style={[styles.actionBtn, styles.actionBtnSecondary, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
                 onPress={() => { setPhoto(null); setStep('guide'); }}
               >
+                <Ionicons name="camera-reverse-outline" size={18} color={colors.textSecondary} />
                 <Text style={[styles.actionBtnText, { color: colors.textSecondary }]}>Retake</Text>
               </Pressable>
 
@@ -407,7 +410,8 @@ export default function ScanBillScreen() {
                 style={[styles.actionBtn, { backgroundColor: colors.accent }]}
                 onPress={scanPreview}
               >
-                <Text style={styles.actionBtnText}>Scan Bill</Text>
+                <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+                <Text style={styles.actionBtnText}>Extract Details</Text>
               </Pressable>
             </View>
           </View>
@@ -422,14 +426,9 @@ export default function ScanBillScreen() {
         )}
       </View>
 
-      <CustomModal visible={showSuccessModal} onClose={() => setShowSuccessModal(false)}>
+      <CustomModal visible={showSuccessModal} onClose={() => setShowSuccessModal(false)} showCloseButton={false}>
         <View style={styles.modalHeader}>
-          <View style={styles.modalHeaderTop}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{isEditing ? 'Edit Details' : 'Extraction Success'}</Text>
-            <Pressable onPress={() => setShowSuccessModal(false)} style={styles.modalCloseBtn}>
-              <Ionicons name="close" size={24} color={colors.textSecondary} />
-            </Pressable>
-          </View>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{isEditing ? 'Edit Details' : 'Extraction Success'}</Text>
           <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
             {isEditing ? "Verify and correct details." : "AI successfully read your bill!"}
           </Text>
@@ -476,25 +475,40 @@ export default function ScanBillScreen() {
             <View style={styles.editingForm}>
               <View style={styles.formSection}>
                 <Text style={[styles.formSectionTitle, { color: colors.textTertiary }]}>PRIMARY DETAILS</Text>
+                <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Bill Name</Text>
                 <TextInput
                   style={[styles.formInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
                   value={editingData?.name}
-                  placeholder="Bill Name"
+                  placeholder="e.g. Electricity Board"
+                  placeholderTextColor={colors.textTertiary}
                   onChangeText={(t) => setEditingData((prev: any) => ({ ...prev, name: t }))}
                 />
                 <View style={styles.formRow}>
-                  <TextInput
-                    style={[styles.formInput, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
-                    value={editingData?.amount?.toString()}
-                    keyboardType="numeric"
-                    onChangeText={(t) => setEditingData((prev: any) => ({ ...prev, amount: parseFloat(t) || 0 }))}
-                  />
-                  <Pressable
-                    style={[styles.formInput, { flex: 1.2, borderColor: colors.border, backgroundColor: colors.card, justifyContent: 'center' }]}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Text style={{ color: colors.text }}>{editingData?.dueDate ? new Date(editingData.dueDate).toLocaleDateString('en-IN') : 'Date'}</Text>
-                  </Pressable>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Amount</Text>
+                    <View style={[styles.amountFieldWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                      <Text style={[styles.amountFieldPrefix, { color: colors.textSecondary }]}>₹</Text>
+                      <TextInput
+                        style={[styles.amountFieldInput, { color: colors.text }]}
+                        value={editingData?.amount?.toString()}
+                        placeholder="0"
+                        placeholderTextColor={colors.textTertiary}
+                        keyboardType="numeric"
+                        onChangeText={(t) => setEditingData((prev: any) => ({ ...prev, amount: parseFloat(t) || 0 }))}
+                      />
+                    </View>
+                  </View>
+                  <View style={{ flex: 1.2 }}>
+                    <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Due Date</Text>
+                    <Pressable
+                      style={[styles.formInput, { borderColor: colors.border, backgroundColor: colors.card, justifyContent: 'center' }]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={{ color: editingData?.dueDate ? colors.text : colors.textTertiary }}>
+                        {editingData?.dueDate ? new Date(editingData.dueDate).toLocaleDateString('en-IN') : 'Select date'}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
             </View>
@@ -508,13 +522,11 @@ export default function ScanBillScreen() {
           <Pressable style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={() => setShowSuccessModal(false)}>
             <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Discard</Text>
           </Pressable>
-          <Pressable onPress={commitReminder} style={styles.confirmBtn}>
-            <LinearGradient
-              colors={colors.buttonGradient ? colors.buttonGradient as unknown as [string, string] : ['#4F46E5', '#7C3AED']}
-              style={styles.confirmGradient}
-            >
-              <Text style={styles.confirmBtnText}>{billId ? 'Update' : 'Save Bill'}</Text>
-            </LinearGradient>
+          <Pressable onPress={commitReminder} style={[styles.confirmBtn, { backgroundColor: colors.accent }]}>
+            <View style={styles.confirmGradient}>
+              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.confirmBtnText}>{billId ? 'Update Bill' : 'Save Bill'}</Text>
+            </View>
           </Pressable>
         </View>
 
@@ -566,9 +578,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  previewHint: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
   previewImage: {
     width: '100%',
-    height: '75%',
+    height: '70%',
     borderRadius: 24,
     backgroundColor: '#F8FAFC',
   },
@@ -579,10 +597,15 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
+    flexDirection: 'row',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+  },
+  actionBtnSecondary: {
+    borderWidth: 1,
   },
   actionBtnText: {
     fontFamily: 'Inter_700Bold',
@@ -772,18 +795,10 @@ const styles = StyleSheet.create({
   modalHeader: {
     paddingBottom: 20,
   },
-  modalHeaderTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
   modalTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: 20,
-  },
-  modalCloseBtn: {
-    padding: 4,
+    marginBottom: 4,
   },
   modalSubtitle: {
     fontFamily: 'Inter_400Regular',
@@ -893,6 +908,7 @@ const styles = StyleSheet.create({
   formLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
+    marginBottom: 6,
   },
   formInput: {
     height: 50,
@@ -904,6 +920,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  amountFieldWrap: {
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  amountFieldPrefix: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+  },
+  amountFieldInput: {
+    flex: 1,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    height: '100%',
+    padding: 0,
   },
   doneEditingBtn: {
     flexDirection: 'row',
@@ -943,8 +980,10 @@ const styles = StyleSheet.create({
   },
   confirmGradient: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   confirmBtnText: {
     color: '#FFFFFF',

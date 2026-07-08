@@ -619,6 +619,7 @@ export default function ReportsScreen() {
     { key: 'threeMonths', label: '3M', icon: 'calendar' },
     { key: 'sixMonths', label: '6M', icon: 'calendar' },
     { key: 'year', label: 'Year', icon: 'wallet' },
+    { key: 'multiMonth', label: 'Multi-Month', icon: 'grid' },
     { key: 'custom', label: 'Custom', icon: 'apps' },
   ];
 
@@ -640,6 +641,10 @@ export default function ReportsScreen() {
 
     if (key === 'year') {
       setShowYearPicker(true);
+    }
+
+    if (key === 'multiMonth' && selectedMonths.length === 0) {
+      setSelectedMonths([now.getMonth()]);
     }
   };
 
@@ -919,7 +924,7 @@ export default function ReportsScreen() {
           </View>
 
           {/* Custom Date Start Picker */}
-          <CustomModal visible={showCustomStartPicker} onClose={() => setShowCustomStartPicker(false)}>
+          <CustomModal visible={showCustomStartPicker} onClose={() => setShowCustomStartPicker(false)} showCloseButton={false}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Select Start Date</Text>
             <View style={{ paddingVertical: 16 }}>
               <DateTimePicker
@@ -956,7 +961,7 @@ export default function ReportsScreen() {
           </CustomModal>
 
           {/* Custom Date End Picker */}
-          <CustomModal visible={showCustomEndPicker} onClose={() => setShowCustomEndPicker(false)}>
+          <CustomModal visible={showCustomEndPicker} onClose={() => setShowCustomEndPicker(false)} showCloseButton={false}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Select End Date</Text>
             <View style={{ paddingVertical: 16 }}>
               <DateTimePicker
@@ -1038,6 +1043,14 @@ export default function ReportsScreen() {
 
           {(filterKey === 'month' || filterKey === 'multiMonth') && (
             <View style={{ marginTop: 4 }}>
+              <Pressable
+                onPress={() => setShowYearPicker(true)}
+                style={[styles.yearPill, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+                <Text style={[styles.yearPillText, { color: colors.text }]}>Year: {selectedYear}</Text>
+                <Ionicons name="chevron-down" size={14} color={colors.textTertiary} />
+              </Pressable>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1085,7 +1098,7 @@ export default function ReportsScreen() {
           )}
         </Animated.View>
 
-        <CustomModal visible={showYearPicker} onClose={() => setShowYearPicker(false)}>
+        <CustomModal visible={showYearPicker} onClose={() => setShowYearPicker(false)} showCloseButton={false}>
           <Text style={[styles.modalTitle, { color: colors.text }]}>Pick year</Text>
           <View style={{ paddingVertical: 16 }}>
             <DateTimePicker
@@ -1380,6 +1393,21 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 0,
     marginBottom: 18,
+  },
+  yearPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  yearPillText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
   },
   monthPickerHeader: {
     flexDirection: 'row',
@@ -1841,11 +1869,6 @@ const styles = StyleSheet.create({
   exportBtnHeader: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 10,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.2)',
   },

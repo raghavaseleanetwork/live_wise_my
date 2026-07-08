@@ -460,19 +460,14 @@ export default function BillDetailsScreen() {
               </View>
               <Text style={styles.emptyBillTitle}>Digital Summary Available</Text>
               <Text style={styles.emptyBillDesc}>No physical scan attached. AI has summarized the intent as {intent}.</Text>
-              <Pressable 
-                style={styles.addScanBtnPremium} 
+              <Pressable
+                style={[styles.addScanBtnPremium, { backgroundColor: colors.accent }]}
                 onPress={() => router.push(`/scan-bill?billId=${bill.id}`)}
               >
-                <LinearGradient
-                  colors={['#4F46E5', '#6366F1']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.addScanGradient}
-                >
+                <View style={styles.addScanGradient}>
                   <Ionicons name="camera" size={18} color="#FFFFFF" />
                   <Text style={styles.addScanBtnTextPremium}>Attach Official Bill Scan</Text>
-                </LinearGradient>
+                </View>
               </Pressable>
             </View>
           )}
@@ -544,7 +539,7 @@ export default function BillDetailsScreen() {
       {/* Edit modal removed in favor of full screen app/edit-reminder.tsx */}
 
       {/* Repeat picker modal */}
-      <CustomModal visible={showRepeatPickerModal} onClose={() => setShowRepeatPickerModal(false)}>
+      <CustomModal visible={showRepeatPickerModal} onClose={() => setShowRepeatPickerModal(false)} showCloseButton={false}>
         <Text style={[styles.modalTitle, { color: colors.text }]}>Repeat</Text>
         <ScrollView style={{ maxHeight: 260 }}>
           {REPEAT_OPTIONS.map((opt) => {
@@ -995,11 +990,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 14,
     overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
   addScanGradient: {
     flexDirection: 'row',
