@@ -217,6 +217,19 @@ function AuthGate() {
         <Stack.Screen name="add-family-member" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-family-member" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="add-medicine" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="family-appointments/[memberId]" />
+        <Stack.Screen name="family-health/[memberId]" />
+        <Stack.Screen name="family-stock/[memberId]" />
+        <Stack.Screen name="family-routine/[memberId]" />
+        <Stack.Screen name="family-bills/[memberId]" />
+        <Stack.Screen name="family-subscriptions/[memberId]" />
+        <Stack.Screen name="family-expenses/[memberId]" />
+        <Stack.Screen name="family-tasks/[memberId]" />
+        <Stack.Screen name="family-documents/[memberId]" />
+        <Stack.Screen name="family-checkin/[memberId]" />
+        <Stack.Screen name="family-travel/[memberId]" />
+        <Stack.Screen name="family-emergency/[memberId]" />
+        <Stack.Screen name="family-custom/[memberId]" />
         <Stack.Screen name="assistant" />
         <Stack.Screen name="+not-found" />
       </Stack>

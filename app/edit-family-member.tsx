@@ -9,7 +9,6 @@ import {
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
-  Switch,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +22,14 @@ import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest, getApiUrl } from '@/lib/query-client';
 import { Avatar } from '../components/Avatar';
+import FeatureSelector from '@/components/FeatureSelector';
+import {
+  FamilyFeatureKey,
+  DEFAULT_FEATURES,
+  normalizeFeatures,
+  loadMemberFeatures,
+  saveMemberFeatures,
+} from '@/lib/family-features';
 
 const RELATIONSHIPS = [
   { key: 'self', label: 'Self', icon: 'person' },
@@ -51,11 +58,31 @@ export default function EditFamilyMemberScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState(new Date(2000, 0, 1));
-  const [selectedFeatures, setSelectedFeatures] = useState({
-    medicines: true,
-    reminders: true,
-    reports: false,
-  });
+  const [selectedFeatures, setSelectedFeatures] = useState<FamilyFeatureKey[]>([...DEFAULT_FEATURES]);
+  const [showCaregiverHint, setShowCaregiverHint] = useState(false);
+
+  const toggleFeature = (key: FamilyFeatureKey) => {
+    setSelectedFeatures((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  };
+
+  const handleSelectRelationship = (rel: string) => {
+    setRelationship(rel);
+    // Same caregiver logic as Add Family Member: parents get Emergency
+    // Alerts + Call & Check-in auto-enabled.
+    if (rel === 'parent') {
+      setSelectedFeatures((prev) => {
+        const additions: FamilyFeatureKey[] = ['emergency', 'checkin'];
+        const missing = additions.filter((k) => !prev.includes(k));
+        if (missing.length === 0) return prev;
+        return [...prev, ...missing];
+      });
+      setShowCaregiverHint(true);
+    } else {
+      setShowCaregiverHint(false);
+    }
+  };
 
   useEffect(() => {
     fetchMember();
@@ -78,8 +105,14 @@ export default function EditFamilyMemberScreen() {
             setDateOfBirth(member.dateOfBirth);
             setDobDate(new Date(member.dateOfBirth));
           }
-          if (member.features) {
-            setSelectedFeatures(member.features);
+          // Prefer locally-stored feature selection (Phase 1 source of truth);
+          // fall back to whatever the server returned (legacy boolean shape or
+          // new array), normalizing either into the modern key list.
+          const local = await loadMemberFeatures(String(id));
+          if (local && local.length) {
+            setSelectedFeatures(local);
+          } else if (member.features) {
+            setSelectedFeatures(normalizeFeatures(member.features));
           }
         } else {
           setError('Member not found');
@@ -157,6 +190,10 @@ export default function EditFamilyMemberScreen() {
       setError('Please enter a name');
       return;
     }
+    if (selectedFeatures.length === 0) {
+      setError('Select at least one feature to manage');
+      return;
+    }
     if (!token || !id) return;
 
     setIsSaving(true);
@@ -164,16 +201,18 @@ export default function EditFamilyMemberScreen() {
       const res = await apiRequest(
         'PUT',
         `/api/family/${id}`,
-        { 
-          name: name.trim(), 
-          relationship, 
+        {
+          name: name.trim(),
+          relationship,
           avatarUrl,
           dateOfBirth,
-          features: selectedFeatures
+          features: selectedFeatures,
         },
         token
       );
       if (res.ok) {
+        // Keep the local feature store in sync (Phase 1 source of truth).
+        await saveMemberFeatures(String(id), selectedFeatures);
         router.back();
       } else {
         setError('Failed to update member. Please try again.');
@@ -255,8 +294,43 @@ export default function EditFamilyMemberScreen() {
               </Animated.View>
             ) : null}
 
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>RELATIONSHIP</Text>
+            <View style={styles.relGrid}>
+              {RELATIONSHIPS.map((rel) => {
+                const isSelected = relationship === rel.key;
+                return (
+                  <Pressable
+                    key={rel.key}
+                    onPress={() => handleSelectRelationship(rel.key)}
+                    style={[
+                      styles.relCard,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      isSelected && { borderColor: colors.accent, backgroundColor: colors.accentDim },
+                    ]}
+                  >
+                    <Ionicons name={rel.icon as any} size={22} color={isSelected ? colors.accent : colors.textTertiary} />
+                    <Text style={[styles.relLabel, { color: isSelected ? colors.accent : colors.textSecondary }]}>{rel.label}</Text>
+                    {isSelected && (
+                      <View style={styles.checkWrap}>
+                        <Ionicons name="checkmark-circle" size={16} color={colors.accent} />
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {showCaregiverHint && (
+              <Animated.View entering={FadeInDown} style={[styles.infoCard, { backgroundColor: colors.accentDim + '30', borderColor: colors.accent + '30', marginTop: 0, marginBottom: 20 }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={colors.accent} />
+                <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                  Since this is a parent, we've turned on <Text style={{ fontFamily: 'Inter_700Bold' }}>Emergency Alerts</Text> and <Text style={{ fontFamily: 'Inter_700Bold' }}>Call & Check-in</Text> below — you can turn them off if you don't need them.
+                </Text>
+              </Animated.View>
+            )}
+
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DATE OF BIRTH</Text>
-            <Pressable 
+            <Pressable
               onPress={() => setShowDatePicker(true)}
               style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 24 }]}
             >
@@ -284,43 +358,10 @@ export default function EditFamilyMemberScreen() {
             )}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>MANAGED FEATURES</Text>
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.featureRow}>
-                <View style={styles.featureInfo}>
-                  <Ionicons name="medkit" size={20} color={colors.accent} />
-                  <Text style={[styles.featureLabel, { color: colors.text }]}>Medicine Tracking</Text>
-                </View>
-                <Switch 
-                  value={selectedFeatures.medicines} 
-                  onValueChange={(v) => setSelectedFeatures(prev => ({ ...prev, medicines: v }))}
-                  trackColor={{ false: colors.border, true: colors.accent }}
-                />
-              </View>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.featureRow}>
-                <View style={styles.featureInfo}>
-                  <Ionicons name="notifications" size={20} color={colors.accent} />
-                  <Text style={[styles.featureLabel, { color: colors.text }]}>Bill Reminders</Text>
-                </View>
-                <Switch 
-                  value={selectedFeatures.reminders} 
-                  onValueChange={(v) => setSelectedFeatures(prev => ({ ...prev, reminders: v }))}
-                  trackColor={{ false: colors.border, true: colors.accent }}
-                />
-              </View>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.featureRow}>
-                <View style={styles.featureInfo}>
-                  <Ionicons name="document-text" size={20} color={colors.accent} />
-                  <Text style={[styles.featureLabel, { color: colors.text }]}>Health Reports</Text>
-                </View>
-                <Switch 
-                  value={selectedFeatures.reports} 
-                  onValueChange={(v) => setSelectedFeatures(prev => ({ ...prev, reports: v }))}
-                  trackColor={{ false: colors.border, true: colors.accent }}
-                />
-              </View>
-            </View>
+            <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
+              Tap to turn features on or off for {name.trim() || 'this member'}.
+            </Text>
+            <FeatureSelector selected={selectedFeatures} onToggle={toggleFeature} />
           </View>
         </ScrollView>
 
@@ -462,10 +503,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: 13,
-    marginBottom: 16,
+    marginBottom: 6,
     marginTop: 8,
     letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  sectionHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 16,
   },
   relGrid: {
     flexDirection: 'row',
@@ -491,6 +538,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
+  },
+  infoCard: {
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    lineHeight: 20,
   },
   footer: {
     position: 'absolute',

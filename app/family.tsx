@@ -18,6 +18,31 @@ import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { useSeniorMode } from '@/lib/senior-context';
 import { Avatar } from '../components/Avatar';
+import {
+  FAMILY_FEATURE_MAP,
+  FamilyFeatureKey,
+  normalizeFeatures,
+  loadMemberFeatures,
+} from '@/lib/family-features';
+import {
+  loadAppointments,
+  loadHealthLogs,
+  loadStock,
+  loadRoutines,
+  isLowStock,
+  loadFamilyBills,
+  loadSubscriptions,
+  loadFamilyExpenses,
+  loadFamilyTasks,
+  loadFamilyDocuments,
+  totalThisMonth,
+  loadCheckins,
+  loadTravelItems,
+  loadEmergencyLog,
+  loadCustomItems,
+  loadCustomConfig,
+} from '@/lib/family-records';
+import { useCurrency } from '@/lib/currency-context';
 
 const RELATIONSHIPS = [
   { key: 'self', label: 'Self', icon: 'person' },
@@ -59,12 +84,26 @@ interface FamilyMember {
   relationship: string;
   avatarUrl?: string | null;
   dateOfBirth?: string;
-  features?: {
-    medicines?: boolean;
-    bills?: boolean;
-    reports?: boolean;
-  };
+  features?: unknown;
+  /** Normalized, resolved list of enabled feature keys (Phase 1). */
+  featureKeys: FamilyFeatureKey[];
   medicines: Medicine[];
+  /** Phase 2 & 3 summary counts, per feature, for the dashboard cards. */
+  summaries: {
+    appointments: { upcoming: number };
+    health: { total: number };
+    stock: { lowCount: number; total: number };
+    routine: { total: number };
+    bills: { unpaid: number };
+    subscriptions: { total: number; monthlyTotal: number };
+    expenses: { monthTotal: number };
+    tasks: { pending: number };
+    insurance: { total: number };
+    checkin: { total: number };
+    travel: { upcoming: number };
+    emergency: { unacknowledged: number };
+    custom: { name: string | null; total: number };
+  };
 }
 
 export default function FamilyScreen() {
@@ -72,14 +111,65 @@ export default function FamilyScreen() {
   const { colors, isDark } = useTheme();
   const { token } = useAuth();
   const { isSeniorMode } = useSeniorMode();
+  const { formatAmount } = useCurrency();
   const [members, setMembers] = useState<FamilyMember[]>([]);
 
   const loadMembers = useCallback(async () => {
     if (!token) return;
     try {
       const res = await apiRequest('GET', '/api/family', undefined, token);
-      const data = await res.json();
-      setMembers(data as FamilyMember[]);
+      const data = (await res.json()) as any[];
+      // Resolve each member's feature list: prefer the on-device selection
+      // (Phase 1 source of truth), else normalize whatever the server sent.
+      const hydrated: FamilyMember[] = await Promise.all(
+        data.map(async (m) => {
+          const id = String(m.id);
+          const local = await loadMemberFeatures(id);
+          const featureKeys = local && local.length ? local : normalizeFeatures(m.features);
+
+          const [appts, healthLogs, stockItems, routines, bills, subs, expenses, tasks, documents, checkins, travelItems, emergencyLog, customItems, customConfig] = await Promise.all([
+            loadAppointments(id),
+            loadHealthLogs(id),
+            loadStock(id),
+            loadRoutines(id),
+            loadFamilyBills(id),
+            loadSubscriptions(id),
+            loadFamilyExpenses(id),
+            loadFamilyTasks(id),
+            loadFamilyDocuments(id),
+            loadCheckins(id),
+            loadTravelItems(id),
+            loadEmergencyLog(id),
+            loadCustomItems(id),
+            loadCustomConfig(id),
+          ]);
+
+          return {
+            ...m,
+            featureKeys,
+            medicines: Array.isArray(m.medicines) ? m.medicines : [],
+            summaries: {
+              appointments: { upcoming: appts.filter((a) => !a.completed).length },
+              health: { total: healthLogs.length },
+              stock: { lowCount: stockItems.filter(isLowStock).length, total: stockItems.length },
+              routine: { total: routines.filter((r) => r.enabled).length },
+              bills: { unpaid: bills.filter((b) => !b.isPaid).length },
+              subscriptions: {
+                total: subs.length,
+                monthlyTotal: Math.round(subs.reduce((s, sub) => s + (sub.cycle === 'monthly' ? sub.amount : sub.amount / 12), 0)),
+              },
+              expenses: { monthTotal: totalThisMonth(expenses) },
+              tasks: { pending: tasks.filter((t) => !t.completed).length },
+              insurance: { total: documents.length },
+              checkin: { total: checkins.filter((c) => c.enabled).length },
+              travel: { upcoming: travelItems.filter((t) => !t.completed).length },
+              emergency: { unacknowledged: emergencyLog.filter((e) => !e.acknowledged).length },
+              custom: { name: customConfig?.name || null, total: customItems.length },
+            },
+          } as FamilyMember;
+        }),
+      );
+      setMembers(hydrated);
     } catch (e) {
       console.error('Load family error:', e);
     }
@@ -155,7 +245,7 @@ export default function FamilyScreen() {
 
           <View style={styles.headerContent}>
             <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-              Manage your family's health routines
+              Manage medicines, health, bills & more for your loved ones
             </Text>
           </View>
         </LinearGradient>
@@ -168,7 +258,7 @@ export default function FamilyScreen() {
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>Your hub is empty</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                Add your loved ones to track their medications and health schedules in one place.
+                Add your loved ones and pick what to manage — medicines, health, bills, appointments and more, all in one place.
               </Text>
               <Pressable 
                 onPress={() => router.push('/add-family-member')}
@@ -229,74 +319,160 @@ export default function FamilyScreen() {
                   </View>
                 </View>
 
-                {/* Dynamic Features Dashboard */}
+                {/* Dynamic Features Dashboard — one section per enabled feature */}
                 <View style={styles.featuresDashboard}>
-                  {(!member.features || member.features.medicines) && (
-                    <View style={styles.featureSection}>
-                      <View style={styles.featureHeader}>
-                        <Ionicons name="medical" size={18} color={colors.accent} />
-                        <Text style={[styles.featureTitle, { color: colors.text }]}>Medicines</Text>
-                      </View>
-                      
-                      {member.medicines.length === 0 ? (
-                        <View style={[styles.noMedsBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
-                          <Text style={[styles.noItemsText, { color: colors.textTertiary }]}>No active medications</Text>
-                        </View>
-                      ) : (
-                        <View style={styles.medList}>
-                          {member.medicines.map((med) => {
-                            const pillColor = med.color || colors.accent;
-                            return (
-                              <View key={med.id} style={[styles.miniMedCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-                                <View style={[styles.miniMedIcon, { backgroundColor: pillColor + '20' }]}>
-                                  <Ionicons name="medkit" size={12} color={pillColor} />
-                                </View>
-                                <Text style={[styles.miniMedName, { color: colors.text }]} numberOfLines={1}>{med.name}</Text>
-                                <Pressable 
-                                  onPress={() => markMedicine(member.id, med.id, 'taken')}
-                                  style={[styles.miniCheck, med.taken && { backgroundColor: '#10B981' }]}
-                                >
-                                  <Ionicons name="checkmark" size={12} color={med.taken ? '#FFF' : colors.textTertiary} />
-                                </Pressable>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      )}
+                  {member.featureKeys.length === 0 && (
+                    <View style={[styles.noMedsBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
+                      <Text style={[styles.noItemsText, { color: colors.textTertiary }]}>
+                        No features selected. Tap edit to choose what to manage.
+                      </Text>
                     </View>
                   )}
 
-                  {member.features?.bills && (
-                    <Pressable 
-                      onPress={() => router.push({ pathname: '/reminders', params: { memberId: member.id } })}
-                      style={[styles.featureCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-                    >
-                      <View style={[styles.featureIconWrap, { backgroundColor: '#F59E0B20' }]}>
-                        <Ionicons name="receipt" size={18} color="#F59E0B" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.featureTitle, { color: colors.text }]}>Bills & Utilities</Text>
-                        <Text style={[styles.featureSubtitle, { color: colors.textTertiary }]}>Manage personal bills</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-                    </Pressable>
-                  )}
+                  {member.featureKeys.map((key) => {
+                    // Medicine Tracking has its full interactive UI (already built).
+                    if (key === 'medicines') {
+                      return (
+                        <View key={key} style={styles.featureSection}>
+                          <View style={styles.featureHeader}>
+                            <Ionicons name="medical" size={18} color={colors.accent} />
+                            <Text style={[styles.featureTitle, { color: colors.text }]}>Medicines</Text>
+                          </View>
 
-                  {member.features?.reports && (
-                    <Pressable 
-                      onPress={() => router.push({ pathname: '/reports', params: { memberId: member.id } })}
-                      style={[styles.featureCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-                    >
-                      <View style={[styles.featureIconWrap, { backgroundColor: '#8B5CF620' }]}>
-                        <Ionicons name="bar-chart" size={18} color="#8B5CF6" />
+                          {member.medicines.length === 0 ? (
+                            <View style={[styles.noMedsBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
+                              <Text style={[styles.noItemsText, { color: colors.textTertiary }]}>No active medications</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.medList}>
+                              {member.medicines.map((med) => {
+                                const pillColor = med.color || colors.accent;
+                                return (
+                                  <View key={med.id} style={[styles.miniMedCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                                    <View style={[styles.miniMedIcon, { backgroundColor: pillColor + '20' }]}>
+                                      <Ionicons name="medkit" size={12} color={pillColor} />
+                                    </View>
+                                    <Text style={[styles.miniMedName, { color: colors.text }]} numberOfLines={1}>{med.name}</Text>
+                                    <Pressable
+                                      onPress={() => markMedicine(member.id, med.id, 'taken')}
+                                      style={[styles.miniCheck, med.taken && { backgroundColor: '#10B981' }]}
+                                    >
+                                      <Ionicons name="checkmark" size={12} color={med.taken ? '#FFF' : colors.textTertiary} />
+                                    </Pressable>
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    }
+
+                    const def = FAMILY_FEATURE_MAP[key];
+                    if (!def) return null;
+
+                    // Phase 2 & 3: built features route to their real screen
+                    // with a live subtitle. Everything else still shows "Soon".
+                    let subtitle = def.description;
+                    let route: { pathname: string; params: { memberId: string; memberName: string } } | null = null;
+                    let isWarning = false;
+
+                    if (key === 'appointments') {
+                      const n = member.summaries.appointments.upcoming;
+                      subtitle = n === 0 ? 'No upcoming appointments' : `${n} upcoming appointment${n === 1 ? '' : 's'}`;
+                      route = { pathname: '/family-appointments/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'health') {
+                      const n = member.summaries.health.total;
+                      subtitle = n === 0 ? 'No readings logged yet' : `${n} reading${n === 1 ? '' : 's'} logged`;
+                      route = { pathname: '/family-health/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'stock') {
+                      const { lowCount, total } = member.summaries.stock;
+                      subtitle = total === 0 ? 'No stock tracked yet' : lowCount > 0 ? `${lowCount} medicine${lowCount === 1 ? '' : 's'} low on stock` : `${total} medicine${total === 1 ? '' : 's'} tracked`;
+                      isWarning = lowCount > 0;
+                      route = { pathname: '/family-stock/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'routine') {
+                      const n = member.summaries.routine.total;
+                      subtitle = n === 0 ? 'No routine set yet' : `${n} active reminder${n === 1 ? '' : 's'}`;
+                      route = { pathname: '/family-routine/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'bills') {
+                      const n = member.summaries.bills.unpaid;
+                      subtitle = n === 0 ? 'No bills due' : `${n} bill${n === 1 ? '' : 's'} due`;
+                      isWarning = n > 0;
+                      route = { pathname: '/family-bills/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'subscriptions') {
+                      const { total, monthlyTotal } = member.summaries.subscriptions;
+                      subtitle = total === 0 ? 'No subscriptions tracked' : `${total} active · ~${formatAmount(monthlyTotal)}/mo`;
+                      route = { pathname: '/family-subscriptions/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'expenses') {
+                      const n = member.summaries.expenses.monthTotal;
+                      subtitle = n === 0 ? 'No expenses logged this month' : `${formatAmount(n)} spent this month`;
+                      route = { pathname: '/family-expenses/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'tasks') {
+                      const n = member.summaries.tasks.pending;
+                      subtitle = n === 0 ? 'No pending tasks' : `${n} task${n === 1 ? '' : 's'} pending`;
+                      route = { pathname: '/family-tasks/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'insurance') {
+                      const n = member.summaries.insurance.total;
+                      subtitle = n === 0 ? 'No documents tracked yet' : `${n} document${n === 1 ? '' : 's'} tracked`;
+                      route = { pathname: '/family-documents/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'checkin') {
+                      const n = member.summaries.checkin.total;
+                      subtitle = n === 0 ? 'No check-ins set yet' : `${n} active check-in${n === 1 ? '' : 's'}`;
+                      route = { pathname: '/family-checkin/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'travel') {
+                      const n = member.summaries.travel.upcoming;
+                      subtitle = n === 0 ? 'No visits planned' : `${n} upcoming visit${n === 1 ? '' : 's'}`;
+                      route = { pathname: '/family-travel/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'emergency') {
+                      const n = member.summaries.emergency.unacknowledged;
+                      subtitle = n === 0 ? 'All clear' : `${n} unacknowledged alert${n === 1 ? '' : 's'}`;
+                      isWarning = n > 0;
+                      route = { pathname: '/family-emergency/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    } else if (key === 'custom') {
+                      const { name, total } = member.summaries.custom;
+                      subtitle = !name ? 'Tap to set up your tracker' : total === 0 ? `${name} — nothing logged yet` : `${name} — ${total} entr${total === 1 ? 'y' : 'ies'}`;
+                      route = { pathname: '/family-custom/[memberId]', params: { memberId: member.id, memberName: member.name } };
+                    }
+
+                    const cardContent = (
+                      <>
+                        <View style={[styles.featureIconWrap, { backgroundColor: colors.accentDim }]}>
+                          <Ionicons name={def.icon as any} size={18} color={colors.accent} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.featureTitle, { color: colors.text }]}>{def.emoji} {def.label}</Text>
+                          <Text style={[styles.featureSubtitle, { color: isWarning ? colors.warning : colors.textTertiary }]}>
+                            {subtitle}
+                          </Text>
+                        </View>
+                        {route ? (
+                          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                        ) : (
+                          <View style={[styles.comingSoonBadge, { backgroundColor: colors.warningDim }]}>
+                            <Text style={[styles.comingSoonText, { color: colors.warning }]}>Soon</Text>
+                          </View>
+                        )}
+                      </>
+                    );
+
+                    if (route) {
+                      return (
+                        <Pressable
+                          key={key}
+                          onPress={() => router.push(route as any)}
+                          style={[styles.featureCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                        >
+                          {cardContent}
+                        </Pressable>
+                      );
+                    }
+
+                    return (
+                      <View key={key} style={[styles.featureCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                        {cardContent}
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.featureTitle, { color: colors.text }]}>Health Reports</Text>
-                        <Text style={[styles.featureSubtitle, { color: colors.textTertiary }]}>View activity summaries</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-                    </Pressable>
-                  )}
+                    );
+                  })}
                 </View>
               </Animated.View>
             ))
@@ -525,5 +701,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  comingSoonBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  comingSoonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
 });

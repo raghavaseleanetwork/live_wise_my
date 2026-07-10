@@ -49,21 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   WebBrowser.maybeCompleteAuthSession();
 
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_CLIENT_ID || '152932967230-0v78v9m0i8r4o0v9r7v9r7v9.apps.googleusercontent.com',
-    iosClientId: process.env.EXPO_PUBLIC_IOS_GOOGLE_CLIENT_ID || '152932967230-0v78v9m0i8r4o0v9r7v9r7v9.apps.googleusercontent.com',
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '152932967230-k3cofknaqa0iompfilk3q69novnpg169.apps.googleusercontent.com',
+    androidClientId: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_IOS_GOOGLE_CLIENT_ID,
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     scopes: ['openid', 'profile', 'email'],
     responseType: AuthSession.ResponseType.IdToken,
   });
-
-  useEffect(() => {
-    if (googleRequest) {
-      console.log('--- [DEBUG 15:58] Google Login Diagnostics ---');
-      console.log('Target Client ID:', googleRequest.clientId);
-      console.log('Target Redirect URI:', googleRequest.redirectUri);
-      console.log('---------------------------------------------');
-    }
-  }, [googleRequest]);
 
   useEffect(() => {
     if (googleResponse?.type === 'error') {
