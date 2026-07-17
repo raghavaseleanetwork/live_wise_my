@@ -35,16 +35,26 @@ export async function performSmsSync(
     onProgress?.({ phase: 'fetching' });
     const lastSyncStr = await AsyncStorage.getItem(LAST_SYNC_TIMESTAMP_KEY);
     const lastSyncTime = lastSyncStr ? parseInt(lastSyncStr, 10) : 0;
-    
-    // Read slightly more in background to catch up
-    const smsResult = await readSmsFromDeviceWithMeta(200);
+
+    // Incremental read: ask the native layer for everything since the last sync
+    // watermark (minDate) instead of a fixed newest-N slice. This is what stops
+    // bank SMS from being missed when the inbox has a lot of unrelated messages.
+    // On the very first sync (no watermark) we fall back to a large recent
+    // window so we still capture meaningful history without reading the whole
+    // inbox. The backend deduplicates on smsId, so re-sent overlaps are safe.
+    const smsResult = lastSyncTime > 0
+      ? await readSmsFromDeviceWithMeta({ minDate: lastSyncTime, maxCount: 5000 })
+      : await readSmsFromDeviceWithMeta({ maxCount: 2000 });
     const rawSms = smsResult.messages || [];
-    
-    // Filter by date to avoid re-parsing old stuff locally (though backend also deduplicates)
-    const newSms = rawSms.filter(s => {
-      const d = typeof s.date === 'number' ? s.date : (s.date ? new Date(s.date).getTime() : 0);
-      return d > lastSyncTime;
-    });
+
+    // Safety net: `minDate` is inclusive, so drop anything at/older than the
+    // watermark to avoid re-processing the boundary message every run.
+    const newSms = lastSyncTime > 0
+      ? rawSms.filter(s => {
+          const d = typeof s.date === 'number' ? s.date : (s.date ? new Date(s.date).getTime() : 0);
+          return d > lastSyncTime;
+        })
+      : rawSms;
 
     if (newSms.length === 0) {
       onProgress?.({ phase: 'completed', synced: 0, skipped: 0 });
@@ -76,8 +86,17 @@ export async function performSmsSync(
     });
 
     if (res.ok) {
-      const latestSmsTime = Math.max(...newSms.map(s => typeof s.date === 'number' ? s.date : (s.date ? new Date(s.date).getTime() : 0)));
-      await AsyncStorage.setItem(LAST_SYNC_TIMESTAMP_KEY, String(latestSmsTime));
+      // Advance the watermark to the newest SMS we actually read this run. Safe
+      // because the incremental read returns the whole window since lastSyncTime
+      // (no truncated slice), so nothing below the new watermark was skipped.
+      // Guard so the watermark can only move forward.
+      const newestInWindow = newSms.reduce((max, s) => {
+        const d = typeof s.date === 'number' ? s.date : (s.date ? new Date(s.date).getTime() : 0);
+        return d > max ? d : max;
+      }, lastSyncTime);
+      if (newestInWindow > lastSyncTime) {
+        await AsyncStorage.setItem(LAST_SYNC_TIMESTAMP_KEY, String(newestInWindow));
+      }
       const json = await res.json();
       
       // NEW: Trigger AI categorization for any 'others' that were just synced

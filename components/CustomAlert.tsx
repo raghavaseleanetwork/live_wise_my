@@ -12,8 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeIn,
   FadeOut,
-  ZoomIn,
-  ZoomOut,
 } from 'react-native-reanimated';
 import { useAlert } from '@/lib/alert-context';
 import { useTheme } from '@/lib/theme-context';
@@ -77,8 +75,8 @@ export default function CustomAlert() {
 
             <View style={styles.centeredView}>
               <Animated.View
-                entering={ZoomIn.duration(350).damping(20).springify()}
-                exiting={ZoomOut.duration(200)}
+                entering={FadeIn.duration(150)}
+                exiting={FadeOut.duration(150)}
                 style={[
                   styles.alertCard,
                   {

@@ -83,45 +83,13 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="transactions"
+        name="family"
         options={{
-          title: "Activity",
+          title: "Family Hub",
           tabBarIcon: ({ focused }) => (
             <View style={[styles.tabItem, focused && styles.tabItemActive]}>
               <Ionicons
-                name="stats-chart"
-                size={22}
-                color={focused ? activeColor : inactiveColor}
-              />
-            </View>
-          ),
-          tabBarLabel: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Reports",
-          tabBarIcon: ({ focused }) => (
-            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
-              <Ionicons
-                name="pie-chart"
-                size={22}
-                color={focused ? activeColor : inactiveColor}
-              />
-            </View>
-          ),
-          tabBarLabel: () => null,
-        }}
-      />
-      <Tabs.Screen
-        name="leaks"
-        options={{
-          title: "Leaks",
-          tabBarIcon: ({ focused }) => (
-            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
-              <Ionicons
-                name="water"
+                name="people"
                 size={22}
                 color={focused ? activeColor : inactiveColor}
               />
@@ -146,6 +114,41 @@ function ClassicTabLayout() {
           tabBarLabel: () => null,
         }}
       />
+      <Tabs.Screen
+        name="reports"
+        options={{
+          title: "Report",
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+              <Ionicons
+                name="pie-chart"
+                size={22}
+                color={focused ? activeColor : inactiveColor}
+              />
+            </View>
+          ),
+          tabBarLabel: () => null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+              <Ionicons
+                name="person"
+                size={22}
+                color={focused ? activeColor : inactiveColor}
+              />
+            </View>
+          ),
+          tabBarLabel: () => null,
+        }}
+      />
+      {/* Routable but hidden from the tab bar — reached via Home > Quick Reach */}
+      <Tabs.Screen name="transactions" options={{ href: null }} />
+      <Tabs.Screen name="leaks" options={{ href: null }} />
     </Tabs>
   );
 }

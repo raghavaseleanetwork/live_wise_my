@@ -13,8 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeIn,
   FadeOut,
-  ZoomIn,
-  ZoomOut,
 } from 'react-native-reanimated';
 import { useTheme } from '@/lib/theme-context';
 import { useSeniorMode } from '@/lib/senior-context';
@@ -71,8 +69,8 @@ export default function CustomModal({
               style={[styles.keyboardView, fullScreen && styles.fullScreenContainer]}
             >
               <Animated.View
-                entering={fullScreen ? FadeIn.duration(300) : ZoomIn.duration(400).springify().damping(25).stiffness(120)}
-                exiting={fullScreen ? FadeOut.duration(200) : ZoomOut.duration(200)}
+                entering={FadeIn.duration(150)}
+                exiting={FadeOut.duration(150)}
                 style={[
                   styles.modalCard,
                   {
@@ -140,8 +138,10 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 24,
+    // Matches `content`'s horizontal padding so the button lines up with the
+    // modal's text gutter instead of sitting closer to the edge than the title.
+    right: 24,
     width: 36,
     height: 36,
     borderRadius: 18,

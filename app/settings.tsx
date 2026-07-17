@@ -249,36 +249,29 @@ export default function SettingsScreen() {
         <Text style={[styles.budgetHint, { color: colors.textSecondary }]}>
           This amount is used for the home screen budget bar and remaining balance.
         </Text>
-        <View
-          style={[
-            styles.budgetInputRow,
-            { borderColor: colors.inputBorder, backgroundColor: colors.inputBg },
-          ]}
-        >
-          <Text style={[styles.currencySymbol, { color: colors.accent }]}>{currentCurrency.symbol}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
+          <TextInput
+            style={{
+              fontFamily: 'Inter_600SemiBold',
+              fontSize: 24,
+              color: colors.text,
+              textAlign: 'right',
+            }}
+            value={budgetInput}
+            onChangeText={(t: string) => setBudgetInput(t.replace(/[^0-9]/g, ''))}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor={colors.textTertiary}
+          />
           <Text
             style={[
               styles.currencyCode,
-              { color: colors.textSecondary, fontSize: 14, marginRight: 4 },
+              { color: colors.textSecondary, fontSize: 14, marginLeft: 6 },
             ]}
           >
             {currentCurrency.code}
           </Text>
         </View>
-        <TextInput
-          style={{
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 24,
-            color: colors.text,
-            textAlign: 'center',
-            width: '100%',
-          }}
-          value={budgetInput}
-          onChangeText={(t: string) => setBudgetInput(t.replace(/[^0-9]/g, ''))}
-          keyboardType="number-pad"
-          placeholder="0"
-          placeholderTextColor={colors.textTertiary}
-        />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }}>
           {[10000, 25000, 50000].map((preset) => (
             <Pressable
@@ -423,15 +416,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 14,
     textAlign: 'center',
-  },
-  budgetInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 10,
   },
   budgetInputBox: {
     borderRadius: 16,

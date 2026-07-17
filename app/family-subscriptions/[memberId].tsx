@@ -5,11 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
-import CustomModal from '@/components/CustomModal';
 import {
   FamilySubscription,
   loadSubscriptions,
@@ -95,6 +94,61 @@ export default function FamilySubscriptionsScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+        {showAdd && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>New Subscription</Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Service Name</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={serviceName}
+              onChangeText={setServiceName}
+              placeholder="e.g. Netflix"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <View style={styles.formRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
+                <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
+                  <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>₹</Text>
+                  <TextInput
+                    style={[styles.amountInput, { color: colors.text }]}
+                    value={amount}
+                    onChangeText={setAmount}
+                    placeholder="0"
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Renewal Date</Text>
+                <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
+                  <Text style={{ color: colors.text }}>{renewalDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Billing Cycle</Text>
+            <View style={styles.typeRow}>
+              {(['monthly', 'yearly'] as const).map((c) => (
+                <Pressable key={c} onPress={() => setCycle(c)} style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, cycle === c && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+                  <Text style={[styles.typeChipText, { color: cycle === c ? '#FFF' : colors.textSecondary }]}>{c === 'monthly' ? 'Monthly' : 'Yearly'}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Save</Text>
+            </Pressable>
+            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {items.length > 0 && (
           <View style={[styles.summaryBanner, { backgroundColor: colors.accentDim, borderColor: colors.accent + '30' }]}>
             <Ionicons name="wallet" size={18} color={colors.accent} />
@@ -102,7 +156,7 @@ export default function FamilySubscriptionsScreen() {
           </View>
         )}
 
-        {items.length === 0 ? (
+        {showAdd ? null : items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="tv-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No subscriptions yet</Text>
@@ -133,60 +187,6 @@ export default function FamilySubscriptionsScreen() {
         )}
       </ScrollView>
 
-      <CustomModal visible={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>New Subscription</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Service Name</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={serviceName}
-          onChangeText={setServiceName}
-          placeholder="e.g. Netflix"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <View style={styles.formRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
-            <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
-              <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>₹</Text>
-              <TextInput
-                style={[styles.amountInput, { color: colors.text }]}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="0"
-                placeholderTextColor={colors.textTertiary}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Renewal Date</Text>
-            <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
-              <Text style={{ color: colors.text }}>{renewalDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Billing Cycle</Text>
-        <View style={styles.typeRow}>
-          {(['monthly', 'yearly'] as const).map((c) => (
-            <Pressable key={c} onPress={() => setCycle(c)} style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, cycle === c && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
-              <Text style={[styles.typeChipText, { color: cycle === c ? '#FFF' : colors.textSecondary }]}>{c === 'monthly' ? 'Monthly' : 'Yearly'}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleAdd} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Save</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
 
       {showDatePicker && (
         <DateTimePicker
@@ -219,7 +219,12 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
   cardAmount: { fontFamily: 'Inter_700Bold', fontSize: 15 },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 12, textAlign: 'center' },
+  formSection: { marginBottom: 28 },
+  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
+  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
+  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
@@ -230,9 +235,4 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: 'row', gap: 8 },
   typeChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalTextBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalPrimaryBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14 },
-  modalPrimaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#FFF' },
 });

@@ -312,12 +312,16 @@ function SettingsModal({
               key={d}
               onPress={() => toggleDay(d)}
               style={[
-                styles.chip, 
-                { backgroundColor: colors.inputBg, borderColor: colors.border + '40' }, 
+                styles.chip,
+                styles.dayChip,
+                { backgroundColor: colors.inputBg, borderColor: colors.border + '40' },
                 days.includes(d) && { backgroundColor: colors.accentDim, borderColor: colors.accent + '60' }
               ]}
             >
-              <Text style={[styles.chipText, { color: colors.textSecondary }, days.includes(d) && { color: colors.accent, fontFamily: 'Inter_600SemiBold' }]}>
+              <Text
+                numberOfLines={1}
+                style={[styles.chipText, { color: colors.textSecondary }, days.includes(d) && { color: colors.accent, fontFamily: 'Inter_600SemiBold' }]}
+              >
                 {d === 0 ? 'Due day' : `${d}d before`}
               </Text>
             </Pressable>
@@ -1161,6 +1165,17 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: 'wrap',
     marginBottom: 24,
+  },
+  // Chips are laid out on a fixed 3-up grid rather than sized to their text.
+  // Text-width chips ("7d before" vs "3d before") made every wrapped row end
+  // at a different point, leaving a ragged gap on the right.
+  // 30.5% keeps 3 chips + two 8px gaps inside the content width down to a
+  // 320dp screen; 31.5% overflows and silently collapses the row to 2-up.
+  dayChip: {
+    flexBasis: '30.5%',
+    flexGrow: 0,
+    alignItems: 'center',
+    paddingHorizontal: 4,
   },
   settingRow: {
     flexDirection: 'row',

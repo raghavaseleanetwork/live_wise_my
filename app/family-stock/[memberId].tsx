@@ -4,10 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
-import CustomModal from '@/components/CustomModal';
 import {
   MedicationStockItem,
   loadStock,
@@ -89,6 +88,64 @@ export default function MedicationStockScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+        {showAdd && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>Track Medicine Stock</Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Medicine Name</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={medicineName}
+              onChangeText={setMedicineName}
+              placeholder="e.g. Metformin"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Quantity Remaining</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={quantity}
+              onChangeText={setQuantity}
+              placeholder="e.g. 30"
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="numeric"
+            />
+
+            <View style={styles.formRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Daily Usage</Text>
+                <TextInput
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                  value={dailyUsage}
+                  onChangeText={setDailyUsage}
+                  placeholder="1"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Low Stock Alert At</Text>
+                <TextInput
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                  value={threshold}
+                  onChangeText={setThreshold}
+                  placeholder="5"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Save</Text>
+            </Pressable>
+            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {lowStockItems.length > 0 && (
           <View style={[styles.warningBanner, { backgroundColor: colors.warningDim, borderColor: colors.warning + '40' }]}>
             <Ionicons name="warning" size={18} color={colors.warning} />
@@ -98,7 +155,7 @@ export default function MedicationStockScreen() {
           </View>
         )}
 
-        {items.length === 0 ? (
+        {showAdd ? null : items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cube-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No stock tracked yet</Text>
@@ -153,63 +210,6 @@ export default function MedicationStockScreen() {
         )}
       </ScrollView>
 
-      <CustomModal visible={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Track Medicine Stock</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Medicine Name</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={medicineName}
-          onChangeText={setMedicineName}
-          placeholder="e.g. Metformin"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Quantity Remaining</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={quantity}
-          onChangeText={setQuantity}
-          placeholder="e.g. 30"
-          placeholderTextColor={colors.textTertiary}
-          keyboardType="numeric"
-        />
-
-        <View style={styles.formRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Daily Usage</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={dailyUsage}
-              onChangeText={setDailyUsage}
-              placeholder="1"
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Low Stock Alert At</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={threshold}
-              onChangeText={setThreshold}
-              placeholder="5"
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleAdd} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Save</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
     </View>
   );
 }
@@ -237,14 +237,14 @@ const styles = StyleSheet.create({
   stockBtn: { width: 40, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   stockBtnWide: { flex: 1, flexDirection: 'row', gap: 6 },
   refillText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 12, textAlign: 'center' },
+  formSection: { marginBottom: 28 },
+  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
+  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
+  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   formRow: { flexDirection: 'row', gap: 12 },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalTextBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalPrimaryBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14 },
-  modalPrimaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#FFF' },
 });

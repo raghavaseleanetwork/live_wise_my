@@ -334,6 +334,16 @@ async function parseReminderWithAI(text: string): Promise<{
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
+  // API responses are per-user and change constantly; letting anything cache
+  // them makes clients show stale data after an add/edit even though they
+  // refetched. Also drop ETags so conditional GETs can't 304 into old bodies.
+  app.set('etag', false);
+  app.use('/api', (_req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    next();
+  });
+
   // Initialize Socket.IO
   const io = new SocketServer(httpServer, {
     cors: {
@@ -2137,8 +2147,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: 'Could not transcribe any speech. Please try again.' });
         }
   
-        // Optimized: One call for normalization + parsing
-        const parsed = await normalizeAndParseVoiceReminderWithAI(transcript, tJson.language || null);
+        // Step 1: cheap script-based language detection, only falling back to AI when ambiguous
+        // (handles the Gujarati-spoken-but-Hindi-transcribed case explicitly).
+        const { text: normalizedText, language: detectedLang } = await normalizeTranscriptScript({
+          text: transcript,
+          languageHint: tJson.language || null,
+          apiKey: openAIKey,
+        });
+
+        // Step 2: extract structured reminder fields from the already-normalized text.
+        const parsed = await normalizeAndParseVoiceReminderWithAI(normalizedText, detectedLang);
 
         return res.json({
           text: parsed.normalizedText,
@@ -2167,10 +2185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const defaultIso = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
 
     const prompt = `You are an expert multilingual assistant.
-The user provides a raw transcript (potentially with errors) in English, Hindi, or Gujarati (or mixed).
-Tasks:
-1. Normalize the text: Fix transcription errors, and if it's Gujarati speech written in Hindi script, convert it to Gujarati script.
-2. Extract reminder data in strict JSON.
+The user provides a transcript (already script-normalized) in English, Hindi, or Gujarati (or mixed).
+Task: Extract reminder data in strict JSON. Do NOT change the script or language of the text — return "normalizedText" exactly as given, only fixing obvious transcription typos.
 
 Rules for Extraction:
 - title: concise summary. **ABSOLUTE RULE**: The 'title' MUST NOT contain ANY digits, numbers, or currency words (like rupees, rupaiya, rs, ₹, $, રૂપિયા, रुपये). Strictly remove them.
@@ -2186,20 +2202,19 @@ Rules for Extraction:
 Return ONLY strict JSON:
 {
   "normalizedText": "...",
-  "detectedLanguage": "en" | "hi" | "gu",
-  "data": { 
-    "title": "...", 
-    "isoDate": "...", 
-    "hour": 0, 
-    "minute": 0, 
-    "repeatType": "...", 
+  "data": {
+    "title": "...",
+    "isoDate": "...",
+    "hour": 0,
+    "minute": 0,
+    "repeatType": "...",
     "reminderType": "...",
     "amount": 500 | null
   }
 }
 
 Input Text: "${text}"
-Language Hint: ${languageHint || 'unknown'}
+Detected Language (already confirmed, do not override): ${languageHint || 'unknown'}
 
 JSON Output:`;
 
@@ -2218,7 +2233,7 @@ JSON Output:`;
       const content = JSON.parse(json.choices[0].message.content);
       return {
         normalizedText: content.normalizedText || text,
-        detectedLanguage: content.detectedLanguage || languageHint || 'en',
+        detectedLanguage: languageHint || 'en',
         data: content.data
       };
     } catch (e) {

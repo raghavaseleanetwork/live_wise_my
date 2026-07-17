@@ -11,6 +11,12 @@ export interface ParsedSmsTransaction {
   description: string;
   upiId?: string;
   category?: string;
+  /**
+   * Stable id of the source SMS (Android inbox _id). Sent to the backend so it
+   * can deduplicate on (userId, smsId) and safely ignore re-sent overlaps that
+   * happen with incremental syncs. Undefined only if the device gave no _id.
+   */
+  smsId?: string;
 }
 
 // Amount patterns: Rs. 500 / Rs 500 / INR 500 / ₹500 / 500 debited
@@ -219,6 +225,7 @@ export function parseSmsToTransactions(
       description: body.slice(0, 200),
       upiId: sms.address || undefined,
       category: categorizeMerchant(merchant),
+      smsId: sms._id != null ? String(sms._id) : undefined,
     });
   }
 

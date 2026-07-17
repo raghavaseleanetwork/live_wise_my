@@ -4,10 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
-import CustomModal from '@/components/CustomModal';
 import {
   CustomFeatureConfig,
   CustomTrackerItem,
@@ -98,7 +97,72 @@ export default function FamilyCustomScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {items.length === 0 ? (
+        {showSetup && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>Name your tracker</Text>
+            <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
+              Give it a name and pick an icon. You can change this later.
+            </Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Tracker Name</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={trackerName}
+              onChangeText={setTrackerName}
+              placeholder="e.g. Physiotherapy Sessions"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Icon</Text>
+            <View style={styles.iconGrid}>
+              {ICON_OPTIONS.map((icon) => (
+                <Pressable
+                  key={icon}
+                  onPress={() => setTrackerIcon(icon)}
+                  style={[styles.iconOption, { backgroundColor: colors.inputBg, borderColor: colors.border }, trackerIcon === icon && { backgroundColor: colors.accentDim, borderColor: colors.accent }]}
+                >
+                  <Ionicons name={icon as any} size={22} color={trackerIcon === icon ? colors.accent : colors.textTertiary} />
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable onPress={handleSaveConfig} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Save</Text>
+            </Pressable>
+            {!!config && (
+              <Pressable onPress={() => { setShowSetup(false); setError(''); }} style={styles.cancelBtn}>
+                <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+              </Pressable>
+            )}
+          </Animated.View>
+        )}
+
+        {showAdd && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>New entry</Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Entry</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={itemTitle}
+              onChangeText={setItemTitle}
+              placeholder="What do you want to log?"
+              placeholderTextColor={colors.textTertiary}
+              autoFocus
+            />
+
+            <Pressable onPress={handleAddItem} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Add</Text>
+            </Pressable>
+            <Pressable onPress={() => { setShowAdd(false); setItemTitle(''); setError(''); }} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
+        {showSetup || showAdd ? null : items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name={(config?.icon || 'star') as any} size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>Nothing tracked yet</Text>
@@ -123,65 +187,6 @@ export default function FamilyCustomScreen() {
           ))
         )}
       </ScrollView>
-
-      <CustomModal visible={showSetup} onClose={() => setShowSetup(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Name Your Tracker</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Tracker Name</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={trackerName}
-          onChangeText={setTrackerName}
-          placeholder="e.g. Physiotherapy Sessions"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Icon</Text>
-        <View style={styles.iconGrid}>
-          {ICON_OPTIONS.map((icon) => (
-            <Pressable
-              key={icon}
-              onPress={() => setTrackerIcon(icon)}
-              style={[styles.iconOption, { backgroundColor: colors.inputBg, borderColor: colors.border }, trackerIcon === icon && { backgroundColor: colors.accentDim, borderColor: colors.accent }]}
-            >
-              <Ionicons name={icon as any} size={22} color={trackerIcon === icon ? colors.accent : colors.textTertiary} />
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => setShowSetup(false)} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleSaveConfig} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Save</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
-
-      <CustomModal visible={showAdd} onClose={() => { setShowAdd(false); setItemTitle(''); setError(''); }} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>New Entry</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Entry</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={itemTitle}
-          onChangeText={setItemTitle}
-          placeholder="What do you want to log?"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => { setShowAdd(false); setItemTitle(''); setError(''); }} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleAddItem} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Add</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
     </View>
   );
 }
@@ -194,6 +199,13 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   headerTitle: { fontFamily: 'Inter_700Bold', fontSize: 17, flex: 1, textAlign: 'center' },
   headerSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: 4, textAlign: 'center' },
+  formSection: { marginBottom: 28 },
+  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20 },
+  sectionHint: { fontFamily: 'Inter_400Regular', fontSize: 13, marginTop: 4, lineHeight: 18 },
+  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
+  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 10 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
@@ -201,15 +213,9 @@ const styles = StyleSheet.create({
   checkCircle: { padding: 2 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 12, textAlign: 'center' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   iconOption: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalTextBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalPrimaryBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14 },
-  modalPrimaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#FFF' },
 });

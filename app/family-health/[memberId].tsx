@@ -5,10 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
-import CustomModal from '@/components/CustomModal';
 import {
   HealthLog,
   HealthMetricType,
@@ -105,6 +104,62 @@ export default function HealthMonitoringScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+        {showAdd && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>Log Reading</Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <View style={styles.typeRow}>
+              {(['bp', 'sugar', 'weight'] as const).map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setLogType(t)}
+                  style={[
+                    styles.typeChip,
+                    { backgroundColor: colors.inputBg, borderColor: colors.border },
+                    logType === t && { backgroundColor: colors.accent, borderColor: colors.accent },
+                  ]}
+                >
+                  <Text style={[styles.typeChipText, { color: logType === t ? '#FFF' : colors.textSecondary }]}>{HEALTH_METRIC_LABELS[t].label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+              {logType === 'bp' ? 'Reading (e.g. 120/80)' : `Value (${HEALTH_METRIC_LABELS[logType].unit})`}
+            </Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={value}
+              onChangeText={setValue}
+              placeholder={logType === 'bp' ? '120/80' : logType === 'sugar' ? '98' : '72'}
+              placeholderTextColor={colors.textTertiary}
+              keyboardType={logType === 'bp' ? 'default' : 'numeric'}
+            />
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date</Text>
+            <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
+              <Text style={{ color: colors.text }}>{logDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+            </Pressable>
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Notes (optional)</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="e.g. After morning walk"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Save Reading</Text>
+            </Pressable>
+            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="heart-outline" size={48} color={colors.textTertiary} />
@@ -135,61 +190,6 @@ export default function HealthMonitoringScreen() {
         )}
       </ScrollView>
 
-      <CustomModal visible={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Log Reading</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <View style={styles.typeRow}>
-          {(['bp', 'sugar', 'weight'] as const).map((t) => (
-            <Pressable
-              key={t}
-              onPress={() => setLogType(t)}
-              style={[
-                styles.typeChip,
-                { backgroundColor: colors.inputBg, borderColor: colors.border },
-                logType === t && { backgroundColor: colors.accent, borderColor: colors.accent },
-              ]}
-            >
-              <Text style={[styles.typeChipText, { color: logType === t ? '#FFF' : colors.textSecondary }]}>{HEALTH_METRIC_LABELS[t].label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-          {logType === 'bp' ? 'Reading (e.g. 120/80)' : `Value (${HEALTH_METRIC_LABELS[logType].unit})`}
-        </Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={value}
-          onChangeText={setValue}
-          placeholder={logType === 'bp' ? '120/80' : logType === 'sugar' ? '98' : '72'}
-          placeholderTextColor={colors.textTertiary}
-          keyboardType={logType === 'bp' ? 'default' : 'numeric'}
-        />
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date</Text>
-        <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
-          <Text style={{ color: colors.text }}>{logDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
-        </Pressable>
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Notes (optional)</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="e.g. After morning walk"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleAdd} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Save Reading</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
 
       {showDatePicker && (
         <DateTimePicker
@@ -227,16 +227,16 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
   cardNotes: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 4, fontStyle: 'italic' },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 12, textAlign: 'center' },
+  formSection: { marginBottom: 28 },
+  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
+  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
+  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
   typeChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalTextBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalPrimaryBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14 },
-  modalPrimaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#FFF' },
 });

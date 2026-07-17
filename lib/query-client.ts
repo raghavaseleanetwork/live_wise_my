@@ -55,6 +55,12 @@ export async function apiRequest(
   const url = new URL(route, baseUrl);
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  // GETs must not be served from cache: screens refetch on focus to pick up
+  // changes made elsewhere, and a cached response silently defeats that.
+  if (method.toUpperCase() === "GET") {
+    headers["Cache-Control"] = "no-cache";
+    headers["Pragma"] = "no-cache";
+  }
 
   const res = await fetch(url.toString(), {
     method,

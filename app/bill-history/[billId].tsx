@@ -17,6 +17,7 @@ import { useExpenses } from '@/lib/expense-context';
 import { useAuth } from '@/lib/auth-context';
 import { getApiUrl } from '@/lib/query-client';
 import { useCurrency } from '@/lib/currency-context';
+import { useTheme } from '@/lib/theme-context';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ export default function BillHistoryScreen() {
   const { bills } = useExpenses();
   const { formatAmount } = useCurrency();
   const { token } = useAuth();
+  const { colors } = useTheme();
   const bill = bills.find(r => r.id === billId);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,38 +75,38 @@ export default function BillHistoryScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+      <View style={[styles.center, { backgroundColor: colors.bg }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="#1E293B" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Payment History</Text>
-          <Text style={styles.headerSubtitle}>{bill?.name || 'Bill Reminder'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Payment History</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{bill?.name || 'Bill Reminder'}</Text>
         </View>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4F46E5" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
         }
       >
         {history.length === 0 ? (
           <View style={styles.emptyState}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="time-outline" size={48} color="#94A3B8" />
+            <View style={[styles.emptyIconWrap, { backgroundColor: colors.card }]}>
+              <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
             </View>
-            <Text style={styles.emptyTitle}>No History Yet</Text>
-            <Text style={styles.emptyDesc}>Actions like paying or snoozing this bill will appear here.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No History Yet</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>Actions like paying or snoozing this bill will appear here.</Text>
           </View>
         ) : (
           <View style={styles.timelineContainer}>
@@ -116,8 +118,8 @@ export default function BillHistoryScreen() {
                 style={styles.timelineItem}
               >
                 {/* Connector Line */}
-                {index !== history.length - 1 && <View style={styles.connector} />}
-                
+                {index !== history.length - 1 && <View style={[styles.connector, { backgroundColor: colors.border }]} />}
+
                 {/* Icon Circle */}
                 <View style={[styles.iconCircle, { backgroundColor: getActionColor(item.action).bg }]}>
                   <Ionicons 
@@ -128,26 +130,26 @@ export default function BillHistoryScreen() {
                 </View>
 
                 {/* Content Card */}
-                <View style={styles.historyCard}>
+                <View style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={styles.cardHeader}>
                     <Text style={[styles.actionText, { color: getActionColor(item.action).text }]}>{item.action.toUpperCase()}</Text>
-                    <Text style={styles.dateText}>
-                      {new Date(item.date).toLocaleDateString('en-IN', { 
-                        day: 'numeric', 
-                        month: 'short', 
+                    <Text style={[styles.dateText, { color: colors.textTertiary }]}>
+                      {new Date(item.date).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
                         year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
                     </Text>
                   </View>
-                  
+
                   {item.note && (
-                    <Text style={styles.noteText}>{item.note}</Text>
+                    <Text style={[styles.noteText, { color: colors.text }]}>{item.note}</Text>
                   )}
-                  
+
                   {item.amount && (
-                    <Text style={styles.amountText}>{formatAmount(item.amount)}</Text>
+                    <Text style={[styles.amountText, { color: colors.accentMint }]}>{formatAmount(item.amount)}</Text>
                   )}
                 </View>
               </Animated.View>
@@ -158,9 +160,9 @@ export default function BillHistoryScreen() {
 
       {/* Footer Info */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <View style={styles.infoBox}>
-          <Ionicons name="shield-checkmark" size={16} color="#4F46E5" />
-          <Text style={styles.footerText}>Secure Audit Trail - LifeWise Intelligence</Text>
+        <View style={[styles.infoBox, { backgroundColor: colors.accentDim }]}>
+          <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
+          <Text style={[styles.footerText, { color: colors.accent }]}>Secure Audit Trail - LifeWise Intelligence</Text>
         </View>
       </View>
     </View>

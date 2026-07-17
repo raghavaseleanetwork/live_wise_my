@@ -674,12 +674,12 @@ export default function VoiceReminderScreen() {
     : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: '#F9FAFB' }]}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { paddingTop: headerTop }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} disabled={!canInteract}>
-          <Text style={[styles.headerCancel]}>Cancel</Text>
+          <Text style={[styles.headerCancel, { color: colors.textSecondary }]}>Cancel</Text>
         </Pressable>
-        <Text style={[styles.headerTitle]}>Voice Reminder</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Voice Reminder</Text>
         <View style={{ width: 56 }} />
       </View>
 
@@ -690,16 +690,16 @@ export default function VoiceReminderScreen() {
             hitSlop={20}
             disabled={!canInteract}
           >
-            <View style={[styles.micOuterShadow, { backgroundColor: '#EEF2FF', borderWidth: 1, borderColor: '#E0E7FF' }]}>
-              <View style={[styles.micOuterGradient, { backgroundColor: '#4F46E5' }]}>
-                <Animated.View style={[styles.micInner, micStyle]}>
+            <View style={[styles.micOuterShadow, { backgroundColor: colors.accentDim, borderWidth: 1, borderColor: colors.accent + '30' }]}>
+              <View style={[styles.micOuterGradient, { backgroundColor: colors.accent }]}>
+                <Animated.View style={[styles.micInner, { backgroundColor: colors.card }, micStyle]}>
                   {state === 'transcribing' ? (
                     <PremiumLoader size={30} />
                   ) : (
                     <Ionicons
                       name={state === 'recording' ? 'stop' : 'mic'}
                       size={40}
-                      color="#4F46E5"
+                      color={colors.accent}
                     />
                   )}
                 </Animated.View>
@@ -707,7 +707,7 @@ export default function VoiceReminderScreen() {
             </View>
           </Pressable>
 
-          <Text style={styles.stageTitle}>{titleLine}</Text>
+          <Text style={[styles.stageTitle, { color: colors.text }]}>{titleLine}</Text>
 
           <View style={styles.transcriptWrap}>
             {isEditing ? (
@@ -715,14 +715,14 @@ export default function VoiceReminderScreen() {
                 value={draftText}
                 onChangeText={setDraftText}
                 placeholder="Type your reminder…"
-                placeholderTextColor="rgba(15,23,42,0.35)"
-                style={styles.transcriptInput}
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.transcriptInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
                 multiline
                 autoFocus
               />
             ) : (
               <Text
-                style={[styles.transcriptHero, !showTranscript && styles.transcriptHeroPlaceholder]}
+                style={[styles.transcriptHero, { color: colors.text }, !showTranscript && { color: colors.textTertiary, fontFamily: 'Inter_600SemiBold' }]}
                 numberOfLines={5}
               >
                 {state === 'recording'
@@ -738,16 +738,16 @@ export default function VoiceReminderScreen() {
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
           {state === 'review' && detectedLanguage && (
-            <Text style={styles.langPill}>Detected: {detectedLanguage.toUpperCase()}</Text>
+            <Text style={[styles.langPill, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40', color: colors.accent }]}>Detected: {detectedLanguage.toUpperCase()}</Text>
           )}
         </View>
 
         <View style={styles.bottomSheet}>
           {state === 'review' && effectiveParsedForUI ? (
-            <View style={styles.confirmCard}>
-              <Text style={styles.confirmTitle} numberOfLines={1}>{effectiveParsedForUI.title}</Text>
+            <View style={[styles.confirmCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.confirmTitle, { color: colors.text }]} numberOfLines={1}>{effectiveParsedForUI.title}</Text>
               {!isEditing && (
-                <View style={styles.schedulePanel}>
+                <View style={[styles.schedulePanel, { backgroundColor: colors.cardElevated }]}>
                   {policy.showDue && (
                     <Pressable
                       style={styles.scheduleRow}
@@ -758,25 +758,25 @@ export default function VoiceReminderScreen() {
                       }}
                     >
                       <View style={styles.scheduleLeft}>
-                        <Ionicons name="time" size={16} color="#4F46E5" />
-                        <Text style={styles.scheduleLabel}>Time</Text>
+                        <Ionicons name="time" size={16} color={colors.accent} />
+                        <Text style={[styles.scheduleLabel, { color: colors.accent }]}>Time</Text>
                       </View>
                       <View style={styles.scheduleRight}>
-                        <Text style={styles.scheduleValue}>
+                        <Text style={[styles.scheduleValue, { color: colors.text }]}>
                           {effectiveParsedForUI.timeLabel || 'Select time'}
                         </Text>
-                        <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                        <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
                       </View>
                     </Pressable>
                   )}
 
-                  {policy.showDue && policy.showRepeat && <View style={styles.scheduleDivider} />}
+                  {policy.showDue && policy.showRepeat && <View style={[styles.scheduleDivider, { backgroundColor: colors.border }]} />}
 
                   {effectiveParsedForUI.amount !== undefined && effectiveParsedForUI.amount > 0 && (
                     <View style={styles.scheduleRow}>
                       <View style={styles.scheduleLeft}>
-                        <Ionicons name="cash" size={16} color="#4F46E5" />
-                        <Text style={styles.scheduleLabel}>Amount</Text>
+                        <Ionicons name="cash" size={16} color={colors.accent} />
+                        <Text style={[styles.scheduleLabel, { color: colors.accent }]}>Amount</Text>
                       </View>
                       <View style={styles.scheduleRight}>
                         <Text style={[styles.scheduleValue, { color: '#10B981', fontWeight: '700' }]}>
@@ -788,7 +788,7 @@ export default function VoiceReminderScreen() {
 
                   {policy.showRepeat && (
                     <>
-                      <View style={styles.scheduleDivider} />
+                      <View style={[styles.scheduleDivider, { backgroundColor: colors.border }]} />
                       <Pressable
                         style={styles.scheduleRow}
                         onPress={() => {
@@ -799,17 +799,17 @@ export default function VoiceReminderScreen() {
                         }}
                       >
                         <View style={styles.scheduleLeft}>
-                          <Ionicons name="repeat" size={16} color="#4F46E5" />
-                          <Text style={styles.scheduleLabel}>Repeat</Text>
+                          <Ionicons name="repeat" size={16} color={colors.accent} />
+                          <Text style={[styles.scheduleLabel, { color: colors.accent }]}>Repeat</Text>
                         </View>
                         <View style={styles.scheduleRight}>
-                          <Text style={styles.scheduleValue}>
+                          <Text style={[styles.scheduleValue, { color: colors.text }]}>
                             {effectiveParsedForUI.repeatType === 'none'
                               ? 'One-time'
                               : effectiveParsedForUI.repeatType.charAt(0).toUpperCase() +
                                 effectiveParsedForUI.repeatType.slice(1)}
                           </Text>
-                          <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                          <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
                         </View>
                       </Pressable>
                     </>

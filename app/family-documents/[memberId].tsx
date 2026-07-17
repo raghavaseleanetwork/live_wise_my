@@ -5,10 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
-import CustomModal from '@/components/CustomModal';
 import {
   FamilyDocument,
   DOCUMENT_TYPE_LABELS,
@@ -85,7 +84,63 @@ export default function FamilyDocumentsScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {items.length === 0 ? (
+        {showAdd && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>New Document</Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <View style={styles.typeGrid}>
+              {(Object.keys(DOCUMENT_TYPE_LABELS) as FamilyDocument['type'][]).map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setType(t)}
+                  style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, type === t && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                >
+                  <Ionicons name={DOCUMENT_TYPE_LABELS[t].icon as any} size={14} color={type === t ? '#FFF' : colors.textSecondary} />
+                  <Text style={[styles.typeChipText, { color: type === t ? '#FFF' : colors.textSecondary }]}>{DOCUMENT_TYPE_LABELS[t].label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Title</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g. Health Insurance Policy"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Pressable onPress={() => setHasReminder(!hasReminder)} style={styles.reminderRow}>
+              <Ionicons name={hasReminder ? 'checkbox' : 'square-outline'} size={22} color={hasReminder ? colors.accent : colors.textTertiary} />
+              <Text style={[styles.reminderText, { color: colors.text }]}>Set a renewal reminder</Text>
+            </Pressable>
+
+            {hasReminder && (
+              <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center', marginTop: 10 }]}>
+                <Text style={{ color: colors.text }}>{reminderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+              </Pressable>
+            )}
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Notes (optional)</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="e.g. Policy number, provider"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Save</Text>
+            </Pressable>
+            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
+        {showAdd ? null : items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="document-text-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No documents tracked yet</Text>
@@ -116,61 +171,6 @@ export default function FamilyDocumentsScreen() {
         )}
       </ScrollView>
 
-      <CustomModal visible={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>New Document</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <View style={styles.typeGrid}>
-          {(Object.keys(DOCUMENT_TYPE_LABELS) as FamilyDocument['type'][]).map((t) => (
-            <Pressable
-              key={t}
-              onPress={() => setType(t)}
-              style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, type === t && { backgroundColor: colors.accent, borderColor: colors.accent }]}
-            >
-              <Ionicons name={DOCUMENT_TYPE_LABELS[t].icon as any} size={14} color={type === t ? '#FFF' : colors.textSecondary} />
-              <Text style={[styles.typeChipText, { color: type === t ? '#FFF' : colors.textSecondary }]}>{DOCUMENT_TYPE_LABELS[t].label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Title</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={title}
-          onChangeText={setTitle}
-          placeholder="e.g. Health Insurance Policy"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <Pressable onPress={() => setHasReminder(!hasReminder)} style={styles.reminderRow}>
-          <Ionicons name={hasReminder ? 'checkbox' : 'square-outline'} size={22} color={hasReminder ? colors.accent : colors.textTertiary} />
-          <Text style={[styles.reminderText, { color: colors.text }]}>Set a renewal reminder</Text>
-        </Pressable>
-
-        {hasReminder && (
-          <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center', marginTop: 10 }]}>
-            <Text style={{ color: colors.text }}>{reminderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
-          </Pressable>
-        )}
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Notes (optional)</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="e.g. Policy number, provider"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleAdd} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Save</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
 
       {showDatePicker && (
         <DateTimePicker
@@ -201,7 +201,12 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
   cardNotes: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 4, fontStyle: 'italic' },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 12, textAlign: 'center' },
+  formSection: { marginBottom: 28 },
+  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
+  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
+  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
@@ -210,9 +215,4 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   reminderText: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalTextBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalPrimaryBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14 },
-  modalPrimaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#FFF' },
 });

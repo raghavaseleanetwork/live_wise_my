@@ -35,6 +35,26 @@ import { useSeniorMode } from '@/lib/senior-context';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/**
+ * Condenses a month selection into a short label. Spelling out every month
+ * ("Jan, Feb, Mar, Jul 2026") wraps the header over multiple lines, and it also
+ * overstates precision: the report queries the whole first→last span, so a
+ * gappy selection is already reported as a range.
+ */
+function formatMonthsLabel(months: number[], year: number): string {
+  if (months.length === 0) return `${year}`;
+  if (months.length === 1) return `${MONTHS[months[0]]} ${year}`;
+
+  const first = months[0];
+  const last = months[months.length - 1];
+  const isContiguous = last - first + 1 === months.length;
+
+  // Two adjacent months read better spelled out than as a range.
+  if (isContiguous && months.length === 2) return `${MONTHS[first]}, ${MONTHS[last]} ${year}`;
+
+  return `${MONTHS[first]} – ${MONTHS[last]} ${year}`;
+}
+
 function CategoryBar({ category, total, percentage, maxPercentage, colors, isDark, formatAmount, isSeniorMode }: { category: CategoryType; total: number; percentage: number; maxPercentage: number; colors: ThemeColors; isDark: boolean; formatAmount: (n: number) => string; isSeniorMode: boolean }) {
   const safeCat = (category as string || 'others').toLowerCase() as CategoryType;
   const cat = CATEGORIES[safeCat] || CATEGORIES.others;
@@ -94,6 +114,7 @@ export default function ReportsScreen() {
     return d;
   });
 
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
   const [showCustomStartPicker, setShowCustomStartPicker] = useState(false);
   const [showCustomEndPicker, setShowCustomEndPicker] = useState(false);
@@ -169,6 +190,7 @@ export default function ReportsScreen() {
       return {
         label: 'Today',
         prevLabel: 'Yesterday',
+        prevShortLabel: 'yesterday',
         currStart: nowDay,
         currEnd: endOfDay(nowDay),
         prevStart: startOfDay(prevDay),
@@ -187,6 +209,7 @@ export default function ReportsScreen() {
       return {
         label: 'Last 7 days',
         prevLabel: 'Previous 7 days',
+        prevShortLabel: 'prev 7 days',
         currStart,
         currEnd,
         prevStart,
@@ -206,6 +229,7 @@ export default function ReportsScreen() {
       return {
         label: 'Last 3 months',
         prevLabel: 'Previous 3 months',
+        prevShortLabel: 'prev 3 months',
         currStart,
         currEnd,
         prevStart,
@@ -225,6 +249,7 @@ export default function ReportsScreen() {
       return {
         label: 'Last 6 months',
         prevLabel: 'Previous 6 months',
+        prevShortLabel: 'prev 6 months',
         currStart,
         currEnd,
         prevStart,
@@ -241,6 +266,7 @@ export default function ReportsScreen() {
       return {
         label: `${currStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${currEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
         prevLabel: `${prevStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${prevEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
+        prevShortLabel: 'prev period',
         currStart,
         currEnd,
         prevStart,
@@ -261,6 +287,7 @@ export default function ReportsScreen() {
       return {
         label: `${MONTHS[m]} ${selectedYear}`,
         prevLabel: `${MONTHS[prevDate.getMonth()]} ${prevDate.getFullYear()}`,
+        prevShortLabel: `${MONTHS[prevDate.getMonth()]} ${prevDate.getFullYear()}`,
         currStart,
         currEnd,
         prevStart,
@@ -280,8 +307,9 @@ export default function ReportsScreen() {
       const prevEnd = new Date(prevYear, maxM + 1, 0);
 
       return {
-        label: `${months.map((m) => MONTHS[m]).join(', ')} ${selectedYear}`,
-        prevLabel: `${months.map((m) => MONTHS[m]).join(', ')} ${prevYear}`,
+        label: formatMonthsLabel(months, selectedYear),
+        prevLabel: formatMonthsLabel(months, prevYear),
+        prevShortLabel: `${prevYear}`,
         currStart,
         currEnd,
         prevStart,
@@ -296,6 +324,7 @@ export default function ReportsScreen() {
     return {
       label: `${selectedYear}`,
       prevLabel: `${prevYear}`,
+      prevShortLabel: `${prevYear}`,
       currStart,
       currEnd,
       prevStart: new Date(prevYear, 0, 1),
@@ -862,8 +891,8 @@ export default function ReportsScreen() {
           <View style={styles.reportsTitleRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.screenTitle, { color: colors.text }]}>Reports</Text>
-              <Text style={[styles.screenSubtitle, { color: colors.textTertiary }]}>
-                {rangeInfo.label} • Compare vs {rangeInfo.prevLabel}
+              <Text style={[styles.screenSubtitle, { color: colors.textTertiary }]} numberOfLines={2}>
+                {rangeInfo.label} • vs {rangeInfo.prevShortLabel}
               </Text>
             </View>
             <Pressable 
@@ -886,41 +915,16 @@ export default function ReportsScreen() {
           </View>
 
           <View style={styles.filterChipsRow}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterChipsScroll}
+            <Pressable
+              onPress={() => setShowFilterModal(true)}
+              style={[styles.filterButton, { backgroundColor: colors.card, borderColor: colors.border }]}
             >
-              {filterChips.map((chip) => {
-                const active = filterKey === chip.key;
-                return (
-                  <Pressable
-                    key={chip.key}
-                    onPress={() => handleSelectFilterChip(chip.key)}
-                    style={[
-                      styles.filterChip,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                      },
-                      active && {
-                        backgroundColor: colors.accentDim,
-                        borderColor: colors.accent + '40',
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={chip.icon as any}
-                      size={16}
-                      color={active ? colors.accent : colors.textTertiary}
-                    />
-                    <Text style={[styles.filterChipText, { color: active ? colors.accent : colors.textSecondary }]}>
-                      {chip.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+              <Ionicons name="options-outline" size={18} color={colors.accent} />
+              <Text style={[styles.filterButtonText, { color: colors.text }]} numberOfLines={1}>
+                {rangeInfo.label}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
+            </Pressable>
           </View>
 
           {/* Custom Date Start Picker */}
@@ -997,13 +1001,43 @@ export default function ReportsScreen() {
             </View>
           </CustomModal>
 
+        </Animated.View>
+
+        {/* Filter popup — all range filters live here, opened by the Filter button */}
+        <CustomModal visible={showFilterModal} onClose={() => setShowFilterModal(false)}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>Filter Reports</Text>
+
+          <Text style={[styles.filterSectionLabel, { color: colors.textTertiary }]}>Time range</Text>
+          <View style={styles.filterModalChipsWrap}>
+            {filterChips.map((chip) => {
+              const active = filterKey === chip.key;
+              return (
+                <Pressable
+                  key={chip.key}
+                  onPress={() => handleSelectFilterChip(chip.key)}
+                  style={[
+                    styles.filterChip,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    active && { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' },
+                  ]}
+                >
+                  <Ionicons
+                    name={chip.icon as any}
+                    size={16}
+                    color={active ? colors.accent : colors.textTertiary}
+                  />
+                  <Text style={[styles.filterChipText, { color: active ? colors.accent : colors.textSecondary }]}>
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
           {filterKey === 'custom' && (
             <View style={styles.customChipWrap}>
               <Pressable
-                style={[
-                  styles.customChip,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
+                style={[styles.customChip, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => {
                   setDraftCustomStart(customStart);
                   setDraftCustomEnd(customEnd);
@@ -1020,10 +1054,7 @@ export default function ReportsScreen() {
               </Pressable>
 
               <Pressable
-                style={[
-                  styles.customChip,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
+                style={[styles.customChip, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => {
                   setDraftCustomStart(customStart);
                   setDraftCustomEnd(customEnd);
@@ -1042,7 +1073,7 @@ export default function ReportsScreen() {
           )}
 
           {(filterKey === 'month' || filterKey === 'multiMonth') && (
-            <View style={{ marginTop: 4 }}>
+            <View style={{ marginTop: 12 }}>
               <Pressable
                 onPress={() => setShowYearPicker(true)}
                 style={[styles.yearPill, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -1096,7 +1127,14 @@ export default function ReportsScreen() {
               </ScrollView>
             </View>
           )}
-        </Animated.View>
+
+          <Pressable
+            onPress={() => setShowFilterModal(false)}
+            style={[styles.filterDoneBtn, { backgroundColor: colors.accent }]}
+          >
+            <Text style={styles.filterDoneBtnText}>Apply</Text>
+          </Pressable>
+        </CustomModal>
 
         <CustomModal visible={showYearPicker} onClose={() => setShowYearPicker(false)} showCloseButton={false}>
           <Text style={[styles.modalTitle, { color: colors.text }]}>Pick year</Text>
@@ -1230,7 +1268,7 @@ export default function ReportsScreen() {
               </View>
               <Text style={[styles.habitsPctText, { color: colors.accent }]}>{habitConsistencyPct}%</Text>
             </View>
-            <View style={styles.habitsBarTrack}>
+            <View style={[styles.habitsBarTrack, { backgroundColor: colors.border }]}>
               <View
                 style={[
                   styles.habitsBarFill,
@@ -1264,7 +1302,7 @@ export default function ReportsScreen() {
                   return (
                     <View key={`bills-t-${idx}`} style={styles.timelineBarWrap}>
                       <View style={[styles.timelineBarStack, { height: totalH }]}>
-                        <View style={[styles.timelineBarUnpaid, { height: unpaidH, backgroundColor: '#E5E7EB' }]} />
+                        <View style={[styles.timelineBarUnpaid, { height: unpaidH, backgroundColor: colors.border }]} />
                         {paidH > 0 ? (
                           <View style={[styles.timelineBarPaid, { height: paidH, backgroundColor: colors.accentMint }]} />
                         ) : null}
@@ -1865,6 +1903,45 @@ const styles = StyleSheet.create({
   filterChipsScroll: {
     gap: 10,
     paddingVertical: 4,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterButtonText: {
+    flex: 1,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+  },
+  filterSectionLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  filterModalChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  filterDoneBtn: {
+    marginTop: 20,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterDoneBtnText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 15,
+    color: '#FFFFFF',
   },
   exportBtnHeader: {
     borderRadius: 16,

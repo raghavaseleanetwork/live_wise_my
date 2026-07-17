@@ -5,10 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
-import CustomModal from '@/components/CustomModal';
 import {
   RoutineItem,
   RoutineType,
@@ -84,6 +83,55 @@ export default function DailyRoutineScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+        {showAdd && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>New Routine Reminder</Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <View style={styles.typeGrid}>
+              {(['wakeup', 'sleep', 'walk', 'custom'] as const).map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setRoutineType(t)}
+                  style={[
+                    styles.typeChip,
+                    { backgroundColor: colors.inputBg, borderColor: colors.border },
+                    routineType === t && { backgroundColor: colors.accent, borderColor: colors.accent },
+                  ]}
+                >
+                  <Ionicons name={ROUTINE_TYPE_LABELS[t].icon as any} size={16} color={routineType === t ? '#FFF' : colors.textSecondary} />
+                  <Text style={[styles.typeChipText, { color: routineType === t ? '#FFF' : colors.textSecondary }]}>{ROUTINE_TYPE_LABELS[t].label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {routineType === 'custom' && (
+              <>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Routine Name</Text>
+                <TextInput
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                  value={customLabel}
+                  onChangeText={setCustomLabel}
+                  placeholder="e.g. Evening Prayer"
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </>
+            )}
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Time</Text>
+            <Pressable onPress={() => setShowTimePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
+              <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
+            </Pressable>
+
+            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Save</Text>
+            </Pressable>
+            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {sorted.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
@@ -114,54 +162,6 @@ export default function DailyRoutineScreen() {
         )}
       </ScrollView>
 
-      <CustomModal visible={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>New Routine Reminder</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <View style={styles.typeGrid}>
-          {(['wakeup', 'sleep', 'walk', 'custom'] as const).map((t) => (
-            <Pressable
-              key={t}
-              onPress={() => setRoutineType(t)}
-              style={[
-                styles.typeChip,
-                { backgroundColor: colors.inputBg, borderColor: colors.border },
-                routineType === t && { backgroundColor: colors.accent, borderColor: colors.accent },
-              ]}
-            >
-              <Ionicons name={ROUTINE_TYPE_LABELS[t].icon as any} size={16} color={routineType === t ? '#FFF' : colors.textSecondary} />
-              <Text style={[styles.typeChipText, { color: routineType === t ? '#FFF' : colors.textSecondary }]}>{ROUTINE_TYPE_LABELS[t].label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {routineType === 'custom' && (
-          <>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Routine Name</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={customLabel}
-              onChangeText={setCustomLabel}
-              placeholder="e.g. Evening Prayer"
-              placeholderTextColor={colors.textTertiary}
-            />
-          </>
-        )}
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Time</Text>
-        <Pressable onPress={() => setShowTimePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
-          <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
-        </Pressable>
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleAdd} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Save</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
 
       {showTimePicker && (
         <DateTimePicker
@@ -194,16 +194,16 @@ const styles = StyleSheet.create({
   iconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 12, textAlign: 'center' },
+  formSection: { marginBottom: 28 },
+  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
+  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
+  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1 },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalTextBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalPrimaryBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14 },
-  modalPrimaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#FFF' },
 });

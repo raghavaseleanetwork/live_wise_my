@@ -73,14 +73,42 @@ export async function requestSmsPermissionDetails(): Promise<SmsPermissionResult
 }
 
 
+export interface SmsReadOptions {
+  /**
+   * Upper bound on messages returned. Acts as a safety cap so a huge inbox
+   * cannot blow up memory. With `minDate` set this should be generous, since
+   * the date window — not the count — is what bounds a normal sync.
+   */
+  maxCount?: number;
+  /**
+   * Only return messages with `date >= minDate` (epoch ms). This is the key to
+   * incremental syncing: pass the last-sync watermark and the native layer
+   * returns everything since then, instead of a fixed slice of the newest N.
+   */
+  minDate?: number;
+}
+
+// A generous default: without a minDate we still cap, but high enough that a
+// bank SMS is very unlikely to be pushed out of range by unrelated inbox noise.
+const DEFAULT_MAX_COUNT = 2000;
+
 /** Read recent SMS from inbox. Returns [] on web, iOS, or when module/permission unavailable. */
-export async function readSmsFromDevice(maxCount: number = 200): Promise<RawSms[]> {
-  const result = await readSmsFromDeviceWithMeta(maxCount);
+export async function readSmsFromDevice(
+  options: SmsReadOptions | number = {},
+): Promise<RawSms[]> {
+  const result = await readSmsFromDeviceWithMeta(options);
   return result.messages;
 }
 
 /** Read recent SMS from inbox with diagnostics for UI feedback/debugging. */
-export async function readSmsFromDeviceWithMeta(maxCount: number = 200): Promise<SmsReadResult> {
+export async function readSmsFromDeviceWithMeta(
+  options: SmsReadOptions | number = {},
+): Promise<SmsReadResult> {
+  // Back-compat: a bare number is treated as maxCount (old call signature).
+  const opts: SmsReadOptions = typeof options === 'number' ? { maxCount: options } : options;
+  const maxCount = opts.maxCount ?? DEFAULT_MAX_COUNT;
+  const minDate = opts.minDate;
+
   if (Platform.OS !== 'android') {
     return {
       messages: [],
@@ -102,7 +130,11 @@ export async function readSmsFromDeviceWithMeta(maxCount: number = 200): Promise
   }
 
   try {
-    const filter = { box: 'inbox', maxCount };
+    // `minDate` (epoch ms) restricts the native query to messages since the last
+    // sync watermark, so incremental syncs read the full window rather than a
+    // fixed newest-N slice that could bury older bank SMS behind inbox noise.
+    const filter: Record<string, unknown> = { box: 'inbox', maxCount };
+    if (minDate != null && minDate > 0) filter.minDate = minDate;
     const list = await new Promise<RawSms[]>((resolve, reject) => {
       SmsAndroid.list(
         JSON.stringify(filter),

@@ -113,10 +113,6 @@ export default function ProfileScreen() {
               <Text style={[styles.emailValue, { color: colors.textSecondary }]} numberOfLines={1}>
                 {user?.email}
               </Text>
-              <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
-                <Ionicons name="checkmark-circle" size={14} color={colors.accent} />
-                <Text style={[styles.verifiedText, { color: colors.accent }]}>Verified</Text>
-              </View>
             </View>
           </View>
         </View>
@@ -176,7 +172,7 @@ export default function ProfileScreen() {
               style={[styles.inputRow, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
             >
               <Ionicons name="calendar-outline" size={18} color={colors.textTertiary} />
-              <Text style={[styles.input, { color: dateOfBirth ? colors.text : colors.textTertiary, paddingVertical: 12 }]}>
+              <Text style={[styles.input, { color: dateOfBirth ? colors.text : colors.textTertiary, height: 'auto', paddingVertical: 12 }]}>
                 {dateOfBirth || "Select Date of Birth"}
               </Text>
             </Pressable>
@@ -293,19 +289,6 @@ const styles = StyleSheet.create({
   emailLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 13,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    gap: 4,
-    flexShrink: 0,
-  },
-  verifiedText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 11,
   },
   emailValue: {
     fontFamily: 'Inter_600SemiBold',

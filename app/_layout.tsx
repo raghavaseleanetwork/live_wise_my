@@ -13,7 +13,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { ExpenseProvider } from "@/lib/expense-context";
@@ -23,9 +23,11 @@ import { CurrencyProvider } from "@/lib/currency-context";
 import { StatusBar } from "expo-status-bar";
 import {
   addNotificationResponseReceivedListener,
+  addNotificationReceivedListener,
   registerForPushNotifications,
   addPushTokenListener,
 } from "@/lib/notifications";
+import { emitCaregiverSync } from "@/lib/caregiver-sync";
 import { registerSmsSyncTask } from "@/lib/sms-sync-task";
 import { SeniorProvider } from "@/lib/senior-context";
 import { AlertProvider } from "@/lib/alert-context";
@@ -45,7 +47,6 @@ function AnimatedSplash() {
     >
       <Animated.View
         entering={FadeIn.duration(700)}
-        exiting={FadeOut.duration(300)}
         style={splashStyles.content}
       >
         <Animated.View
@@ -198,6 +199,31 @@ function AuthGate() {
     };
   }, [router]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let sub: { remove: () => void } | null = null;
+
+    (async () => {
+      const nextSub = await addNotificationReceivedListener((notification) => {
+        const data = notification.request.content.data as any;
+        if (data?.type === "sync" && data?.memberId) {
+          emitCaregiverSync(String(data.memberId));
+        }
+      });
+
+      if (cancelled) {
+        nextSub.remove();
+        return;
+      }
+      sub = nextSub;
+    })();
+
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
+  }, []);
+
   if (isLoading || showSplash) {
     return <AnimatedSplash />;
   }
@@ -217,6 +243,7 @@ function AuthGate() {
         <Stack.Screen name="add-family-member" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-family-member" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="add-medicine" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="family-member-detail/[memberId]" />
         <Stack.Screen name="family-appointments/[memberId]" />
         <Stack.Screen name="family-health/[memberId]" />
         <Stack.Screen name="family-stock/[memberId]" />
@@ -230,6 +257,8 @@ function AuthGate() {
         <Stack.Screen name="family-travel/[memberId]" />
         <Stack.Screen name="family-emergency/[memberId]" />
         <Stack.Screen name="family-custom/[memberId]" />
+        <Stack.Screen name="family-caregivers/[memberId]" />
+        <Stack.Screen name="caregiver-invites" />
         <Stack.Screen name="assistant" />
         <Stack.Screen name="+not-found" />
       </Stack>

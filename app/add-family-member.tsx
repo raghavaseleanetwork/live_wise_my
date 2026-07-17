@@ -41,7 +41,8 @@ export default function AddFamilyMemberScreen() {
 
   // Form State
   const [name, setName] = useState('');
-  const [relationship, setRelationship] = useState('other');
+  const [relationship, setRelationship] = useState('');
+  const [otherRelationship, setOtherRelationship] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
@@ -76,11 +77,22 @@ export default function AddFamilyMemberScreen() {
     } else {
       setShowCaregiverHint(false);
     }
+    if (rel !== 'other') {
+      setOtherRelationship('');
+    }
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
       setError('Please enter a name');
+      return;
+    }
+    if (!relationship) {
+      setError('Please select a relationship');
+      return;
+    }
+    if (relationship === 'other' && !otherRelationship.trim()) {
+      setError('Please specify the relationship');
       return;
     }
     if (selectedFeatures.length === 0) {
@@ -89,6 +101,8 @@ export default function AddFamilyMemberScreen() {
     }
     if (!token) return;
 
+    const relationshipToSave = relationship === 'other' ? otherRelationship.trim() : relationship;
+
     setIsSaving(true);
     try {
       const res = await apiRequest(
@@ -96,7 +110,7 @@ export default function AddFamilyMemberScreen() {
         '/api/family',
         {
           name: name.trim(),
-          relationship,
+          relationship: relationshipToSave,
           avatarUrl,
           dateOfBirth,
           features: selectedFeatures,
@@ -184,7 +198,7 @@ export default function AddFamilyMemberScreen() {
     }
   };
 
-  const headerHeight = 130 + insets.top;
+  const headerHeight = 142 + insets.top;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -199,7 +213,7 @@ export default function AddFamilyMemberScreen() {
           {/* Header */}
           <LinearGradient
             colors={colors.heroGradient as any}
-            style={[styles.header, { height: headerHeight, paddingTop: insets.top + 8 }]}
+            style={[styles.header, { height: headerHeight, paddingTop: insets.top + 20 }]}
           >
             <View style={styles.headerTop}>
               <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={15}>
@@ -224,7 +238,9 @@ export default function AddFamilyMemberScreen() {
               </View>
 
               <View style={styles.headerNameBlock}>
-                <Text style={[styles.contextLabel, { color: colors.textSecondary }]}>Enter Member Details</Text>
+                <Text style={[styles.contextLabel, { color: colors.textSecondary }]}>
+                  Enter Member Details <Text style={{ color: colors.danger }}>*</Text>
+                </Text>
                 <TextInput
                   style={[styles.nameInput, { color: colors.text }]}
                   value={name}
@@ -245,7 +261,9 @@ export default function AddFamilyMemberScreen() {
               </Animated.View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>RELATIONSHIP</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              RELATIONSHIP <Text style={{ color: colors.danger }}>*</Text>
+            </Text>
             <View style={styles.relGrid}>
               {RELATIONSHIPS.map((rel) => {
                 const isSelected = relationship === rel.key;
@@ -259,11 +277,11 @@ export default function AddFamilyMemberScreen() {
                       isSelected && { borderColor: colors.accent, backgroundColor: colors.accentDim },
                     ]}
                   >
-                    <Ionicons name={rel.icon as any} size={22} color={isSelected ? colors.accent : colors.textTertiary} />
+                    <Ionicons name={rel.icon as any} size={20} color={isSelected ? colors.accent : colors.textTertiary} />
                     <Text style={[styles.relLabel, { color: isSelected ? colors.accent : colors.textSecondary }]}>{rel.label}</Text>
                     {isSelected && (
                       <View style={[styles.checkWrap]}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.accent} />
+                        <Ionicons name="checkmark-circle" size={14} color={colors.accent} />
                       </View>
                     )}
                   </Pressable>
@@ -271,8 +289,26 @@ export default function AddFamilyMemberScreen() {
               })}
             </View>
 
+            {relationship === 'other' && (
+              <Animated.View entering={FadeInDown}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  SPECIFY RELATIONSHIP <Text style={{ color: colors.danger }}>*</Text>
+                </Text>
+                <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}>
+                  <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+                  <TextInput
+                    style={{ flex: 1, color: colors.text, fontFamily: 'Inter_500Medium' }}
+                    value={otherRelationship}
+                    onChangeText={setOtherRelationship}
+                    placeholder="e.g. Grandparent, Friend"
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                </View>
+              </Animated.View>
+            )}
+
             {showCaregiverHint && (
-              <Animated.View entering={FadeInDown} style={[styles.infoCard, { backgroundColor: colors.accentDim + '30', borderColor: colors.accent + '30', marginTop: 0, marginBottom: 20 }]}>
+              <Animated.View entering={FadeInDown} style={[styles.infoCard, { backgroundColor: colors.accentDim + '30', borderColor: colors.accent + '30', marginTop: 0, marginBottom: 12 }]}>
                 <Ionicons name="shield-checkmark-outline" size={20} color={colors.accent} />
                 <Text style={[styles.infoText, { color: colors.textSecondary }]}>
                   Since this is a parent, we've turned on <Text style={{ fontFamily: 'Inter_700Bold' }}>Emergency Alerts</Text> and <Text style={{ fontFamily: 'Inter_700Bold' }}>Call & Check-in</Text> below — you can turn them off if you don't need them.
@@ -283,7 +319,7 @@ export default function AddFamilyMemberScreen() {
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DATE OF BIRTH</Text>
             <Pressable
               onPress={() => setShowDatePicker(true)}
-              style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 24 }]}
+              style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}
             >
               <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
               <Text style={{ flex: 1, color: dateOfBirth ? colors.text : colors.textTertiary, fontFamily: 'Inter_500Medium' }}>
@@ -308,7 +344,9 @@ export default function AddFamilyMemberScreen() {
               />
             )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>SELECT WHAT YOU WANT TO MANAGE</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              SELECT WHAT YOU WANT TO MANAGE <Text style={{ color: colors.danger }}>*</Text>
+            </Text>
             <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
               Choose one or more. Only what you pick will appear on {name.trim() || 'this member'}'s dashboard.
             </Text>
@@ -450,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 20,
   },
   errorText: {
@@ -475,27 +513,29 @@ const styles = StyleSheet.create({
   relGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    rowGap: 14,
+    columnGap: 12,
     justifyContent: 'space-between',
+    marginBottom: 12,
   },
   relCard: {
-    width: '48%',
-    borderRadius: 24,
+    width: '30%',
+    borderRadius: 20,
     borderWidth: 1.5,
-    paddingVertical: 24,
-    paddingHorizontal: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     position: 'relative',
   },
   relLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Inter_500Medium',
   },
   checkWrap: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    top: 8,
+    right: 8,
   },
   infoCard: {
     marginTop: 24,
@@ -539,7 +579,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,

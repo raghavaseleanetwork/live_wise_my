@@ -13,10 +13,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
-import CustomModal from '@/components/CustomModal';
 import {
   Appointment,
   loadAppointments,
@@ -102,7 +101,60 @@ export default function AppointmentsScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {items.length === 0 ? (
+        {showAdd && (
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>New appointment</Text>
+            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Doctor Name</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={doctorName}
+              onChangeText={setDoctorName}
+              placeholder="e.g. Dr. Sharma"
+              placeholderTextColor={colors.textTertiary}
+              autoFocus
+            />
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Specialty (optional)</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={specialty}
+              onChangeText={setSpecialty}
+              placeholder="e.g. Cardiologist"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date & Location</Text>
+            <Pressable
+              onPress={() => setShowDatePicker(true)}
+              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}
+            >
+              <Text style={{ color: colors.text }}>{apptDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+            </Pressable>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={location}
+              onChangeText={setLocation}
+              placeholder="Clinic / Hospital name"
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Pressable onPress={() => setIsFollowUp(!isFollowUp)} style={styles.followUpRow}>
+              <Ionicons name={isFollowUp ? 'checkbox' : 'square-outline'} size={22} color={isFollowUp ? colors.accent : colors.textTertiary} />
+              <Text style={[styles.followUpText, { color: colors.text }]}>This is a follow-up visit</Text>
+            </Pressable>
+
+            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={styles.primaryBtnLabel}>Save Appointment</Text>
+            </Pressable>
+            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
+        {showAdd ? null : items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No appointments yet</Text>
@@ -141,58 +193,6 @@ export default function AppointmentsScreen() {
           </>
         )}
       </ScrollView>
-
-      <CustomModal visible={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>New Appointment</Text>
-        {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Doctor Name</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={doctorName}
-          onChangeText={setDoctorName}
-          placeholder="e.g. Dr. Sharma"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Specialty (optional)</Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={specialty}
-          onChangeText={setSpecialty}
-          placeholder="e.g. Cardiologist"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date & Location</Text>
-        <Pressable
-          onPress={() => setShowDatePicker(true)}
-          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}
-        >
-          <Text style={{ color: colors.text }}>{apptDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
-        </Pressable>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={location}
-          onChangeText={setLocation}
-          placeholder="Clinic / Hospital name"
-          placeholderTextColor={colors.textTertiary}
-        />
-
-        <Pressable onPress={() => setIsFollowUp(!isFollowUp)} style={styles.followUpRow}>
-          <Ionicons name={isFollowUp ? 'checkbox' : 'square-outline'} size={22} color={isFollowUp ? colors.accent : colors.textTertiary} />
-          <Text style={[styles.followUpText, { color: colors.text }]}>This is a follow-up visit</Text>
-        </Pressable>
-
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.modalTextBtn}>
-            <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable onPress={handleAdd} style={[styles.modalPrimaryBtn, { backgroundColor: colors.accent }]}>
-            <Text style={styles.modalPrimaryBtnLabel}>Save Appointment</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
 
       {showDatePicker && (
         <DateTimePicker
@@ -259,15 +259,15 @@ const styles = StyleSheet.create({
   checkCircle: { padding: 2 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
-  modalTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 12, textAlign: 'center' },
+  formSection: { marginBottom: 28 },
+  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
+  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
+  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   followUpRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   followUpText: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  modalTextBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalTextBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalPrimaryBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14 },
-  modalPrimaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#FFF' },
 });

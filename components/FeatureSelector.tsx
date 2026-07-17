@@ -45,7 +45,7 @@ export default function FeatureSelector({ selected, onToggle }: FeatureSelectorP
               </View>
             </View>
             <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>
-              {feature.emoji} {feature.label}
+              {feature.label}
             </Text>
             <Text style={[styles.desc, { color: colors.textTertiary }]} numberOfLines={2}>
               {feature.description}
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '48%',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1.5,
     padding: 14,
     minHeight: 110,

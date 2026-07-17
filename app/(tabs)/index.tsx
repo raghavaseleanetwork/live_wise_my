@@ -382,9 +382,9 @@ function TopReminderAlert({
   );
 }
 
-function QuickAccessCard({ icon, label, subtitle, color, onPress, colors }: { icon: string; label: string; subtitle: string; color: string; onPress: () => void; colors: any }) {
+function QuickAccessCard({ icon, label, subtitle, color, onPress, colors, testID }: { icon: string; label: string; subtitle: string; color: string; onPress: () => void; colors: any; testID?: string }) {
   return (
-    <Pressable onPress={onPress} style={[styles.quickCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Pressable onPress={onPress} style={[styles.quickCard, { backgroundColor: colors.card, borderColor: colors.border }]} testID={testID}>
       <View style={[styles.quickCardIcon, { backgroundColor: color + '12' }]}>
         <Ionicons name={icon as any} size={20} color={color} />
       </View>
@@ -869,13 +869,6 @@ export default function HomeScreen() {
               >
                 <Ionicons name="help-circle-outline" size={20} color={colors.textSecondary} />
               </Pressable>
-              <Pressable
-                onPress={() => router.push('/settings')}
-                style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                testID="home-settings-btn"
-              >
-                <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
-              </Pressable>
             </View>
           </View>
 
@@ -967,6 +960,16 @@ export default function HomeScreen() {
               </View>
               <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Voice Reminder</Text>
             </Pressable>
+            <Pressable
+              onPress={() => router.push('/(tabs)/transactions')}
+              style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              testID="home-activity-btn"
+            >
+              <View style={[styles.seniorBtnIcon, { backgroundColor: '#3B82F6' + '12' }]}>
+                <Ionicons name="stats-chart" size={32} color="#3B82F6" />
+              </View>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Analytics</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </View>
@@ -1029,13 +1032,6 @@ export default function HomeScreen() {
                 style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
               >
                 <Ionicons name="help-circle-outline" size={20} color={colors.textSecondary} />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push('/settings')}
-                style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                testID="home-settings-btn"
-              >
-                <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
               </Pressable>
             </View>
           </View>
@@ -1203,20 +1199,21 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Reach</Text>
           <View style={styles.quickReachRow}>
             <QuickAccessCard
-              icon="people"
-              label="Family Hub"
-              subtitle="Health & Meds"
-              color="#EC4899"
-              onPress={() => router.push('/family')}
+              icon="water"
+              label="Leaks"
+              subtitle="Save money"
+              color="#EF4444"
+              onPress={() => router.push('/(tabs)/leaks')}
               colors={colors}
             />
             <QuickAccessCard
-              icon="sparkles"
-              label="Life Memory"
-              subtitle="AI Patterns"
-              color="#8B5CF6"
-              onPress={() => router.push('/life-memory')}
+              icon="stats-chart"
+              label="Analytics"
+              subtitle="View activity"
+              color="#3B82F6"
+              onPress={() => router.push('/(tabs)/transactions')}
               colors={colors}
+              testID="home-activity-btn"
             />
           </View>
         </Animated.View>

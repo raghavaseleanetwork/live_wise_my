@@ -234,7 +234,7 @@ export default function BillDetailsScreen() {
 
   if (!bill) {
     return (
-      <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={{ paddingTop: headerTop, paddingHorizontal: 18 }}>
           <Pressable onPress={() => router.back()} hitSlop={12}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />
@@ -265,7 +265,7 @@ export default function BillDetailsScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container, { backgroundColor: '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Premium Header */}
       <View style={styles.headerOuter}>
         <View style={[styles.headerGradient, { paddingTop: headerTop, backgroundColor: '#1E1B4B' }]}>
@@ -309,37 +309,37 @@ export default function BillDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Main Info Card */}
-        <View style={styles.mainCard}>
+        <View style={[styles.mainCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.infoRow}>
-            <View style={[styles.infoIconWrap, { backgroundColor: '#EEF2FF' }]}>
-              <Ionicons name="calendar-outline" size={20} color="#4F46E5" />
+            <View style={[styles.infoIconWrap, { backgroundColor: colors.accentDim }]}>
+              <Ionicons name="calendar-outline" size={20} color={colors.accent} />
             </View>
             <View style={styles.infoTextWrap}>
-              <Text style={[styles.infoLabel, isSeniorMode && { fontSize: 16 }]}>Due Date</Text>
-              <Text style={[styles.infoValue, isSeniorMode && { fontSize: 18 }]}>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }, isSeniorMode && { fontSize: 16 }]}>Due Date</Text>
+              <Text style={[styles.infoValue, { color: colors.text }, isSeniorMode && { fontSize: 18 }]}>
                 {dueDate?.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
               </Text>
             </View>
           </View>
 
           <View style={styles.infoRow}>
-            <View style={[styles.infoIconWrap, { backgroundColor: '#F0FDF4' }]}>
-              <Ionicons name="repeat-outline" size={20} color="#10B981" />
+            <View style={[styles.infoIconWrap, { backgroundColor: colors.accentMintDim }]}>
+              <Ionicons name="repeat-outline" size={20} color={colors.accentMint} />
             </View>
             <View style={styles.infoTextWrap}>
-              <Text style={styles.infoLabel}>Frequency</Text>
-              <Text style={styles.infoValue}>{repeatLabel}</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Frequency</Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>{repeatLabel}</Text>
             </View>
           </View>
 
           <View style={styles.infoRow}>
-            <View style={[styles.infoIconWrap, { backgroundColor: '#FFF7ED' }]}>
-              <Ionicons name="stats-chart-outline" size={20} color="#F97316" />
+            <View style={[styles.infoIconWrap, { backgroundColor: colors.warningDim }]}>
+              <Ionicons name="stats-chart-outline" size={20} color={colors.warning} />
             </View>
             <View style={styles.infoTextWrap}>
-              <Text style={styles.infoLabel}>Status</Text>
-              <View style={[styles.statusBadge, { backgroundColor: isPaid ? '#DCFCE7' : '#FEE2E2' }]}>
-                <Text style={[styles.statusBadgeText, { color: isPaid ? '#166534' : '#991B1B' }]}>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Status</Text>
+              <View style={[styles.statusBadge, { backgroundColor: isPaid ? colors.accentMintDim : colors.dangerDim }]}>
+                <Text style={[styles.statusBadgeText, { color: isPaid ? colors.accentMint : colors.danger }]}>
                   {isPaid ? 'Paid' : 'Upcoming'}
                 </Text>
               </View>
@@ -350,24 +350,24 @@ export default function BillDetailsScreen() {
         {/* Metadata section if available */}
         {(bill.vendorName || bill.billNumber || bill.accountNumber) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Bill Metadata</Text>
-            <View style={styles.metaCard}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Bill Metadata</Text>
+            <View style={[styles.metaCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               {bill.vendorName && (
                 <View style={styles.metaItem}>
-                  <Text style={styles.metaLabel}>Vendor</Text>
-                  <Text style={styles.metaValue}>{bill.vendorName}</Text>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Vendor</Text>
+                  <Text style={[styles.metaValue, { color: colors.text }]}>{bill.vendorName}</Text>
                 </View>
               )}
               {bill.billNumber && (
                 <View style={styles.metaItem}>
-                  <Text style={styles.metaLabel}>Bill / Invoice #</Text>
-                  <Text style={styles.metaValue}>{bill.billNumber}</Text>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Bill / Invoice #</Text>
+                  <Text style={[styles.metaValue, { color: colors.text }]}>{bill.billNumber}</Text>
                 </View>
               )}
               {bill.accountNumber && (
                 <View style={styles.metaItem}>
-                  <Text style={styles.metaLabel}>Account #</Text>
-                  <Text style={styles.metaValue}>{bill.accountNumber}</Text>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Account #</Text>
+                  <Text style={[styles.metaValue, { color: colors.text }]}>{bill.accountNumber}</Text>
                 </View>
               )}
             </View>
@@ -377,20 +377,20 @@ export default function BillDetailsScreen() {
         {/* Smart Insights Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Smart Insights</Text>
-            <View style={styles.aiBadge}>
-              <Ionicons name="sparkles" size={10} color="#7C3AED" />
-              <Text style={styles.aiBadgeText}>AI</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Smart Insights</Text>
+            <View style={[styles.aiBadge, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' }]}>
+              <Ionicons name="sparkles" size={10} color={colors.accent} />
+              <Text style={[styles.aiBadgeText, { color: colors.accent }]}>AI</Text>
             </View>
           </View>
-          <View style={[styles.insightCard, { backgroundColor: '#F5F3FF', borderWidth: 1, borderColor: '#DDD6FE' }]}>
+          <View style={[styles.insightCard, { backgroundColor: colors.accentDim, borderWidth: 1, borderColor: colors.accent + '30' }]}>
             <View style={styles.insightGradient}>
-              <View style={styles.insightIconWrap}>
-                <Ionicons name="trending-up-outline" size={24} color="#7C3AED" />
+              <View style={[styles.insightIconWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Ionicons name="trending-up-outline" size={24} color={colors.accent} />
               </View>
               <View style={styles.insightContent}>
-                <Text style={styles.insightTitle}>Predicted Savings</Text>
-                <Text style={styles.insightDesc}>
+                <Text style={[styles.insightTitle, { color: colors.text }]}>Predicted Savings</Text>
+                <Text style={[styles.insightDesc, { color: colors.textSecondary }]}>
                   Paying this {repeatLabel.toLowerCase()} reduces late fees by approx. ₹150 yearly.
                 </Text>
               </View>
@@ -400,24 +400,24 @@ export default function BillDetailsScreen() {
 
         {/* Payment History Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment History</Text>
-          <View style={styles.historyCard}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment History</Text>
+          <View style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {loadingHistory ? (
               <PremiumLoader size={40} />
             ) : history.length === 0 ? (
               <View style={{ padding: 20, alignItems: 'center' }}>
-                <Text style={{ color: '#94A3B8', fontFamily: 'Inter_500Medium', fontSize: 13 }}>
+                <Text style={{ color: colors.textTertiary, fontFamily: 'Inter_500Medium', fontSize: 13 }}>
                   No payment history yet.
                 </Text>
               </View>
             ) : (
               history.map((item, idx) => (
-                <View key={item._id} style={[styles.historyRow, idx === history.length - 1 && { borderBottomWidth: 0 }]}>
+                <View key={item._id} style={[styles.historyRow, { borderBottomColor: colors.border }, idx === history.length - 1 && { borderBottomWidth: 0 }]}>
                   <View style={[styles.historyIconWrap, { backgroundColor: getActionColor(item.action).bg }]}>
                     <Ionicons name={getActionIcon(item.action)} size={18} color={getActionColor(item.action).text} />
                   </View>
                   <View style={styles.historyInfo}>
-                    <Text style={styles.historyDate}>
+                    <Text style={[styles.historyDate, { color: colors.text }]}>
                       {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </Text>
                     <Text style={[styles.historyStatus, { color: getActionColor(item.action).text }]}>
@@ -425,26 +425,26 @@ export default function BillDetailsScreen() {
                     </Text>
                   </View>
                   {item.amount ? (
-                    <Text style={styles.historyAmount}>{formatAmount(item.amount)}</Text>
+                    <Text style={[styles.historyAmount, { color: colors.text }]}>{formatAmount(item.amount)}</Text>
                   ) : (
-                    <Text style={styles.historyStatus}>{item.note}</Text>
+                    <Text style={[styles.historyStatus, { color: colors.textSecondary }]}>{item.note}</Text>
                   )}
                 </View>
               ))
             )}
-            <Pressable 
+            <Pressable
               style={[styles.viewMoreBtn, isSeniorMode && { paddingVertical: 18 }]}
               onPress={() => router.push({ pathname: '/bill-history/[billId]', params: { billId: bill.id } } as any)}
             >
-              <Text style={styles.viewMoreText}>View Full History</Text>
-              <Ionicons name="chevron-forward" size={14} color="#64748B" />
+              <Text style={[styles.viewMoreText, { color: colors.accent }]}>View Full History</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.accent} />
             </Pressable>
           </View>
         </View>
 
         {/* Bill Image / Official Document */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{bill.imageUrl ? 'Official Bill' : 'Smart Summary'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{bill.imageUrl ? 'Official Bill' : 'Smart Summary'}</Text>
           {bill.imageUrl ? (
             <Pressable onPress={() => setShowBillImageModal(true)} style={styles.billImageContainer}>
               <Image source={{ uri: bill.imageUrl }} style={styles.billImage} resizeMode="cover" />
@@ -454,12 +454,12 @@ export default function BillDetailsScreen() {
               </View>
             </Pressable>
           ) : (
-            <View style={styles.emptyBillCard}>
-              <View style={styles.emptyBillIconWrap}>
-                <Ionicons name="document-text-outline" size={32} color="#94A3B8" />
+            <View style={[styles.emptyBillCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[styles.emptyBillIconWrap, { backgroundColor: colors.bg }]}>
+                <Ionicons name="document-text-outline" size={32} color={colors.textTertiary} />
               </View>
-              <Text style={styles.emptyBillTitle}>Digital Summary Available</Text>
-              <Text style={styles.emptyBillDesc}>No physical scan attached. AI has summarized the intent as {intent}.</Text>
+              <Text style={[styles.emptyBillTitle, { color: colors.text }]}>Digital Summary Available</Text>
+              <Text style={[styles.emptyBillDesc, { color: colors.textSecondary }]}>No physical scan attached. AI has summarized the intent as {intent}.</Text>
               <Pressable
                 style={[styles.addScanBtnPremium, { backgroundColor: colors.accent }]}
                 onPress={() => router.push(`/scan-bill?billId=${bill.id}`)}
@@ -475,7 +475,7 @@ export default function BillDetailsScreen() {
       </ScrollView>
 
       {/* Floating Bottom Action Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
         {/* Primary Action Row */}
         <Pressable
           style={[styles.bottomBtnMain, { backgroundColor: isPaid ? '#94A3B8' : '#10B981' }, isSeniorMode && { height: 74, borderRadius: 20 }]}
@@ -497,12 +497,12 @@ export default function BillDetailsScreen() {
         {/* Secondary Actions Row */}
         <View style={styles.secondaryActionsRow}>
           <Pressable
-            style={[styles.bottomBtn, { backgroundColor: '#F1F5F9' }, isSeniorMode && { height: 64, borderRadius: 16 }]}
+            style={[styles.bottomBtn, { backgroundColor: colors.cardElevated }, isSeniorMode && { height: 64, borderRadius: 16 }]}
             onPress={() => setShowSnoozeModal(true)}
           >
-            <Ionicons name="notifications-off-outline" size={isSeniorMode ? 28 : 20} color="#475569" />
-            <Text 
-              style={[styles.bottomBtnText, { color: '#475569' }, isSeniorMode && { fontSize: 18 }]}
+            <Ionicons name="notifications-off-outline" size={isSeniorMode ? 28 : 20} color={colors.textSecondary} />
+            <Text
+              style={[styles.bottomBtnText, { color: colors.textSecondary }, isSeniorMode && { fontSize: 18 }]}
               numberOfLines={1}
               adjustsFontSizeToFit
             >
@@ -512,18 +512,18 @@ export default function BillDetailsScreen() {
 
           {bill.status === 'cancelled' ? (
             <Pressable
-              style={[styles.bottomBtn, { backgroundColor: '#E0F2FE' }]}
+              style={[styles.bottomBtn, { backgroundColor: colors.accentBlueDim }]}
               onPress={() => uncancelReminder(bill.id)}
             >
-              <Ionicons name="arrow-undo-outline" size={20} color="#0369A1" />
-              <Text style={[styles.bottomBtnText, { color: '#0369A1' }]}>Restore</Text>
+              <Ionicons name="arrow-undo-outline" size={20} color={colors.accentBlue} />
+              <Text style={[styles.bottomBtnText, { color: colors.accentBlue }]}>Restore</Text>
             </Pressable>
           ) : (
             <Pressable
-              style={[styles.bottomBtn, { backgroundColor: '#FEF2F2' }]}
+              style={[styles.bottomBtn, { backgroundColor: colors.dangerDim }]}
               onPress={() => cancelReminder(bill.id)}
             >
-              <Ionicons name="close-outline" size={20} color="#EF4444" />
+              <Ionicons name="close-outline" size={20} color={colors.danger} />
               <Text 
                 style={[styles.bottomBtnText, { color: '#EF4444' }]}
                 numberOfLines={1}

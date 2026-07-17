@@ -11,7 +11,7 @@ let handlerConfigured = false;
 let lastRegisteredToken: string | null = null;
 
 async function getNotificationsModule() {
-  // Expo Go (especially Android, SDK 53+) no longer supports expo-notifications
+  // Expo Go (especially Arndroid, SDK 53+) no longer supports expo-notifications
   // for remote push tokens and now throws a hard runtime error when the module
   // is imported. To keep the app running in Expo Go, never import the module
   // at all in that environment and simply no-op all notification features.
@@ -117,6 +117,22 @@ export async function addNotificationResponseReceivedListener(
     return { remove: () => {} };
   }
   return Notifications.addNotificationResponseReceivedListener(listener);
+}
+
+/**
+ * Fires for a push received while the app is foregrounded/backgrounded, even
+ * for silent data-only pushes (e.g. the caregiver `sync` event) that the user
+ * never taps — unlike addNotificationResponseReceivedListener, which only
+ * fires on tap.
+ */
+export async function addNotificationReceivedListener(
+  listener: Parameters<(typeof import("expo-notifications"))["addNotificationReceivedListener"]>[0],
+) {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) {
+    return { remove: () => {} };
+  }
+  return Notifications.addNotificationReceivedListener(listener);
 }
 
 export async function addPushTokenListener(
