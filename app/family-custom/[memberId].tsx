@@ -81,7 +81,7 @@ export default function FamilyCustomScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>⚙️ {config?.name || 'Custom Feature'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{config?.name || 'Custom Feature'}</Text>
           <View style={styles.headerActions}>
             {config && (
               <Pressable onPress={() => { setTrackerName(config.name); setTrackerIcon(config.icon); setShowSetup(true); }} hitSlop={12}>

@@ -81,7 +81,7 @@ export default function CaregiverInvitesScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>📨 Caregiver Invites</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Caregiver Invites</Text>
           <View style={{ width: 40 }} />
         </View>
       </LinearGradient>

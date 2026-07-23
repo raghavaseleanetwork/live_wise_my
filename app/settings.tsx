@@ -8,6 +8,7 @@ import {
   Platform,
   Switch,
   TextInput,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -117,7 +118,11 @@ export default function SettingsScreen() {
           style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
           <View style={[styles.avatarCircle, { backgroundColor: colors.accentDim }]}>
-            <Ionicons name="person" size={28} color={colors.accent} />
+            {(user as any)?.avatarUrl ? (
+              <Image source={{ uri: (user as any).avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={28} color={colors.accent} />
+            )}
           </View>
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, { color: colors.text }]}>{user?.name || 'User'}</Text>
@@ -339,6 +344,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   profileInfo: { flex: 1 },
   profileName: {

@@ -116,7 +116,7 @@ export default function FamilyCaregiversScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>👥 Caregivers</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Caregivers</Text>
           <Pressable onPress={() => setShowInvite(true)} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="person-add" size={24} color={colors.accent} />
           </Pressable>

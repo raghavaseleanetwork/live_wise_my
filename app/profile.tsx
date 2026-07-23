@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, Pressable, Platform, Image, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, Pressable, Platform, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -19,6 +19,7 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState(user?.email || '');
   const [dateOfBirth, setDateOfBirth] = useState((user as any)?.dateOfBirth || '');
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>((user as any)?.avatarUrl || null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -69,17 +70,24 @@ export default function ProfileScreen() {
       aspect: [1, 1],
     });
     if (result.canceled || !result.assets || !result.assets[0]) return;
+    if (!user || !token) return;
+
+    const previousAvatarUrl = avatarUrl;
+    const asset = result.assets[0];
+    setUploadingAvatar(true);
     try {
-      if (!user || !token) return;
-      setSaving(true);
-      const url = await uploadAvatar(token, result.assets[0].uri);
+      const url = await uploadAvatar(token, asset.uri, asset.fileSize);
+      const res = await updateProfile({ avatarUrl: url });
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to save avatar');
+      }
       setAvatarUrl(url);
-      await updateProfile({ avatarUrl: url });
-      setSaving(false);
     } catch (e: any) {
-      setSaving(false);
+      setAvatarUrl(previousAvatarUrl);
       console.error('[Avatar] Upload Error:', e);
-      setError(`Upload Failed: ${e.message || 'Unknown error'}`);
+      setError(e.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -95,11 +103,20 @@ export default function ProfileScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={[styles.headerCard, { backgroundColor: colors.accentDim }]}>
-          <Pressable onPress={handlePickAvatar} style={[styles.avatarCircle, { backgroundColor: '#FFFFFF' }]}>
+          <Pressable
+            onPress={handlePickAvatar}
+            disabled={uploadingAvatar}
+            style={[styles.avatarCircle, { backgroundColor: '#FFFFFF' }]}
+          >
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
             ) : (
               <Ionicons name="person" size={34} color={colors.accent} />
+            )}
+            {uploadingAvatar && (
+              <View style={styles.avatarUploadingOverlay}>
+                <ActivityIndicator color="#FFFFFF" />
+              </View>
             )}
             <View style={[styles.avatarEditBadge, { backgroundColor: colors.accent }]}>
               <Ionicons name="camera" size={14} color="#FFFFFF" />
@@ -279,6 +296,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 32,
+  },
+  avatarUploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 32,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emailRow: {
     flexDirection: 'row',

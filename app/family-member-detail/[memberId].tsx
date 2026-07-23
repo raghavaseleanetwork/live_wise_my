@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -22,6 +22,8 @@ import {
   normalizeFeatures,
   loadMemberFeatures,
 } from '@/lib/family-features';
+import { loadSharedMembers } from '@/lib/family-caregivers';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import {
   loadAppointments,
   loadHealthLogs,
@@ -116,14 +118,20 @@ export default function FamilyMemberDetailScreen() {
   const loadMember = useCallback(async () => {
     if (!token || !memberId) return;
     try {
-      const res = await apiRequest('GET', '/api/family', undefined, token);
-      const all = (await res.json()) as any[];
-      const m = all.find((x) => String(x.id) === String(memberId));
+      const [res, shared] = await Promise.all([
+        apiRequest('GET', '/api/family', undefined, token),
+        loadSharedMembers(token).catch(() => []),
+      ]);
+      const owned = (await res.json()) as any[];
+      const m =
+        owned.find((x) => String(x.id) === String(memberId)) ||
+        shared.find((x) => String(x.id) === String(memberId));
       if (!m) {
         setMember(null);
         setIsLoading(false);
         return;
       }
+      const isShared = !owned.some((o) => String(o.id) === String(m.id));
 
       const id = String(m.id);
       const local = await loadMemberFeatures(id);
@@ -150,7 +158,7 @@ export default function FamilyMemberDetailScreen() {
         ...m,
         featureKeys,
         medicines: Array.isArray(m.medicines) ? m.medicines : [],
-        isSharedWithMe: !!m.isSharedWithMe,
+        isSharedWithMe: isShared,
         summaries: {
           appointments: { upcoming: appts.filter((a) => !a.completed).length },
           health: { total: healthLogs.length },
@@ -182,6 +190,13 @@ export default function FamilyMemberDetailScreen() {
       loadMember();
     }, [loadMember])
   );
+
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) loadMember();
+    });
+    return () => sub.remove();
+  }, [memberId, loadMember]);
 
   const markMedicine = (medId: string, action: 'taken' | 'snooze' | 'skip') => {
     if (!token || !member) return;

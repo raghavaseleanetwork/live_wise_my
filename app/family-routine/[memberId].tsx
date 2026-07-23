@@ -74,7 +74,7 @@ export default function DailyRoutineScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>🕒 Daily Routine</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Daily Routine</Text>
           <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>

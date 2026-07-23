@@ -2446,7 +2446,7 @@ JSON Output:`;
             // the loop (1692) pushes them into 'amounts' in DESC order.
             // So index 0 is newest, index 1 is next newest.
             if (latest > previous * 1.15) { // 15% increase
-              suggestion = `⚠️ Price hike detected! ${merchant} cost increased from ${previous} to ${latest}. ${suggestion}`;
+              suggestion = `Price hike detected! ${merchant} cost increased from ${previous} to ${latest}. ${suggestion}`;
             }
           }
 
@@ -2512,7 +2512,7 @@ JSON Output:`;
                   monthlyEstimate: t1.amount,
                   yearlyPrediction: t1.amount,
                   transactionCount: 2,
-                  suggestion: `⚠️ Potential double charge detected on ${new Date(t1.date).toLocaleDateString()}. Two identical payments made within 24 hours.`,
+                  suggestion: `Potential double charge detected on ${new Date(t1.date).toLocaleDateString()}. Two identical payments made within 24 hours.`,
                 });
                 break; // Only report once per merchant
               }

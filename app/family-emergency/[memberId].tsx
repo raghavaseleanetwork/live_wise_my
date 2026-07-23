@@ -67,7 +67,7 @@ export default function FamilyEmergencyScreen() {
           const message = `${missed.join(', ')} ${missed.length === 1 ? 'was' : 'were'} not marked as taken more than ${settings.missedMedicineThresholdHours}h after the scheduled time.`;
           await addEmergencyLogEntry(String(memberId), 'missed_medicine', message);
           await scheduleLocalNotification({
-            title: `⚠️ ${memberName || 'Family member'}: Medicine may have been missed`,
+            title: `${memberName || 'Family member'}: Medicine may have been missed`,
             body: message,
             data: { type: 'family_emergency', memberId: String(memberId) },
             triggerAt: new Date(Date.now() + 1000),
@@ -96,7 +96,7 @@ export default function FamilyEmergencyScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>🚨 Emergency Alerts</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Emergency Alerts</Text>
           <View style={{ width: 40 }} />
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}

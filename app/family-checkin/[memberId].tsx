@@ -81,7 +81,7 @@ export default function FamilyCheckinScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>📞 Call & Check-in</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Call & Check-in</Text>
           <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
