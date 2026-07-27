@@ -20,6 +20,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 import { apiRequest, getApiUrl } from '@/lib/query-client';
 import { Avatar } from '../components/Avatar';
 import FeatureSelector from '@/components/FeatureSelector';
@@ -46,6 +48,8 @@ export default function EditFamilyMemberScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { token } = useAuth();
+  const { checkLimit } = useSubscription();
+  const { presentPaywall } = usePaywall();
 
   // Form State
   const [name, setName] = useState('');
@@ -63,9 +67,17 @@ export default function EditFamilyMemberScreen() {
   const [showCaregiverHint, setShowCaregiverHint] = useState(false);
 
   const toggleFeature = (key: FamilyFeatureKey) => {
-    setSelectedFeatures((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
+    setSelectedFeatures((prev) => {
+      if (prev.includes(key)) return prev.filter((k) => k !== key);
+      // Gate turning a module ON by the plan's modules-per-member limit
+      // (doc §5.1 — "4th module on Free" → paywall).
+      const check = checkLimit('modulesPerMember', prev.length);
+      if (!check.allowed && check.triggerKey) {
+        presentPaywall(check.triggerKey);
+        return prev;
+      }
+      return [...prev, key];
+    });
   };
 
   const handleSelectRelationship = (rel: string) => {

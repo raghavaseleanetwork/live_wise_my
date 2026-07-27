@@ -19,6 +19,8 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useTheme } from '@/lib/theme-context';
 import { useExpenses } from '@/lib/expense-context';
 import { useCurrency } from '@/lib/currency-context';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 import { 
   Bill, 
   CategoryType, 
@@ -50,6 +52,8 @@ export default function EditReminderScreen() {
   const { colors, isDark } = useTheme();
   const { bills, addReminder, editReminder, reminderSettings } = useExpenses();
   const { formatAmount } = useCurrency();
+  const { checkLimit } = useSubscription();
+  const { presentPaywall } = usePaywall();
 
   // Find the bill if editing
   const existingBill = id ? bills.find(b => b.id === id) : null;
@@ -83,6 +87,16 @@ export default function EditReminderScreen() {
     if (!name.trim()) {
       setError('Please enter a name');
       return;
+    }
+
+    // Gate: creating a NEW reminder beyond the plan's total shows the paywall
+    // (doc §5.1 — "11th reminder on Free"). Editing an existing one is exempt.
+    if (!existingBill) {
+      const check = checkLimit('reminders', bills.length);
+      if (!check.allowed && check.triggerKey) {
+        presentPaywall(check.triggerKey);
+        return;
+      }
     }
 
     const amt = parseFloat(amount) || 0;

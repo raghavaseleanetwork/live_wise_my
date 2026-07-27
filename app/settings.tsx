@@ -20,7 +20,9 @@ import { useCurrency, CURRENCIES, CurrencyOption } from '@/lib/currency-context'
 import { useExpenses } from '@/lib/expense-context';
 import { useSeniorMode } from '@/lib/senior-context';
 import { useAlert } from '@/lib/alert-context';
+import { useSubscription } from '@/lib/subscription-context';
 import CustomModal from '@/components/CustomModal';
+import PlanBadge from '@/components/PlanBadge';
 
 function SettingRow({
   icon,
@@ -64,6 +66,7 @@ export default function SettingsScreen() {
   const { monthlyBudget, setMonthlyBudget } = useExpenses();
   const { isSeniorMode, setSeniorMode } = useSeniorMode();
   const { showAlert } = useAlert();
+  const { currentPlan, isTrialActive } = useSubscription();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget || ''));
@@ -203,6 +206,22 @@ export default function SettingsScreen() {
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </Pressable>
+            }
+          />
+        </View>
+
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Subscription</Text>
+        <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SettingRow
+            icon="pricetags-outline"
+            label="Manage Plan"
+            onPress={() => router.push('/subscription' as any)}
+            colors={colors}
+            rightElement={
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <PlanBadge plan={currentPlan} trial={isTrialActive} size="sm" />
+                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+              </View>
             }
           />
         </View>

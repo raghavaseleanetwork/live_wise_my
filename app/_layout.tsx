@@ -20,6 +20,8 @@ import { ExpenseProvider } from "@/lib/expense-context";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider, useTheme } from "@/lib/theme-context";
 import { CurrencyProvider } from "@/lib/currency-context";
+import { SubscriptionProvider, useSubscription } from "@/lib/subscription-context";
+import { PaywallProvider } from "@/lib/paywall-context";
 import { StatusBar } from "expo-status-bar";
 import {
   addNotificationResponseReceivedListener,
@@ -120,9 +122,23 @@ const splashStyles = StyleSheet.create({
 function AuthGate() {
   const { user, token, isLoading, hasOnboarded, isAuthenticated } = useAuth();
   const { colors } = useTheme();
+  const {
+    isLoading: subLoading,
+    canStartTrial,
+    startTrial,
+  } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true);
+
+  // Auto-activate the one-time 7-day Family trial on the first authenticated
+  // run (doc §5.3: every new user gets it on install, no card required). Also
+  // grants it to existing users on their first run after this ships.
+  useEffect(() => {
+    if (isAuthenticated && !subLoading && canStartTrial) {
+      startTrial();
+    }
+  }, [isAuthenticated, subLoading, canStartTrial, startTrial]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -238,6 +254,8 @@ function AuthGate() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="subscription/index" />
+        <Stack.Screen name="subscription/compare" />
         <Stack.Screen name="life-memory" />
         <Stack.Screen name="family" />
         <Stack.Screen name="add-family-member" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
@@ -297,9 +315,13 @@ export default function RootLayout() {
                 <SeniorProvider>
                   <AlertProvider>
                     <AuthProvider>
-                      <ExpenseProvider>
-                        <AuthGate />
-                      </ExpenseProvider>
+                      <SubscriptionProvider>
+                        <PaywallProvider>
+                          <ExpenseProvider>
+                            <AuthGate />
+                          </ExpenseProvider>
+                        </PaywallProvider>
+                      </SubscriptionProvider>
                     </AuthProvider>
                   </AlertProvider>
                 </SeniorProvider>

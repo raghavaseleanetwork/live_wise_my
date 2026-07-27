@@ -1,0 +1,132 @@
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  ReactNode,
+} from 'react';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  PlanId,
+  PaywallTriggerKey,
+  PAYWALL_TRIGGERS,
+} from '@/constants/plans';
+import { useSubscription } from '@/lib/subscription-context';
+import PaywallSheet from '@/components/PaywallSheet';
+import PaywallScreen from '@/components/PaywallScreen';
+
+/**
+ * Paywall presentation layer. Any screen calls `presentPaywall(triggerKey)` at
+ * the moment a user tries to cross a limit; this provider renders the correct
+ * paywall (soft bottom sheet, or hard full-screen for critical limits after
+ * repeated soft dismissals — doc §5.2) and handles the upgrade / trial actions.
+ *
+ * Mirrors `AlertProvider`: mounted once near the root, driven imperatively.
+ */
+
+const SOFT_DISMISS_LIMIT = 3; // after this many soft dismissals, criticals go hard.
+const DISMISS_KEY = '@lifewise_paywall_dismissals';
+
+interface PaywallContextValue {
+  presentPaywall: (triggerKey: PaywallTriggerKey) => void;
+  hidePaywall: () => void;
+}
+
+const PaywallContext = createContext<PaywallContextValue | null>(null);
+
+export function PaywallProvider({ children }: { children: ReactNode }) {
+  const { currentPlan, canStartTrial, isTrialActive, trialDaysLeft, startTrial, purchasePlan } =
+    useSubscription();
+
+  const [triggerKey, setTriggerKey] = useState<PaywallTriggerKey | null>(null);
+  const [mode, setMode] = useState<'soft' | 'hard' | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('family');
+  const dismissCount = useRef(0);
+
+  const trigger = triggerKey ? PAYWALL_TRIGGERS[triggerKey] : null;
+
+  const presentPaywall = useCallback(
+    (key: PaywallTriggerKey) => {
+      const t = PAYWALL_TRIGGERS[key];
+      setTriggerKey(key);
+      setSelectedPlan(t.recommendedPlan);
+      // Critical limits escalate to the hard paywall once the user has already
+      // brushed off enough soft ones.
+      const goHard = t.critical && dismissCount.current >= SOFT_DISMISS_LIMIT;
+      setMode(goHard ? 'hard' : 'soft');
+    },
+    [],
+  );
+
+  const close = useCallback(() => {
+    setMode(null);
+    setTriggerKey(null);
+  }, []);
+
+  const handleSoftDismiss = useCallback(() => {
+    dismissCount.current += 1;
+    AsyncStorage.setItem(DISMISS_KEY, String(dismissCount.current)).catch(() => {});
+    close();
+  }, [close]);
+
+  const handleUpgrade = useCallback(
+    async (plan: PlanId) => {
+      // No payment gateway yet: start the trial if eligible, else set the plan
+      // locally. This is the seam the store purchase will replace later.
+      if (canStartTrial) {
+        await startTrial();
+      } else {
+        await purchasePlan(plan);
+      }
+      close();
+    },
+    [canStartTrial, startTrial, purchasePlan, close],
+  );
+
+  const handleSeeAllPlans = useCallback(() => {
+    close();
+    router.push('/subscription/compare' as any);
+  }, [close]);
+
+  const value = useMemo(
+    () => ({ presentPaywall, hidePaywall: close }),
+    [presentPaywall, close],
+  );
+
+  return (
+    <PaywallContext.Provider value={value}>
+      {children}
+      <PaywallSheet
+        visible={mode === 'soft'}
+        trigger={trigger}
+        selectedPlan={selectedPlan}
+        onSelectPlan={setSelectedPlan}
+        canStartTrial={canStartTrial}
+        onUpgrade={handleUpgrade}
+        onSeeAllPlans={handleSeeAllPlans}
+        onDismiss={handleSoftDismiss}
+      />
+      <PaywallScreen
+        visible={mode === 'hard'}
+        trigger={trigger}
+        currentPlan={currentPlan}
+        canStartTrial={canStartTrial}
+        trialDaysLeft={trialDaysLeft}
+        isTrialActive={isTrialActive}
+        onUpgrade={handleUpgrade}
+        onClose={close}
+      />
+    </PaywallContext.Provider>
+  );
+}
+
+export function usePaywall() {
+  const context = useContext(PaywallContext);
+  if (!context) {
+    throw new Error('usePaywall must be used within a PaywallProvider');
+  }
+  return context;
+}

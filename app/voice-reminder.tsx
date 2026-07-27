@@ -18,6 +18,8 @@ import { type Bill, type RepeatType, type ReminderType, type CategoryType } from
 import { Audio } from 'expo-av';
 import { getApiUrl } from '@/lib/query-client';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 import { scheduleLocalNotification } from '@/lib/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PremiumLoader from '@/components/PremiumLoader';
@@ -311,6 +313,8 @@ export default function VoiceReminderScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { checkLimit, incrementUsage } = useSubscription();
+  const { presentPaywall } = usePaywall();
   const { addReminder, reminderSettings } = useExpenses();
   const { showAlert } = useAlert();
   const [state, setState] = useState<VoiceState>('idle');
@@ -357,6 +361,14 @@ export default function VoiceReminderScreen() {
   }, []);
 
   async function handleStartRecording() {
+    // Gate: voice reminder is monthly-metered (doc §5.1 — "6th voice reminder
+    // in month" → paywall). Uses the same recommended-plan trigger as reminders.
+    const check = checkLimit('voiceReminderPerMonth');
+    if (!check.allowed) {
+      presentPaywall(check.triggerKey ?? 'eleventhReminder');
+      return;
+    }
+    incrementUsage('voiceReminderPerMonth');
     setError(null);
     setDetectedLanguage(null);
     setServerParsed(null);

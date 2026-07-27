@@ -19,6 +19,8 @@ import { Avatar } from '../components/Avatar';
 import { FamilyFeatureKey, normalizeFeatures, loadMemberFeatures } from '@/lib/family-features';
 import { loadMyInvites, loadSharedMembers } from '@/lib/family-caregivers';
 import { onCaregiverSync } from '@/lib/caregiver-sync';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 
 const RELATIONSHIPS = [
   { key: 'self', label: 'Self', icon: 'person' },
@@ -46,6 +48,8 @@ export default function FamilyScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { checkLimit } = useSubscription();
+  const { presentPaywall } = usePaywall();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [pendingInviteCount, setPendingInviteCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,6 +138,19 @@ export default function FamilyScreen() {
     })();
   };
 
+  // Gate: adding a family member beyond the plan's limit shows the paywall
+  // (doc §5.1 — "3rd member on Free"). Only members this user owns count toward
+  // the limit; members shared in by another caregiver don't.
+  const handleAddMember = () => {
+    const ownedCount = members.filter((m) => !m.isSharedWithMe).length;
+    const check = checkLimit('familyMembers', ownedCount);
+    if (!check.allowed && check.triggerKey) {
+      presentPaywall(check.triggerKey);
+      return;
+    }
+    router.push('/add-family-member');
+  };
+
   const handleBack = () => {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)');
@@ -174,7 +191,7 @@ export default function FamilyScreen() {
                   </View>
                 )}
               </Pressable>
-              <Pressable onPress={() => router.push('/add-family-member')} style={styles.addBtn}>
+              <Pressable onPress={handleAddMember} style={styles.addBtn}>
                 <Ionicons name="add-circle" size={32} color={colors.accent} />
               </Pressable>
             </View>
@@ -197,8 +214,8 @@ export default function FamilyScreen() {
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
                 Add your loved ones and pick what to manage — medicines, health, bills, appointments and more, all in one place.
               </Text>
-              <Pressable 
-                onPress={() => router.push('/add-family-member')}
+              <Pressable
+                onPress={handleAddMember}
                 style={styles.emptyActionBtn}
               >
                 <LinearGradient

@@ -26,6 +26,8 @@ import { getApiUrl } from '@/lib/query-client';
 import { useAuth } from '@/lib/auth-context';
 import { useExpenses } from '@/lib/expense-context';
 import { useAlert } from '@/lib/alert-context';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 import PremiumLoader from '@/components/PremiumLoader';
 import { scheduleLocalNotification } from '@/lib/notifications';
 import { useCurrency } from '@/lib/currency-context';
@@ -41,6 +43,8 @@ export default function ScanBillScreen() {
   const { bills, refreshData } = useExpenses();
   const { formatAmount } = useCurrency();
   const { showAlert } = useAlert();
+  const { checkLimit, incrementUsage } = useSubscription();
+  const { presentPaywall } = usePaywall();
   const insets = useSafeAreaInsets();
   const existingBill = useMemo(() => 
     billId ? bills.find(b => b.id === billId) : null
@@ -83,7 +87,20 @@ export default function ScanBillScreen() {
     };
   }, []);
 
+  // Gate: bill scan is monthly-metered (doc §5.1 — "4th bill scan" → paywall).
+  // Returns true if the scan may proceed; records one use when it does.
+  const guardScan = useCallback((): boolean => {
+    const check = checkLimit('billScanPerMonth');
+    if (!check.allowed && check.triggerKey) {
+      presentPaywall(check.triggerKey);
+      return false;
+    }
+    incrementUsage('billScanPerMonth');
+    return true;
+  }, [checkLimit, incrementUsage, presentPaywall]);
+
   const takePictureFromCamera = useCallback(async () => {
+    if (!guardScan()) return;
     if (Platform.OS === 'web') {
       showAlert({
         title: 'Not supported',
@@ -129,9 +146,10 @@ export default function ScanBillScreen() {
         type: 'error',
       });
     }
-  }, [cameraPermission, requestCameraPermission]);
+  }, [cameraPermission, requestCameraPermission, guardScan]);
 
   const openGallery = useCallback(async () => {
+    if (!guardScan()) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1.0,
@@ -147,7 +165,7 @@ export default function ScanBillScreen() {
       fileName: asset.fileName ?? 'bill.jpg',
       mimeType: asset.mimeType ?? 'image/jpeg',
     });
-  }, []);
+  }, [guardScan]);
 
   const startRotation = useCallback(() => {
     setProcessingMsgIdx(0);

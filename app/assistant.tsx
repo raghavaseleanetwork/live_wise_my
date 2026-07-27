@@ -18,6 +18,8 @@ import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import { useExpenses } from '@/lib/expense-context';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 import { apiRequest } from '@/lib/query-client';
 import { CATEGORIES, CategoryType, getMonthlySpending } from '@/lib/data';
 
@@ -76,6 +78,8 @@ export default function AssistantScreen() {
   const { formatAmount } = useCurrency();
   const { transactions, bills, leaks, monthlyBudget } = useExpenses();
   const { token } = useAuth();
+  const { checkLimit, incrementUsage } = useSubscription();
+  const { presentPaywall } = usePaywall();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
@@ -113,6 +117,15 @@ export default function AssistantScreen() {
     async (text?: string) => {
       const query = text || inputText.trim();
       if (!query || !token || isTyping) return;
+
+      // Gate: WiseAI chat is monthly-metered (doc §5.1 — "6th WiseAI message"
+      // → paywall). Count only the user's sent messages toward the limit.
+      const check = checkLimit('wiseAiPerMonth');
+      if (!check.allowed && check.triggerKey) {
+        presentPaywall(check.triggerKey);
+        return;
+      }
+      incrementUsage('wiseAiPerMonth');
 
       const userMsg: Message = {
         id: Date.now().toString(),
@@ -173,7 +186,7 @@ export default function AssistantScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 120);
     },
-    [inputText, token, messages, bills, merchantTotals, monthlySpend, monthlyBudget, isTyping],
+    [inputText, token, messages, bills, merchantTotals, monthlySpend, monthlyBudget, isTyping, checkLimit, incrementUsage, presentPaywall],
   );
 
   const handleBack = () => {

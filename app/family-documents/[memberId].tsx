@@ -8,6 +8,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 import {
   FamilyDocument,
   DOCUMENT_TYPE_LABELS,
@@ -21,6 +23,8 @@ export default function FamilyDocumentsScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { checkLimit } = useSubscription();
+  const { presentPaywall } = usePaywall();
 
   const [items, setItems] = useState<FamilyDocument[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -39,6 +43,17 @@ export default function FamilyDocumentsScreen() {
   }, [memberId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Gate: storing another document beyond the plan's limit shows the paywall
+  // (doc §5.1 — "2nd document on Free"). Opens the add form only if allowed.
+  const handleOpenAdd = () => {
+    const check = checkLimit('documents', items.length);
+    if (!check.allowed && check.triggerKey) {
+      presentPaywall(check.triggerKey);
+      return;
+    }
+    setShowAdd(true);
+  };
 
   const resetForm = () => {
     setTitle('');
@@ -76,7 +91,7 @@ export default function FamilyDocumentsScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Insurance & Documents</Text>
-          <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
+          <Pressable onPress={handleOpenAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>

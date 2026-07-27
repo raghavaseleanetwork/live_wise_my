@@ -23,6 +23,8 @@ import { useAuth } from '@/lib/auth-context';
 import { apiRequest, getApiUrl } from '@/lib/query-client';
 import FeatureSelector from '@/components/FeatureSelector';
 import { FamilyFeatureKey, DEFAULT_FEATURES, saveMemberFeatures } from '@/lib/family-features';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 
 const RELATIONSHIPS = [
   { key: 'self', label: 'Self', icon: 'person' },
@@ -38,6 +40,8 @@ export default function AddFamilyMemberScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { token } = useAuth();
+  const { checkLimit } = useSubscription();
+  const { presentPaywall } = usePaywall();
 
   // Form State
   const [name, setName] = useState('');
@@ -56,9 +60,18 @@ export default function AddFamilyMemberScreen() {
   const [showCaregiverHint, setShowCaregiverHint] = useState(false);
 
   const toggleFeature = (key: FamilyFeatureKey) => {
-    setSelectedFeatures((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
+    setSelectedFeatures((prev) => {
+      // Turning a module OFF is always allowed.
+      if (prev.includes(key)) return prev.filter((k) => k !== key);
+      // Turning one ON is gated by the plan's modules-per-member limit
+      // (doc §5.1 — "4th module on Free" → paywall).
+      const check = checkLimit('modulesPerMember', prev.length);
+      if (!check.allowed && check.triggerKey) {
+        presentPaywall(check.triggerKey);
+        return prev;
+      }
+      return [...prev, key];
+    });
   };
 
   const handleSelectRelationship = (rel: string) => {

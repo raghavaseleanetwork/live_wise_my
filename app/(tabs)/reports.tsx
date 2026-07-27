@@ -20,6 +20,8 @@ import { useCurrency } from '@/lib/currency-context';
 import { useExpenses } from '@/lib/expense-context';
 import { useTabBarContentInset } from '@/lib/tab-bar';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/lib/subscription-context';
+import { usePaywall } from '@/lib/paywall-context';
 import { apiRequest } from '@/lib/query-client';
 import { getReminderIntentFromBill } from '@/lib/reminder-intent';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -93,6 +95,8 @@ export default function ReportsScreen() {
   const { formatAmount } = useCurrency();
   const { transactions, bills, isLoading, monthlyBudget, lifeScore, getReports } = useExpenses();
   const { isSeniorMode } = useSeniorMode();
+  const { checkFlag } = useSubscription();
+  const { presentPaywall } = usePaywall();
   const [backendReport, setBackendReport] = useState<any>(null);
   const [isReportsLoading, setIsReportsLoading] = useState(false);
   const { token } = useAuth();
@@ -678,6 +682,12 @@ export default function ReportsScreen() {
   };
 
   const handleExportPDF = async () => {
+    // Gate: PDF export requires Family or above (doc §5.1 — "PDF export attempt").
+    const gate = checkFlag('pdfReports');
+    if (!gate.allowed) {
+      presentPaywall(gate.triggerKey ?? 'pdfExport');
+      return;
+    }
     try {
       const html = `
         <!DOCTYPE html>
