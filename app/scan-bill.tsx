@@ -25,6 +25,7 @@ import { useTheme } from '@/lib/theme-context';
 import { getApiUrl } from '@/lib/query-client';
 import { useAuth } from '@/lib/auth-context';
 import { useExpenses } from '@/lib/expense-context';
+import { type CategoryType } from '@/lib/data';
 import { useAlert } from '@/lib/alert-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
@@ -40,7 +41,7 @@ export default function ScanBillScreen() {
   const { billId } = useLocalSearchParams<{ billId?: string }>();
   const { colors, isDark } = useTheme();
   const { token } = useAuth();
-  const { bills, refreshData } = useExpenses();
+  const { bills, refreshData, addTransaction } = useExpenses();
   const { formatAmount } = useCurrency();
   const { showAlert } = useAlert();
   const { checkLimit, incrementUsage } = useSubscription();
@@ -67,6 +68,7 @@ export default function ScanBillScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [confidence, setConfidence] = useState<number | null>(null);
+  const [isSavingExpense, setIsSavingExpense] = useState(false);
 
   const rotationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -246,6 +248,59 @@ export default function ScanBillScreen() {
       stopRotation();
     }
   }, [photo, token, startRotation, stopRotation]);
+
+  /**
+   * Save the scanned receipt as an EXPENSE rather than a future bill — Method 2
+   * in the product doc. A receipt for something already paid (groceries, fuel,
+   * a restaurant bill) is money already spent, so filing it as an upcoming bill
+   * is wrong; only the amount/merchant/category from OCR carry over.
+   */
+  const commitExpense = useCallback(async () => {
+    if (!editingData || !token) return;
+    setIsSavingExpense(true);
+
+    const amount = Number(editingData.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setIsSavingExpense(false);
+      showAlert({
+        title: 'Amount missing',
+        message: 'Could not read an amount from this receipt. Tap Edit to enter it.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    const created = await addTransaction({
+      merchant: editingData.name || 'Scanned receipt',
+      amount,
+      category: (editingData.category as CategoryType) || 'others',
+      // OCR reads the receipt's own date into `dueDate`; for an expense that is
+      // the date it was spent. Fall back to today when the scan found no date.
+      date: editingData.dueDate || new Date().toISOString(),
+      description: editingData.name || '',
+      source: 'scan',
+    });
+
+    setIsSavingExpense(false);
+
+    if (!created) {
+      showAlert({
+        title: 'Could not save',
+        message: 'The expense was not saved. Please check your connection and try again.',
+        type: 'error',
+      });
+      return;
+    }
+
+    setShowSuccessModal(false);
+    setStep('guide');
+    setPhoto(null);
+    showAlert({
+      title: 'Expense saved',
+      message: `${formatAmount(amount)} · ${editingData.name || 'Scanned receipt'}`,
+      type: 'success',
+    });
+  }, [editingData, token, addTransaction, showAlert, formatAmount]);
 
   const commitReminder = useCallback(async () => {
     if (!editingData || !token) return;
@@ -547,6 +602,29 @@ export default function ScanBillScreen() {
             </View>
           </Pressable>
         </View>
+
+        {/*
+          Already-paid receipts are expenses, not upcoming bills. Offered only for
+          new scans — re-scanning an existing bill is an update to that bill.
+        */}
+        {!billId && (
+          <Pressable
+            onPress={commitExpense}
+            disabled={isSavingExpense}
+            style={[styles.expenseAltBtn, { borderTopColor: colors.border }]}
+          >
+            {isSavingExpense ? (
+              <ActivityIndicator size="small" color={colors.accent} />
+            ) : (
+              <>
+                <Ionicons name="wallet-outline" size={15} color={colors.accent} />
+                <Text style={[styles.expenseAltText, { color: colors.accent }]}>
+                  Already paid — save as expense
+                </Text>
+              </>
+            )}
+          </Pressable>
+        )}
 
         {showDatePicker && (
           <DateTimePicker
@@ -978,6 +1056,17 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 24,
   },
+  expenseAltBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    minHeight: 44,
+    paddingTop: 14,
+    marginTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  expenseAltText: { fontSize: 13, fontWeight: '600' },
   cancelBtn: {
     flex: 1,
     height: 54,
