@@ -511,42 +511,26 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       );
       if (valid.length === 0) return 0;
 
-      // No bulk endpoint exists yet, so post sequentially. Requests are chunked
-      // to avoid opening hundreds of sockets on a large statement import.
-      // Replace with POST /api/transactions/bulk once available.
-      const created: Transaction[] = [];
-      const CHUNK = 5;
-      for (let i = 0; i < valid.length; i += CHUNK) {
-        const chunk = valid.slice(i, i + CHUNK);
-        const results = await Promise.all(
-          chunk.map(async (draft) => {
-            const payload = buildPayload(draft);
-            try {
-              const res = await fetchWithAuth(token, '/api/transactions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-              });
-              if (!res.ok) return null;
-              return (await res.json()) as Transaction;
-            } catch {
-              return null;
-            }
-          }),
-        );
-        for (const row of results) if (row) created.push(row);
-      }
+      try {
+        const res = await fetchWithAuth(token, '/api/transactions/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactions: valid.map(buildPayload) }),
+        });
+        if (!res.ok) return 0;
 
-      if (created.length > 0) {
-        setTransactions((prev) =>
-          [...created, ...prev].sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-          ),
-        );
+        const { saved } = (await res.json()) as { saved: number; skipped: number; failed: number };
+        // The bulk endpoint returns counts, not the created rows, so there is
+        // nothing to splice into local state optimistically — reload from the
+        // server instead. A statement import is not latency-sensitive enough
+        // to be worth a fabricated optimistic list.
+        if (saved > 0) await loadData();
+        return saved;
+      } catch {
+        return 0;
       }
-      return created.length;
     },
-    [token, buildPayload],
+    [token, buildPayload, loadData],
   );
 
   const refreshData = useCallback(async () => {
