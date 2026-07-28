@@ -38,7 +38,13 @@ type ScanStep = 'guide' | 'preview' | 'processing';
 
 export default function ScanBillScreen() {
   const router = useRouter();
-  const { billId } = useLocalSearchParams<{ billId?: string }>();
+  const { billId, mode } = useLocalSearchParams<{ billId?: string; mode?: string }>();
+  /**
+   * `?mode=expense` means the user arrived via "Scan a receipt" (the FAB), so
+   * saving an expense is the primary action. Re-scanning an existing bill
+   * (`billId` present) always stays bill-first — that flow is an update.
+   */
+  const isExpenseMode = mode === 'expense' && !billId;
   const { colors, isDark } = useTheme();
   const { token } = useAuth();
   const { bills, refreshData, addTransaction } = useExpenses();
@@ -591,35 +597,59 @@ export default function ScanBillScreen() {
           </ScrollView>
         )}
 
+        {/*
+          Primary action follows how the user arrived. From "Scan a receipt"
+          (mode=expense) the receipt is money already spent, so Save Expense
+          leads. From the home-screen "Scan Bills" circle it's a bill to pay.
+        */}
         <View style={styles.modalFooter}>
           <Pressable style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={() => setShowSuccessModal(false)}>
             <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Discard</Text>
           </Pressable>
-          <Pressable onPress={commitReminder} style={[styles.confirmBtn, { backgroundColor: colors.accent }]}>
+          <Pressable
+            onPress={isExpenseMode ? commitExpense : commitReminder}
+            disabled={isExpenseMode && isSavingExpense}
+            style={[styles.confirmBtn, { backgroundColor: colors.accent }]}
+          >
             <View style={styles.confirmGradient}>
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-              <Text style={styles.confirmBtnText}>{billId ? 'Update Bill' : 'Save Bill'}</Text>
+              {isExpenseMode && isSavingExpense ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons
+                    name={isExpenseMode ? 'wallet' : 'checkmark-circle'}
+                    size={18}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.confirmBtnText}>
+                    {isExpenseMode ? 'Save Expense' : billId ? 'Update Bill' : 'Save Bill'}
+                  </Text>
+                </>
+              )}
             </View>
           </Pressable>
         </View>
 
-        {/*
-          Already-paid receipts are expenses, not upcoming bills. Offered only for
-          new scans — re-scanning an existing bill is an update to that bill.
-        */}
+        {/* The other option, always available for a new scan. */}
         {!billId && (
           <Pressable
-            onPress={commitExpense}
+            onPress={isExpenseMode ? commitReminder : commitExpense}
             disabled={isSavingExpense}
             style={[styles.expenseAltBtn, { borderTopColor: colors.border }]}
           >
-            {isSavingExpense ? (
+            {!isExpenseMode && isSavingExpense ? (
               <ActivityIndicator size="small" color={colors.accent} />
             ) : (
               <>
-                <Ionicons name="wallet-outline" size={15} color={colors.accent} />
+                <Ionicons
+                  name={isExpenseMode ? 'notifications-outline' : 'wallet-outline'}
+                  size={15}
+                  color={colors.accent}
+                />
                 <Text style={[styles.expenseAltText, { color: colors.accent }]}>
-                  Already paid — save as expense
+                  {isExpenseMode
+                    ? 'Not paid yet — save as bill reminder'
+                    : 'Already paid — save as expense'}
                 </Text>
               </>
             )}

@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
 import { useExpenses } from '@/lib/expense-context';
@@ -311,6 +311,14 @@ function parsedFromServer(p: {
 
 export default function VoiceReminderScreen() {
   const router = useRouter();
+  /**
+   * `?mode=expense` means the user arrived via "Speak an expense" (the FAB), so
+   * logging an expense is the primary action and the reminder becomes secondary.
+   * Arriving without it (the home-screen "Voice Reminder" circle) keeps the
+   * original reminder-first behaviour.
+   */
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isExpenseMode = mode === 'expense';
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { token } = useAuth();
@@ -785,7 +793,9 @@ export default function VoiceReminderScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} disabled={!canInteract}>
           <Text style={[styles.headerCancel, { color: colors.textSecondary }]}>Cancel</Text>
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Voice Reminder</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {isExpenseMode ? 'Speak an Expense' : 'Voice Reminder'}
+        </Text>
         <View style={{ width: 56 }} />
       </View>
 
@@ -966,33 +976,70 @@ export default function VoiceReminderScreen() {
             </View>
           )}
 
-          <Pressable
-            disabled={!effectiveParsed || !canInteract || state !== 'review'}
-            onPress={handleConfirm}
-            style={[
-              styles.primaryBtn, 
-              { backgroundColor: '#4F46E5' },
-              (!effectiveParsed || !canInteract) && { opacity: 0.5 }
-            ]}
-          >
-            <Text style={styles.primaryBtnText}>
-              {state === 'confirming' ? 'Saving…' : 'Save reminder'}
-            </Text>
-          </Pressable>
-
           {/*
-            "Already spent" branch — Method 3. Offered only when the phrase
-            actually contains an amount, so the user is never shown a save
-            action that cannot succeed.
+            Button order flips with `mode`. Arriving from "Speak an expense"
+            makes the expense the primary action; arriving from the home-screen
+            "Voice Reminder" circle keeps the reminder primary. Same screen,
+            emphasis matched to how the user got here.
           */}
-          {state === 'review' && voiceExpenseGuess && (
-            <Pressable onPress={handleSaveAsExpense} disabled={!canInteract} style={styles.expenseAltBtn}>
-              <Ionicons name="wallet-outline" size={15} color="#FFFFFF" />
-              <Text style={styles.expenseAltText}>
-                Already spent — save as expense (₹
-                {voiceExpenseGuess.amount!.toLocaleString('en-IN')})
-              </Text>
-            </Pressable>
+          {isExpenseMode ? (
+            <>
+              <Pressable
+                disabled={!voiceExpenseGuess || !canInteract || state !== 'review'}
+                onPress={handleSaveAsExpense}
+                style={[
+                  styles.primaryBtn,
+                  { backgroundColor: '#4F46E5' },
+                  (!voiceExpenseGuess || !canInteract) && { opacity: 0.5 },
+                ]}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {state === 'confirming'
+                    ? 'Saving…'
+                    : voiceExpenseGuess
+                      ? `Save expense (₹${voiceExpenseGuess.amount!.toLocaleString('en-IN')})`
+                      : 'Say an amount to save'}
+                </Text>
+              </Pressable>
+
+              {state === 'review' && effectiveParsed && (
+                <Pressable onPress={handleConfirm} disabled={!canInteract} style={styles.expenseAltBtn}>
+                  <Ionicons name="notifications-outline" size={15} color="#FFFFFF" />
+                  <Text style={styles.expenseAltText}>Not spent yet — save as reminder</Text>
+                </Pressable>
+              )}
+            </>
+          ) : (
+            <>
+              <Pressable
+                disabled={!effectiveParsed || !canInteract || state !== 'review'}
+                onPress={handleConfirm}
+                style={[
+                  styles.primaryBtn,
+                  { backgroundColor: '#4F46E5' },
+                  (!effectiveParsed || !canInteract) && { opacity: 0.5 }
+                ]}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {state === 'confirming' ? 'Saving…' : 'Save reminder'}
+                </Text>
+              </Pressable>
+
+              {/*
+                "Already spent" branch — Method 3. Offered only when the phrase
+                actually contains an amount, so the user is never shown a save
+                action that cannot succeed.
+              */}
+              {state === 'review' && voiceExpenseGuess && (
+                <Pressable onPress={handleSaveAsExpense} disabled={!canInteract} style={styles.expenseAltBtn}>
+                  <Ionicons name="wallet-outline" size={15} color="#FFFFFF" />
+                  <Text style={styles.expenseAltText}>
+                    Already spent — save as expense (₹
+                    {voiceExpenseGuess.amount!.toLocaleString('en-IN')})
+                  </Text>
+                </Pressable>
+              )}
+            </>
           )}
         </View>
       </View>

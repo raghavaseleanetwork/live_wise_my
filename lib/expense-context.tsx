@@ -284,9 +284,26 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         // Reset phase after delay if synced something, or keep idle
         setTimeout(() => setSmsSyncPhase('idle'), 5000);
       } else {
-        // If it failed because of module unavailable, we might want a specific status
         setSmsSyncPhase('error');
-        setSmsSyncStatus('SMS sync failed. Please check permissions.');
+        // Name the actual cause. A 401 means the saved session is no longer
+        // valid (e.g. the app was pointed at a different backend), which has
+        // nothing to do with SMS permissions — blaming permissions here sent
+        // real debugging down the wrong path.
+        const status = (syncResult as { status?: number }).status;
+        if (status === 401 || status === 403) {
+          setSmsSyncStatus('Your session has expired. Please sign out and sign in again.');
+          showAlert({
+            title: 'Session expired',
+            message: 'Please sign out and sign in again, then retry Auto Track.',
+            type: 'warning',
+          });
+        } else {
+          setSmsSyncStatus(
+            status
+              ? `Auto Track failed (server error ${status}). Please try again.`
+              : 'Auto Track failed. Please check your connection and try again.',
+          );
+        }
       }
     } catch (err) {
       console.error('SMS sync error:', err);

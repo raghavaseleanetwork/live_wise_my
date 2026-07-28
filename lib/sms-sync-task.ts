@@ -117,10 +117,15 @@ export async function performSmsSync(
       return { success: true, synced: json.synced, skipped: json.skipped };
     }
     
+    // Log the actual status. Previously this returned success:false silently,
+    // so a 401 (expired token) was indistinguishable from a parse failure and
+    // the UI blamed SMS permissions — which sent debugging down the wrong path.
+    const body = await res.text().catch(() => '');
+    console.error(`[SmsSync] Upload failed: HTTP ${res.status} ${body.slice(0, 200)}`);
     onProgress?.({ phase: 'error' });
-    return { success: false, synced: 0 };
+    return { success: false, synced: 0, status: res.status };
   } catch (err) {
-    console.error('[BackgroundSync] Error:', err);
+    console.error('[SmsSync] Error:', err);
     onProgress?.({ phase: 'error' });
     return { success: false, synced: 0 };
   }

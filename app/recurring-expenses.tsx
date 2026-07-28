@@ -113,6 +113,46 @@ export default function RecurringExpensesScreen() {
     [addTransaction, showAlert, refresh, token],
   );
 
+  /**
+   * Record a template immediately, whether or not its due date has arrived.
+   * Dated today rather than the template's dayOfMonth — the user is telling us
+   * they spent it now, and back-dating to a day that hasn't happened would be
+   * wrong. Does not touch lastHandledPeriod, so an upcoming due-date prompt
+   * still appears as normal.
+   */
+  const handleLogNow = useCallback(
+    async (template: RecurringExpense) => {
+      setConfirmingId(template.id);
+      const created = await addTransaction({
+        merchant: template.name,
+        amount: template.amount,
+        category: template.category,
+        date: new Date().toISOString(),
+        memberId: template.memberId ?? null,
+        paymentMode: template.paymentMode,
+        description: 'Recurring expense',
+        source: 'recurring',
+      });
+      setConfirmingId(null);
+
+      if (!created) {
+        showAlert({
+          title: 'Could not save',
+          message: 'The expense was not recorded. Please check your connection and try again.',
+          type: 'error',
+        });
+        return;
+      }
+      showAlert({
+        title: 'Expense recorded',
+        message: `${formatAmount(template.amount)} · ${template.name}`,
+        type: 'success',
+      });
+      await refresh();
+    },
+    [addTransaction, showAlert, formatAmount, refresh],
+  );
+
   /** Dismiss this month's occurrence without recording an expense. */
   const handleSkipDue = useCallback(
     async (item: DueRecurringExpense) => {
@@ -309,7 +349,24 @@ export default function RecurringExpensesScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(t.amount)}</Text>
-                  <Pressable onPress={() => handleDelete(t)} hitSlop={10} style={{ marginLeft: 10 }}>
+                  {/*
+                    Log on demand. "Due now" only lists templates whose day has
+                    already passed this month, so without this a template due
+                    later is un-actionable and looks broken.
+                  */}
+                  <Pressable
+                    onPress={() => handleLogNow(t)}
+                    disabled={confirmingId === t.id}
+                    hitSlop={8}
+                    style={{ marginLeft: 10 }}
+                  >
+                    {confirmingId === t.id ? (
+                      <ActivityIndicator size="small" color={colors.accent} />
+                    ) : (
+                      <Ionicons name="add-circle-outline" size={19} color={colors.accent} />
+                    )}
+                  </Pressable>
+                  <Pressable onPress={() => handleDelete(t)} hitSlop={8} style={{ marginLeft: 10 }}>
                     <Ionicons name="trash-outline" size={17} color={colors.danger} />
                   </Pressable>
                 </View>
@@ -317,8 +374,8 @@ export default function RecurringExpensesScreen() {
             )}
 
             <Text style={[styles.note, { color: colors.textTertiary }]}>
-              Confirming a recurring expense records it like any other expense. Nothing is added
-              automatically without your tap.
+              Tap + on any template to record it now. Nothing is ever added automatically without
+              your tap.
             </Text>
           </>
         )}

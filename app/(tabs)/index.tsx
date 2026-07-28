@@ -696,14 +696,17 @@ export default function HomeScreen() {
         icon: 'mic',
         label: 'Speak an expense',
         color: colors.accentPurple || colors.accent,
-        onPress: () => router.push('/voice-reminder'),
+        // mode=expense flips the screen's primary action to "Save expense".
+        // Without it the user arrives from "Speak an expense" at a screen whose
+        // main button creates a reminder — which reads as broken.
+        onPress: () => router.push('/voice-reminder?mode=expense'),
       },
       {
         key: 'scan',
         icon: 'camera',
         label: 'Scan a receipt',
         color: colors.accentBlue || '#3B82F6',
-        onPress: () => router.push('/scan-bill'),
+        onPress: () => router.push('/scan-bill?mode=expense'),
       },
       {
         key: 'quick',
