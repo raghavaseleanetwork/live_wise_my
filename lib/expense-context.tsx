@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking, Platform } from 'react-native';
+import { router } from 'expo-router';
 import {
   Transaction,
   Bill,
@@ -9,6 +10,9 @@ import {
   DEFAULT_REMINDER_SETTINGS,
   ReportsData,
   LifeScoreData,
+  CategoryType,
+  PaymentMode,
+  ExpenseSource,
 } from './data';
 import { getApiUrl } from './query-client';
 import { useAuth } from './auth-context';
@@ -21,6 +25,30 @@ const STORAGE_KEYS = {
   BUDGET: '@lifewise_budget',
   REMINDER_SETTINGS: '@lifewise_reminder_settings',
 };
+
+/**
+ * What the app needs to create an expense. `merchant` and `amount` are the only
+ * fields the server requires; everything else has a sensible default applied in
+ * addTransaction() so callers (Quick Add, scan, voice, import) stay simple.
+ */
+export interface ExpenseDraft {
+  merchant: string;
+  amount: number;
+  category?: CategoryType;
+  date?: string;
+  memberId?: string | null;
+  paymentMode?: PaymentMode;
+  description?: string;
+  receiptUrl?: string;
+  source?: ExpenseSource;
+  upiId?: string;
+  /**
+   * Content hash identifying this row across repeated imports. Sent so the
+   * server can upsert instead of inserting — see EXPENSE_ENTRY_BACKEND_TODO.md §2.
+   * Omitted for manually-entered expenses.
+   */
+  dedupeKey?: string;
+}
 
 interface ExpenseContextValue {
   transactions: Transaction[];
@@ -39,6 +67,10 @@ interface ExpenseContextValue {
   toggleBillPaid: (billId: string) => void;
   refreshData: () => void;
   syncSmsFromDevice: () => Promise<void>;
+  /** Create a single expense (Quick Add, scan, voice). Returns null on failure. */
+  addTransaction: (draft: ExpenseDraft) => Promise<Transaction | null>;
+  /** Create many expenses at once (CSV / PDF statement import). Returns the saved count. */
+  addTransactionsBulk: (drafts: ExpenseDraft[]) => Promise<number>;
   monthlyBudget: number;
   setMonthlyBudget: (budget: number) => void;
   quickAddReminder: (text: string) => Promise<void>;
@@ -111,8 +143,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (txRes.ok) {
-        const data = await txRes.json();
-        setTransactions(data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        const data = (await txRes.json()) as Transaction[];
+        setTransactions(
+          data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        );
       }
       else setTransactions([]);
       if (billsRes.ok) setBills(await billsRes.json());
@@ -151,12 +185,20 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     setLastSmsSyncCount(null);
     try {
       if (Platform.OS !== 'android') {
+        // iOS sandboxes the SMS inbox — no third-party app can read it (doc §1).
+        // Point at the entry methods that DO work rather than dead-ending: an
+        // "unsupported" alert with no alternative just tells the user to give up.
         showAlert({
-          title: 'SMS sync not supported',
-          message: 'Auto Track via SMS only works on Android phones.',
+          title: 'Auto Track works differently here',
+          message:
+            'Apple does not let any app read your SMS. Instead, import your bank statement — one CSV export fills in a whole month at once. You can also scan receipts or speak an expense.',
           type: 'info',
+          buttons: [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Import statement', onPress: () => router.push('/import-statement') },
+          ],
         });
-        setSmsSyncStatus('SMS sync only works on Android devices.');
+        setSmsSyncStatus('On iPhone, import a bank statement or add expenses by scan/voice.');
         setSmsSyncProgressCurrent(null);
         setSmsSyncProgressTotal(null);
         setLastSmsReadCount(0);
@@ -413,6 +455,100 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     [token],
   );
 
+  /**
+   * Normalise a draft into the POST /api/transactions payload. memberId,
+   * paymentMode, receiptUrl and source are all persisted and echoed back by the
+   * backend now (see EXPENSE_ENTRY_BACKEND_TODO.md §1) — no local merge needed.
+   */
+  const buildPayload = useCallback((draft: ExpenseDraft) => ({
+    merchant: draft.merchant.trim(),
+    amount: draft.amount,
+    category: draft.category || 'others',
+    date: draft.date || new Date().toISOString(),
+    upiId: draft.upiId || '',
+    isDebit: true,
+    description: draft.description || '',
+    memberId: draft.memberId ?? null,
+    paymentMode: draft.paymentMode || 'upi',
+    receiptUrl: draft.receiptUrl || '',
+    source: draft.source || 'manual',
+    // Only present for imports; a manual entry has nothing stable to hash.
+    ...(draft.dedupeKey ? { dedupeKey: draft.dedupeKey } : {}),
+  }), []);
+
+  const addTransaction = useCallback(
+    async (draft: ExpenseDraft): Promise<Transaction | null> => {
+      if (!token) return null;
+      if (!draft.merchant?.trim() || !Number.isFinite(draft.amount) || draft.amount <= 0) {
+        return null;
+      }
+      const payload = buildPayload(draft);
+      try {
+        const res = await fetchWithAuth(token, '/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) return null;
+
+        const created = (await res.json()) as Transaction;
+        setTransactions((prev) =>
+          [created, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        );
+        return created;
+      } catch {
+        return null;
+      }
+    },
+    [token, buildPayload],
+  );
+
+  const addTransactionsBulk = useCallback(
+    async (drafts: ExpenseDraft[]): Promise<number> => {
+      if (!token || drafts.length === 0) return 0;
+      const valid = drafts.filter(
+        (d) => d.merchant?.trim() && Number.isFinite(d.amount) && d.amount > 0,
+      );
+      if (valid.length === 0) return 0;
+
+      // No bulk endpoint exists yet, so post sequentially. Requests are chunked
+      // to avoid opening hundreds of sockets on a large statement import.
+      // Replace with POST /api/transactions/bulk once available.
+      const created: Transaction[] = [];
+      const CHUNK = 5;
+      for (let i = 0; i < valid.length; i += CHUNK) {
+        const chunk = valid.slice(i, i + CHUNK);
+        const results = await Promise.all(
+          chunk.map(async (draft) => {
+            const payload = buildPayload(draft);
+            try {
+              const res = await fetchWithAuth(token, '/api/transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              if (!res.ok) return null;
+              return (await res.json()) as Transaction;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        for (const row of results) if (row) created.push(row);
+      }
+
+      if (created.length > 0) {
+        setTransactions((prev) =>
+          [...created, ...prev].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          ),
+        );
+      }
+      return created.length;
+    },
+    [token, buildPayload],
+  );
+
   const refreshData = useCallback(async () => {
     await loadData();
   }, [loadData]);
@@ -478,6 +614,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       toggleBillPaid,
       refreshData,
       syncSmsFromDevice,
+      addTransaction,
+      addTransactionsBulk,
       monthlyBudget,
       setMonthlyBudget,
       quickAddReminder,
@@ -511,6 +649,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       toggleBillPaid,
       refreshData,
       syncSmsFromDevice,
+      addTransaction,
+      addTransactionsBulk,
       setMonthlyBudget,
       quickAddReminder,
       addReminder,

@@ -135,6 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       AsyncStorage.removeItem(STORAGE_KEYS.USER),
       AsyncStorage.removeItem(STORAGE_KEYS.TOKEN),
       AsyncStorage.removeItem('last_sms_sync_timestamp'),
+      // Legacy: the expense-overlay cache is gone (the server now persists
+      // memberId/paymentMode/etc.), but old installs may still hold the key.
+      AsyncStorage.removeItem('@lifewise_expense_overlay'),
+      // Legacy: recurring templates now sync via /api/recurring. Clearing the
+      // old local store stops a stale copy shadowing the server's list.
+      AsyncStorage.removeItem('@lifewise_recurring_expenses'),
     ]);
   }, []);
 
