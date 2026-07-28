@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -19,6 +20,7 @@ import { useCurrency } from '@/lib/currency-context';
 import { useAlert } from '@/lib/alert-context';
 import { useExpenses } from '@/lib/expense-context';
 import { apiRequest } from '@/lib/query-client';
+import { uploadReceipt } from '@/lib/upload-receipt';
 import { CATEGORIES, CategoryType, PaymentMode } from '@/lib/data';
 import CustomModal from '@/components/CustomModal';
 
@@ -105,6 +107,8 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [members, setMembers] = useState<FamilyMemberLite[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [receiptUri, setReceiptUri] = useState<string | null>(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
   // Reset to a clean slate each time the sheet opens, applying the time-of-day
   // hint so the common case is a single tap on the amount.
@@ -118,6 +122,8 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
     setShowMore(false);
     setShowDatePicker(false);
     setIsSaving(false);
+    setReceiptUri(null);
+    setIsUploadingReceipt(false);
   }, [visible]);
 
   // Family members for the "who spent this?" selector.
@@ -140,11 +146,43 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
   }, [visible, token]);
 
   const amountValue = Number(amount);
-  const canSave = Number.isFinite(amountValue) && amountValue > 0 && !isSaving;
+  const canSave = Number.isFinite(amountValue) && amountValue > 0 && !isSaving && !isUploadingReceipt;
 
   const tap = useCallback(() => {
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
   }, []);
+
+  /**
+   * Attach a receipt photo — the "Receipt Photo" field the doc lists as
+   * optional on Quick Add. Uploads immediately on pick rather than deferring to
+   * Save, so an upload failure surfaces right away instead of at the moment the
+   * expense would otherwise be committed.
+   */
+  const handleAttachReceipt = useCallback(async () => {
+    if (!token) return;
+    tap();
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      allowsEditing: false,
+    });
+    if (result.canceled || !result.assets?.length) return;
+
+    const asset = result.assets[0];
+    setIsUploadingReceipt(true);
+    try {
+      const url = await uploadReceipt(token, asset.uri, asset.fileSize);
+      setReceiptUri(url);
+    } catch (e: any) {
+      showAlert({
+        title: 'Could not attach receipt',
+        message: e?.message || 'Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setIsUploadingReceipt(false);
+    }
+  }, [token, tap, showAlert]);
 
   /** Numeric keypad entry. Guards against multiple decimal points. */
   const pressKey = useCallback(
@@ -180,6 +218,7 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
       memberId,
       paymentMode,
       description: note.trim(),
+      receiptUrl: receiptUri || undefined,
       source: 'manual',
     });
 
@@ -214,6 +253,7 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
     amountValue,
     date,
     paymentMode,
+    receiptUri,
     addTransaction,
     showAlert,
     currentCurrency.symbol,
@@ -495,6 +535,49 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
                 );
               })}
             </View>
+
+            <Pressable
+              onPress={handleAttachReceipt}
+              disabled={isUploadingReceipt}
+              style={[
+                styles.receiptRow,
+                {
+                  backgroundColor: receiptUri ? colors.accent + '14' : colors.bgSecondary,
+                  borderColor: receiptUri ? colors.accent + '55' : colors.border,
+                },
+              ]}
+            >
+              {isUploadingReceipt ? (
+                <ActivityIndicator size="small" color={colors.accent} />
+              ) : (
+                <Ionicons
+                  name={receiptUri ? 'checkmark-circle' : 'camera-outline'}
+                  size={16}
+                  color={receiptUri ? colors.accent : colors.textSecondary}
+                />
+              )}
+              <Text
+                style={[
+                  styles.receiptText,
+                  { color: receiptUri ? colors.accent : colors.textSecondary },
+                ]}
+              >
+                {isUploadingReceipt
+                  ? 'Uploading receipt…'
+                  : receiptUri
+                    ? 'Receipt attached'
+                    : 'Attach receipt photo (optional)'}
+              </Text>
+              {receiptUri && !isUploadingReceipt && (
+                <Pressable
+                  onPress={() => setReceiptUri(null)}
+                  hitSlop={8}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  <Ionicons name="close-circle" size={16} color={colors.textTertiary} />
+                </Pressable>
+              )}
+            </Pressable>
           </View>
         )}
 
@@ -630,6 +713,16 @@ const styles = StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dateText: { fontSize: 14, fontWeight: '500' },
   payRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  receiptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  receiptText: { fontSize: 13, fontWeight: '600' },
   payChip: {
     flexDirection: 'row',
     alignItems: 'center',
