@@ -495,7 +495,28 @@ export default function VoiceReminderScreen() {
       });
 
       if (!res.ok) {
-        const msg = (await res.json().catch(() => null))?.message || 'Voice processing failed. Please try again.';
+        const body = await res.text().catch(() => '');
+        // Log the FULL body — a 403 here carries the transcription provider's
+        // own error text, which is what the backend team needs to act on.
+        // Truncating it hid exactly the detail that identifies the cause.
+        console.error(`[Voice] Transcribe failed HTTP ${res.status}`);
+        console.error('[Voice] Server said:', body);
+        let msg = 'Voice processing failed. Please try again.';
+        try {
+          msg = JSON.parse(body)?.message || msg;
+        } catch {
+          // non-JSON error page — keep the generic message
+        }
+        // Only 401 means "your login is bad". A 403 on this route is the
+        // SERVER being refused by the transcription provider (bad/revoked
+        // OpenAI key, or no credit) — telling the user to sign in again for
+        // that is wrong and sends them chasing a problem they cannot fix.
+        if (res.status === 401) {
+          msg = 'Your session has expired. Please sign out and sign in again.';
+        } else if (res.status === 403 || res.status === 500) {
+          msg =
+            'Voice transcription is unavailable on the server right now. This needs a backend fix — please report it.';
+        }
         setError(msg);
         setState('idle');
         return;
