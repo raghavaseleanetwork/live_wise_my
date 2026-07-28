@@ -305,8 +305,12 @@ export default function ScanBillScreen() {
     setStep('guide');
     setPhoto(null);
     showAlert({
+      // Name the record type explicitly. These two flows differ only by a
+      // secondary tap, so a vague "Saved!" hides a wrong-type save entirely.
       title: 'Expense saved',
-      message: `${formatAmount(amount)} · ${editingData.name || 'Scanned receipt'}`,
+      message: `${formatAmount(amount)} · ${
+        editingData.name || 'Scanned receipt'
+      }\n\nAdded to your expenses.`,
       type: 'success',
     });
   }, [editingData, token, addTransaction, showAlert, formatAmount, isSavingExpense]);
@@ -391,7 +395,7 @@ export default function ScanBillScreen() {
               created.dueDate
                 ? ` · due ${new Date(created.dueDate).toLocaleDateString('en-IN')}`
                 : ''
-            }`,
+            }\n\nAdded to Reminders — not to your expenses.`,
             type: 'success',
           });
         }
@@ -421,6 +425,25 @@ export default function ScanBillScreen() {
     showAlert,
     isSavingReminder,
   ]);
+
+  /**
+   * Unambiguous wrappers for the two save actions.
+   *
+   * The buttons previously called `commitExpense` / `commitReminder` through a
+   * `isExpenseMode ? a : b` ternary in two places, which meant reading the JSX
+   * to know which record type a tap created — and a wrong `isExpenseMode`
+   * silently inverted BOTH buttons. These log what they do, so a mis-save is
+   * visible in the console instead of only in the database.
+   */
+  const saveAsExpense = useCallback(() => {
+    console.log('[ScanBill] action=SAVE_EXPENSE (creates a transaction)');
+    return commitExpense();
+  }, [commitExpense]);
+
+  const saveAsBillReminder = useCallback(() => {
+    console.log('[ScanBill] action=SAVE_BILL_REMINDER (creates a bill)');
+    return commitReminder();
+  }, [commitReminder]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingBottom: 40 }]}>
@@ -665,7 +688,7 @@ export default function ScanBillScreen() {
             <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Discard</Text>
           </Pressable>
           <Pressable
-            onPress={isExpenseMode ? commitExpense : commitReminder}
+            onPress={isExpenseMode ? saveAsExpense : saveAsBillReminder}
             disabled={isBusy}
             style={[styles.confirmBtn, { backgroundColor: colors.accent }, isBusy && { opacity: 0.7 }]}
           >
@@ -692,7 +715,7 @@ export default function ScanBillScreen() {
         {/* The other option, always available for a new scan. */}
         {!billId && (
           <Pressable
-            onPress={isExpenseMode ? commitReminder : commitExpense}
+            onPress={isExpenseMode ? saveAsBillReminder : saveAsExpense}
             disabled={isBusy}
             style={[styles.expenseAltBtn, { borderTopColor: colors.border }, isBusy && { opacity: 0.6 }]}
           >
