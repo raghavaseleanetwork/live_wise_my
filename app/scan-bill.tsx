@@ -75,6 +75,9 @@ export default function ScanBillScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [isSavingExpense, setIsSavingExpense] = useState(false);
+  const [isSavingReminder, setIsSavingReminder] = useState(false);
+  /** Either save in flight — disables every button so neither can double-fire. */
+  const isBusy = isSavingExpense || isSavingReminder;
 
   const rotationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -262,7 +265,7 @@ export default function ScanBillScreen() {
    * is wrong; only the amount/merchant/category from OCR carry over.
    */
   const commitExpense = useCallback(async () => {
-    if (!editingData || !token) return;
+    if (!editingData || !token || isSavingExpense) return;
     setIsSavingExpense(true);
 
     const amount = Number(editingData.amount);
@@ -306,11 +309,27 @@ export default function ScanBillScreen() {
       message: `${formatAmount(amount)} · ${editingData.name || 'Scanned receipt'}`,
       type: 'success',
     });
-  }, [editingData, token, addTransaction, showAlert, formatAmount]);
+  }, [editingData, token, addTransaction, showAlert, formatAmount, isSavingExpense]);
 
   const commitReminder = useCallback(async () => {
-    if (!editingData || !token) return;
+    if (!editingData || !token || isSavingReminder) return;
 
+    // A ₹0 bill is not useful and is usually a low-confidence OCR miss (the
+    // screenshot case: 40% score, amount read as 0). Ask for a real figure
+    // instead of silently saving a reminder the user can't act on.
+    if (!Number.isFinite(Number(editingData.amount)) || Number(editingData.amount) <= 0) {
+      showAlert({
+        title: 'Amount missing',
+        message: 'Could not read an amount from this bill. Tap "Modify Details" to enter it.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    // Guard + spinner: this does a network round-trip and previously had no
+    // loading state at all, so the button looked dead and a double-tap could
+    // create two bills.
+    setIsSavingReminder(true);
     try {
       const baseUrl = getApiUrl();
       if (billId && existingBill) {
@@ -328,7 +347,11 @@ export default function ScanBillScreen() {
           }),
         });
 
-        if (!res.ok) throw new Error('Update failed');
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '');
+          console.error(`[ScanBill] Update failed HTTP ${res.status}:`, detail.slice(0, 300));
+          throw new Error('Update failed');
+        }
       } else {
         const url = new URL('/api/bills/scan/commit', baseUrl).toString();
         const res = await fetch(url, {
@@ -340,7 +363,11 @@ export default function ScanBillScreen() {
           body: JSON.stringify({ preview: editingData }),
         });
 
-        if (!res.ok) throw new Error('Save failed');
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '');
+          console.error(`[ScanBill] Save failed HTTP ${res.status}:`, detail.slice(0, 300));
+          throw new Error('Save failed');
+        }
         const created = await res.json();
         
         if (created?.dueDate) {
@@ -352,7 +379,22 @@ export default function ScanBillScreen() {
           }).catch(() => {});
         }
         
-        router.replace(`/bill-details/${created.id}`);
+        // Only jump to the bill detail screen when the user actually asked for
+        // a bill. In expense mode the reminder is the secondary choice, so
+        // hijacking navigation there is disorienting — confirm and stay put.
+        if (!isExpenseMode) {
+          router.replace(`/bill-details/${created.id}`);
+        } else {
+          showAlert({
+            title: 'Bill reminder saved',
+            message: `${created.name || 'Bill'}${
+              created.dueDate
+                ? ` · due ${new Date(created.dueDate).toLocaleDateString('en-IN')}`
+                : ''
+            }`,
+            type: 'success',
+          });
+        }
       }
 
       await refreshData();
@@ -361,12 +403,24 @@ export default function ScanBillScreen() {
       setPhoto(null);
     } catch (e) {
       showAlert({
-        title: 'Error',
-        message: 'Could not save bill. Please try again.',
+        title: 'Could not save bill',
+        message: 'Please check your connection and try again.',
         type: 'error',
       });
+    } finally {
+      setIsSavingReminder(false);
     }
-  }, [editingData, token, billId, existingBill, refreshData, router]);
+  }, [
+    editingData,
+    token,
+    billId,
+    existingBill,
+    refreshData,
+    router,
+    isExpenseMode,
+    showAlert,
+    isSavingReminder,
+  ]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingBottom: 40 }]}>
@@ -603,16 +657,21 @@ export default function ScanBillScreen() {
           leads. From the home-screen "Scan Bills" circle it's a bill to pay.
         */}
         <View style={styles.modalFooter}>
-          <Pressable style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={() => setShowSuccessModal(false)}>
+          <Pressable
+            style={[styles.cancelBtn, { borderColor: colors.border }]}
+            onPress={() => setShowSuccessModal(false)}
+            disabled={isBusy}
+          >
             <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Discard</Text>
           </Pressable>
           <Pressable
             onPress={isExpenseMode ? commitExpense : commitReminder}
-            disabled={isExpenseMode && isSavingExpense}
-            style={[styles.confirmBtn, { backgroundColor: colors.accent }]}
+            disabled={isBusy}
+            style={[styles.confirmBtn, { backgroundColor: colors.accent }, isBusy && { opacity: 0.7 }]}
           >
             <View style={styles.confirmGradient}>
-              {isExpenseMode && isSavingExpense ? (
+              {/* Spinner tracks whichever action THIS button runs, not a fixed one. */}
+              {(isExpenseMode ? isSavingExpense : isSavingReminder) ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
@@ -634,10 +693,10 @@ export default function ScanBillScreen() {
         {!billId && (
           <Pressable
             onPress={isExpenseMode ? commitReminder : commitExpense}
-            disabled={isSavingExpense}
-            style={[styles.expenseAltBtn, { borderTopColor: colors.border }]}
+            disabled={isBusy}
+            style={[styles.expenseAltBtn, { borderTopColor: colors.border }, isBusy && { opacity: 0.6 }]}
           >
-            {!isExpenseMode && isSavingExpense ? (
+            {(isExpenseMode ? isSavingReminder : isSavingExpense) ? (
               <ActivityIndicator size="small" color={colors.accent} />
             ) : (
               <>
