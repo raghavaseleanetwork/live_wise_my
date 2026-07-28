@@ -42,6 +42,8 @@ import { useAlert } from '@/lib/alert-context';
 import CategoryIcon from '@/components/CategoryIcon';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomModal from '@/components/CustomModal';
+import QuickAddSheet from '@/components/QuickAddSheet';
+import AddExpenseFab, { FAB_CONTENT_INSET, type FabAction } from '@/components/AddExpenseFab';
 import {
   CATEGORIES,
   getTodaySpending,
@@ -606,6 +608,8 @@ export default function HomeScreen() {
   const { showAlert } = useAlert();
   const [showScoreDetail, setShowScoreDetail] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  /** Expense Quick Add sheet (Method 1). Separate from the reminder quick-add above. */
+  const [showAddExpense, setShowAddExpense] = useState(false);
   const [quickAddText, setQuickAddText] = useState('');
   const [isQuickAdding, setIsQuickAdding] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -664,6 +668,53 @@ export default function HomeScreen() {
   const handleScanBill = useCallback(() => {
     router.push('/scan-bill');
   }, [router]);
+
+  /**
+   * Entry methods offered by the expanding action button. Ordered by how often
+   * they get used, since the bottom-most item sits closest to the trigger and is
+   * the easiest to reach. Import is Android-and-iOS but matters most on iOS,
+   * where Apple's SMS restriction leaves no automatic capture path.
+   */
+  const fabActions: FabAction[] = useMemo(
+    () => [
+      {
+        key: 'import',
+        icon: 'document-text-outline',
+        label: 'Import statement',
+        color: colors.warning,
+        onPress: () => router.push('/import-statement'),
+      },
+      {
+        key: 'recurring',
+        icon: 'repeat',
+        label: 'Recurring expenses',
+        color: colors.accentMint || '#10B981',
+        onPress: () => router.push('/recurring-expenses'),
+      },
+      {
+        key: 'voice',
+        icon: 'mic',
+        label: 'Speak an expense',
+        color: colors.accentPurple || colors.accent,
+        onPress: () => router.push('/voice-reminder'),
+      },
+      {
+        key: 'scan',
+        icon: 'camera',
+        label: 'Scan a receipt',
+        color: colors.accentBlue || '#3B82F6',
+        onPress: () => router.push('/scan-bill'),
+      },
+      {
+        key: 'quick',
+        icon: 'create-outline',
+        label: 'Add expense',
+        color: colors.accent,
+        onPress: () => setShowAddExpense(true),
+      },
+    ],
+    [router, colors],
+  );
 
   // Never show a full-screen sync animation; we use a compact top banner instead.
 
@@ -961,17 +1012,27 @@ export default function HomeScreen() {
               <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Voice Reminder</Text>
             </Pressable>
             <Pressable
-              onPress={() => router.push('/(tabs)/transactions')}
+              onPress={() => setShowAddExpense(true)}
               style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-              testID="home-activity-btn"
+              testID="home-add-expense-btn"
             >
               <View style={[styles.seniorBtnIcon, { backgroundColor: '#3B82F6' + '12' }]}>
-                <Ionicons name="stats-chart" size={32} color="#3B82F6" />
+                <Ionicons name="add-circle" size={32} color="#3B82F6" />
               </View>
-              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Analytics</Text>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Add Expense</Text>
             </Pressable>
           </View>
         </ScrollView>
+
+        {/* Senior mode deliberately has no expanding FAB — its large labelled
+            tiles are the whole point, and small fan-out targets would undercut
+            that. The sheet still has to be mounted here, or the tile above sets
+            state that nothing in this branch renders. */}
+        <QuickAddSheet
+          visible={showAddExpense}
+          onClose={() => setShowAddExpense(false)}
+          onImport={() => router.push('/import-statement')}
+        />
       </View>
     );
   }
@@ -991,7 +1052,11 @@ export default function HomeScreen() {
         }
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: topInset + 12, paddingBottom: tabBarInset.bottom },
+          {
+            paddingTop: topInset + 12,
+            // Clear the tab bar AND the floating action button above it.
+            paddingBottom: tabBarInset.bottom + FAB_CONTENT_INSET,
+          },
         ]}
       >
         <TopReminderAlert
@@ -1302,6 +1367,14 @@ export default function HomeScreen() {
         </Animated.View>
 
       </ScrollView>
+
+      <AddExpenseFab actions={fabActions} />
+
+      <QuickAddSheet
+        visible={showAddExpense}
+        onClose={() => setShowAddExpense(false)}
+        onImport={() => router.push('/import-statement')}
+      />
 
       <CustomModal visible={showScoreDetail} onClose={() => setShowScoreDetail(false)}>
         <View style={[styles.scoreDetailHeader, { borderBottomColor: colors.border }]}>
