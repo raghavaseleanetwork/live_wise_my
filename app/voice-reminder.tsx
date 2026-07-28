@@ -14,9 +14,10 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
 import { useExpenses } from '@/lib/expense-context';
-import { type Bill, type RepeatType, type ReminderType, type CategoryType } from '@/lib/data';
+import { type Bill, type RepeatType, type ReminderType, type CategoryType, CATEGORIES } from '@/lib/data';
+import { parseVoiceExpense } from '@/lib/parse-voice-expense';
 import { Audio } from 'expo-av';
-import { getApiUrl } from '@/lib/query-client';
+import { getApiUrl, apiRequest } from '@/lib/query-client';
 import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
@@ -315,7 +316,11 @@ export default function VoiceReminderScreen() {
   const { token } = useAuth();
   const { checkLimit, incrementUsage } = useSubscription();
   const { presentPaywall } = usePaywall();
-  const { addReminder, reminderSettings } = useExpenses();
+  const { addReminder, reminderSettings, addTransaction } = useExpenses();
+  /** Family members, used to resolve a spoken "Papa"/"Mummy" to a real member. */
+  const [voiceMembers, setVoiceMembers] = useState<
+    { id: string; name: string; relationship: string }[]
+  >([]);
   const { showAlert } = useAlert();
   const [state, setState] = useState<VoiceState>('idle');
   const [spokenText, setSpokenText] = useState('');
@@ -359,6 +364,25 @@ export default function VoiceReminderScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Family members, so a spoken "Papa ke liye" can be attributed to a real member.
+  useEffect(() => {
+    if (!token) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await apiRequest('GET', '/api/family', undefined, token);
+        if (!res.ok) return;
+        const data = (await res.json()) as { id: string; name: string; relationship: string }[];
+        if (mounted) setVoiceMembers(Array.isArray(data) ? data : []);
+      } catch {
+        if (mounted) setVoiceMembers([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
 
   async function handleStartRecording() {
     // Gate: voice reminder is monthly-metered (doc §5.1 — "6th voice reminder
@@ -550,6 +574,65 @@ export default function VoiceReminderScreen() {
     }
   }
 
+  /**
+   * Save the spoken phrase as an EXPENSE — Method 3 in the product doc.
+   *
+   * The transcript is parsed on-device by `parseVoiceExpense` (no extra API
+   * call). Reaching this point means an amount was found, since the button is
+   * hidden otherwise: a voice expense with no amount has nothing to save, and
+   * the doc is explicit that low confidence must not silently guess.
+   */
+  async function handleSaveAsExpense() {
+    const spoken = (isEditing ? draftText : spokenText).trim();
+    if (!spoken) return;
+
+    const guess = parseVoiceExpense(spoken, (c) => CATEGORIES[c].label);
+    if (guess.amount == null || guess.amount <= 0) {
+      setError('Could not hear an amount. Please edit the text to include it.');
+      return;
+    }
+
+    setState('confirming');
+    // A spoken kinship term ("Papa") is matched against real family members;
+    // an unmatched name is dropped rather than invented.
+    const matchedMember = guess.memberName
+      ? voiceMembers.find((m) =>
+          m.name.toLowerCase().includes(guess.memberName!.toLowerCase()) ||
+          guess.memberName!.toLowerCase().includes(m.name.toLowerCase()) ||
+          m.relationship.toLowerCase() === guess.memberName!.toLowerCase(),
+        )
+      : undefined;
+
+    const created = await addTransaction({
+      merchant: guess.merchant || CATEGORIES[guess.category].label,
+      amount: guess.amount,
+      category: guess.category,
+      memberId: matchedMember?.id ?? null,
+      description: spoken,
+      source: 'voice',
+    });
+
+    if (!created) {
+      setState('review');
+      setError('Could not save the expense. Please check your connection.');
+      return;
+    }
+
+    setSpokenText('');
+    setDraftText('');
+    setIsEditing(false);
+    setServerParsed(null);
+    setError(null);
+    setState('idle');
+    showAlert({
+      title: 'Expense saved',
+      message: `₹${guess.amount.toLocaleString('en-IN')} · ${CATEGORIES[guess.category].label}${
+        matchedMember ? ` · ${matchedMember.name}` : ''
+      }`,
+      type: 'success',
+    });
+  }
+
   async function handleConfirm() {
     const effective =
       parsed ??
@@ -656,6 +739,17 @@ export default function VoiceReminderScreen() {
   const heroText = (isEditing ? draftText : spokenText).trim();
   const canInteract = state !== 'transcribing' && state !== 'confirming';
   const hasTranscript = !!spokenText.trim();
+
+  /**
+   * On-device expense reading of the same transcript. Non-null only when an
+   * amount was found, which is what gates the "save as expense" action.
+   */
+  const voiceExpenseGuess = useMemo(() => {
+    const text = heroText;
+    if (!text) return null;
+    const guess = parseVoiceExpense(text, (c) => CATEGORIES[c].label);
+    return guess.amount != null && guess.amount > 0 ? guess : null;
+  }, [heroText]);
 
   const effectiveParsed = parsed ?? (spokenText.trim()
     ? {
@@ -885,6 +979,21 @@ export default function VoiceReminderScreen() {
               {state === 'confirming' ? 'Saving…' : 'Save reminder'}
             </Text>
           </Pressable>
+
+          {/*
+            "Already spent" branch — Method 3. Offered only when the phrase
+            actually contains an amount, so the user is never shown a save
+            action that cannot succeed.
+          */}
+          {state === 'review' && voiceExpenseGuess && (
+            <Pressable onPress={handleSaveAsExpense} disabled={!canInteract} style={styles.expenseAltBtn}>
+              <Ionicons name="wallet-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.expenseAltText}>
+                Already spent — save as expense (₹
+                {voiceExpenseGuess.amount!.toLocaleString('en-IN')})
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -1301,6 +1410,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#FFFFFF',
     letterSpacing: 0.3,
+  },
+  expenseAltBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    minHeight: 44,
+    paddingVertical: 12,
+    marginTop: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  expenseAltText: {
+    fontFamily: 'Inter_800ExtraBold',
+    fontSize: 13,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   modalBackdrop: {
     flex: 1,
