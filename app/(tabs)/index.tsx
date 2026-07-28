@@ -42,7 +42,6 @@ import { useAlert } from '@/lib/alert-context';
 import CategoryIcon from '@/components/CategoryIcon';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomModal from '@/components/CustomModal';
-import QuickAddSheet from '@/components/QuickAddSheet';
 import AddExpenseFab, { FAB_CONTENT_INSET, type FabAction } from '@/components/AddExpenseFab';
 import {
   CATEGORIES,
@@ -608,8 +607,6 @@ export default function HomeScreen() {
   const { showAlert } = useAlert();
   const [showScoreDetail, setShowScoreDetail] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
-  /** Expense Quick Add sheet (Method 1). Separate from the reminder quick-add above. */
-  const [showAddExpense, setShowAddExpense] = useState(false);
   const [quickAddText, setQuickAddText] = useState('');
   const [isQuickAdding, setIsQuickAdding] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -713,7 +710,7 @@ export default function HomeScreen() {
         icon: 'create-outline',
         label: 'Add expense',
         color: colors.accent,
-        onPress: () => setShowAddExpense(true),
+        onPress: () => router.push('/add-expense'),
       },
     ],
     [router, colors],
@@ -1015,7 +1012,7 @@ export default function HomeScreen() {
               <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Voice Reminder</Text>
             </Pressable>
             <Pressable
-              onPress={() => setShowAddExpense(true)}
+              onPress={() => router.push('/add-expense')}
               style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
               testID="home-add-expense-btn"
             >
@@ -1029,13 +1026,7 @@ export default function HomeScreen() {
 
         {/* Senior mode deliberately has no expanding FAB — its large labelled
             tiles are the whole point, and small fan-out targets would undercut
-            that. The sheet still has to be mounted here, or the tile above sets
-            state that nothing in this branch renders. */}
-        <QuickAddSheet
-          visible={showAddExpense}
-          onClose={() => setShowAddExpense(false)}
-          onImport={() => router.push('/import-statement')}
-        />
+            that. The Add Expense tile above navigates to /add-expense. */}
       </View>
     );
   }
@@ -1372,12 +1363,6 @@ export default function HomeScreen() {
       </ScrollView>
 
       <AddExpenseFab actions={fabActions} />
-
-      <QuickAddSheet
-        visible={showAddExpense}
-        onClose={() => setShowAddExpense(false)}
-        onImport={() => router.push('/import-statement')}
-      />
 
       <CustomModal visible={showScoreDetail} onClose={() => setShowScoreDetail(false)}>
         <View style={[styles.scoreDetailHeader, { borderBottomColor: colors.border }]}>

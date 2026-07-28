@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -13,7 +13,6 @@ import { Avatar } from '@/components/Avatar';
 import {
   Caregiver,
   loadCaregivers,
-  inviteCaregiver,
   removeCaregiver,
 } from '@/lib/family-caregivers';
 
@@ -21,18 +20,13 @@ export default function FamilyCaregiversScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { token, user } = useAuth();
   const { showAlert } = useAlert();
 
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-
-  const [showInvite, setShowInvite] = useState(false);
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -53,34 +47,8 @@ export default function FamilyCaregiversScreen() {
 
   const isOwner = caregivers.some((c) => c.role === 'owner' && c.userId === user?.id) || caregivers.length === 0;
 
-  const handleInvite = async () => {
-    const trimmed = email.trim();
-    if (!trimmed || !/^\S+@\S+\.\S+$/.test(trimmed)) {
-      setError('Enter a valid email address');
-      return;
-    }
-    setSending(true);
-    setError('');
-    try {
-      await inviteCaregiver(String(memberId), trimmed, token);
-      setShowInvite(false);
-      setEmail('');
-      showAlert({ title: 'Invite sent', message: `${trimmed} will see this invite next time they open LifeWise.`, type: 'success' });
-      load();
-    } catch (e: any) {
-      const msg = String(e?.message || '');
-      if (msg.includes('400')) {
-        setError('Enter a valid email — you can’t invite yourself.');
-      } else if (msg.includes('403')) {
-        setError('Only the owner can invite caregivers for this member.');
-      } else if (msg.includes('409')) {
-        setError('That person is already connected or already invited.');
-      } else {
-        setError('Could not send invite. Please try again.');
-      }
-    } finally {
-      setSending(false);
-    }
+  const openInvite = () => {
+    router.push({ pathname: '/family-caregivers/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const confirmRemove = (c: Caregiver) => {
@@ -117,7 +85,7 @@ export default function FamilyCaregiversScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Caregivers</Text>
-          <Pressable onPress={() => setShowInvite(true)} style={styles.addBtn} hitSlop={12}>
+          <Pressable onPress={openInvite} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="person-add" size={24} color={colors.accent} />
           </Pressable>
         </View>
@@ -125,35 +93,6 @@ export default function FamilyCaregiversScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showInvite && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>Invite caregiver</Text>
-            <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
-              They'll get an invite in their LifeWise app. Once accepted, they'll see {memberName || 'this member'} and receive the same reminders and alerts.
-            </Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Email address</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="e.g. priya@example.com"
-              placeholderTextColor={colors.textTertiary}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoFocus
-            />
-
-            <Pressable onPress={handleInvite} disabled={sending} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: sending ? 0.6 : 1 }]}>
-              {sending ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnLabel}>Send Invite</Text>}
-            </Pressable>
-            <Pressable onPress={() => { setShowInvite(false); setEmail(''); setError(''); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
         <Text style={[styles.introText, { color: colors.textSecondary }]}>
           Everyone connected here gets the same reminders, bill alerts, emergency and health notifications for {memberName || 'this member'}. Marking something done updates it for everyone instantly.
         </Text>
@@ -205,7 +144,7 @@ export default function FamilyCaregiversScreen() {
           </>
         )}
 
-        <Pressable onPress={() => setShowInvite(true)} style={[styles.inviteCta, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+        <Pressable onPress={openInvite} style={[styles.inviteCta, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
           <Ionicons name="person-add-outline" size={18} color={colors.accent} />
           <Text style={[styles.inviteCtaText, { color: colors.accent }]}>Invite a caregiver by email</Text>
         </Pressable>
@@ -239,14 +178,4 @@ const styles = StyleSheet.create({
   removeBtn: { padding: 2 },
   inviteCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 14, marginTop: 8 },
   inviteCtaText: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  modalDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginBottom: 12 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

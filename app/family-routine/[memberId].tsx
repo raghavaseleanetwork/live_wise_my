@@ -1,19 +1,16 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import {
   RoutineItem,
-  RoutineType,
   ROUTINE_TYPE_LABELS,
   loadRoutines,
-  addRoutine,
   toggleRoutine,
   deleteRoutine,
 } from '@/lib/family-records';
@@ -22,16 +19,9 @@ export default function DailyRoutineScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [items, setItems] = useState<RoutineItem[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
-  const [routineType, setRoutineType] = useState<RoutineType>('wakeup');
-  const [customLabel, setCustomLabel] = useState('');
-  const [time, setTime] = useState(new Date());
-  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -40,28 +30,8 @@ export default function DailyRoutineScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const resetForm = () => {
-    setRoutineType('wakeup');
-    setCustomLabel('');
-    setTime(new Date());
-    setError('');
-  };
-
-  const handleAdd = async () => {
-    if (routineType === 'custom' && !customLabel.trim()) {
-      setError('Please name this custom routine');
-      return;
-    }
-    if (!memberId) return;
-    const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    await addRoutine(String(memberId), {
-      type: routineType,
-      label: routineType === 'custom' ? customLabel.trim() : ROUTINE_TYPE_LABELS[routineType].label,
-      time: timeStr,
-    });
-    setShowAdd(false);
-    resetForm();
-    load();
+  const openAdd = () => {
+    router.push({ pathname: '/family-routine/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const sorted = [...items].sort((a, b) => a.time.localeCompare(b.time));
@@ -75,7 +45,7 @@ export default function DailyRoutineScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Daily Routine</Text>
-          <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
+          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
@@ -83,55 +53,6 @@ export default function DailyRoutineScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showAdd && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>New Routine Reminder</Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <View style={styles.typeGrid}>
-              {(['wakeup', 'sleep', 'walk', 'custom'] as const).map((t) => (
-                <Pressable
-                  key={t}
-                  onPress={() => setRoutineType(t)}
-                  style={[
-                    styles.typeChip,
-                    { backgroundColor: colors.inputBg, borderColor: colors.border },
-                    routineType === t && { backgroundColor: colors.accent, borderColor: colors.accent },
-                  ]}
-                >
-                  <Ionicons name={ROUTINE_TYPE_LABELS[t].icon as any} size={16} color={routineType === t ? '#FFF' : colors.textSecondary} />
-                  <Text style={[styles.typeChipText, { color: routineType === t ? '#FFF' : colors.textSecondary }]}>{ROUTINE_TYPE_LABELS[t].label}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {routineType === 'custom' && (
-              <>
-                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Routine Name</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-                  value={customLabel}
-                  onChangeText={setCustomLabel}
-                  placeholder="e.g. Evening Prayer"
-                  placeholderTextColor={colors.textTertiary}
-                />
-              </>
-            )}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Time</Text>
-            <Pressable onPress={() => setShowTimePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
-              <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
-            </Pressable>
-
-            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Save</Text>
-            </Pressable>
-            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
         {sorted.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
@@ -161,20 +82,6 @@ export default function DailyRoutineScreen() {
           })
         )}
       </ScrollView>
-
-
-      {showTimePicker && (
-        <DateTimePicker
-          value={time}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          themeVariant={isDark ? 'dark' : 'light'}
-          onChange={(event, date) => {
-            setShowTimePicker(false);
-            if (date) setTime(date);
-          }}
-        />
-      )}
     </View>
   );
 }
@@ -194,16 +101,4 @@ const styles = StyleSheet.create({
   iconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
-  typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1 },
-  typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

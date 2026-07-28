@@ -1,23 +1,21 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { useCurrency } from '@/lib/currency-context';
 import { useAlert } from '@/lib/alert-context';
 import { useExpenses } from '@/lib/expense-context';
-import { CATEGORIES, CategoryType } from '@/lib/data';
+import { CATEGORIES } from '@/lib/data';
 import {
   DueRecurringExpense,
   RecurringExpense,
@@ -25,9 +23,7 @@ import {
   getDueRecurringExpenses,
   loadRecurringExpenses,
   markRecurringHandled,
-  saveRecurringExpense,
 } from '@/lib/recurring-expenses';
-import CustomModal from '@/components/CustomModal';
 
 /**
  * Recurring Expenses — Method 6 in the product doc.
@@ -40,16 +36,6 @@ import CustomModal from '@/components/CustomModal';
  * user across devices. Confirming a due occurrence writes a normal transaction;
  * nothing is ever added without the user's tap.
  */
-
-const CHIP_CATEGORIES: CategoryType[] = [
-  'bills',
-  'subscriptions',
-  'family',
-  'health',
-  'education',
-  'transport',
-  'others',
-];
 
 export default function RecurringExpensesScreen() {
   const router = useRouter();
@@ -65,13 +51,6 @@ export default function RecurringExpensesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [day, setDay] = useState('1');
-  const [category, setCategory] = useState<CategoryType>('bills');
-  const [isSaving, setIsSaving] = useState(false);
-
   const refresh = useCallback(async () => {
     const list = await loadRecurringExpenses(token);
     setTemplates(list);
@@ -79,9 +58,12 @@ export default function RecurringExpensesScreen() {
     setIsLoading(false);
   }, [token]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  // Refetch on focus so a template saved on the add page appears on return.
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+
+  const openAddTemplate = useCallback(() => {
+    router.push('/add-recurring-expense');
+  }, [router]);
 
   /** Log the due occurrence as a real expense, then stop offering it this month. */
   const handleConfirmDue = useCallback(
@@ -184,53 +166,6 @@ export default function RecurringExpensesScreen() {
     [showAlert, refresh, token],
   );
 
-  const resetForm = () => {
-    setName('');
-    setAmount('');
-    setDay('1');
-    setCategory('bills');
-  };
-
-  const handleSaveTemplate = useCallback(async () => {
-    const amountValue = Number(amount);
-    const dayValue = Number(day);
-    if (!name.trim()) {
-      showAlert({ title: 'Name needed', message: 'Give this expense a name.', type: 'warning' });
-      return;
-    }
-    if (!Number.isFinite(amountValue) || amountValue <= 0) {
-      showAlert({ title: 'Amount needed', message: 'Enter a valid amount.', type: 'warning' });
-      return;
-    }
-    if (!Number.isFinite(dayValue) || dayValue < 1 || dayValue > 31) {
-      showAlert({ title: 'Check the date', message: 'Enter a day between 1 and 31.', type: 'warning' });
-      return;
-    }
-
-    setIsSaving(true);
-    const created = await saveRecurringExpense(token, {
-      name: name.trim(),
-      amount: amountValue,
-      category,
-      dayOfMonth: dayValue,
-      memberId: null,
-    });
-    setIsSaving(false);
-
-    if (!created) {
-      showAlert({
-        title: 'Could not save',
-        message: 'The template was not saved. Please check your connection and try again.',
-        type: 'error',
-      });
-      return;
-    }
-
-    setShowForm(false);
-    resetForm();
-    await refresh();
-  }, [name, amount, day, category, showAlert, refresh, token]);
-
   return (
     <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -238,7 +173,7 @@ export default function RecurringExpensesScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Recurring Expenses</Text>
-        <Pressable onPress={() => setShowForm(true)} hitSlop={12} style={styles.backBtn}>
+        <Pressable onPress={openAddTemplate} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="add" size={24} color={colors.accent} />
         </Pressable>
       </View>
@@ -321,7 +256,7 @@ export default function RecurringExpensesScreen() {
                   Add rent, EMI or a subscription once and confirm it with one tap each month.
                 </Text>
                 <Pressable
-                  onPress={() => setShowForm(true)}
+                  onPress={openAddTemplate}
                   style={[styles.emptyBtn, { backgroundColor: colors.accent }]}
                 >
                   <Text style={styles.emptyBtnText}>Add one</Text>
@@ -380,94 +315,6 @@ export default function RecurringExpensesScreen() {
           </>
         )}
       </ScrollView>
-
-      {/* Add template */}
-      <CustomModal visible={showForm} onClose={() => setShowForm(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>New recurring expense</Text>
-
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Name (e.g. House Rent)"
-          placeholderTextColor={colors.textTertiary}
-          style={[
-            styles.input,
-            { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text },
-          ]}
-          maxLength={60}
-        />
-        <TextInput
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="Amount"
-          placeholderTextColor={colors.textTertiary}
-          keyboardType="numeric"
-          style={[
-            styles.input,
-            { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text },
-          ]}
-        />
-        <TextInput
-          value={day}
-          onChangeText={setDay}
-          placeholder="Day of month (1-31)"
-          placeholderTextColor={colors.textTertiary}
-          keyboardType="number-pad"
-          style={[
-            styles.input,
-            { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text },
-          ]}
-          maxLength={2}
-        />
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {CHIP_CATEGORIES.map((cat) => {
-            const meta = CATEGORIES[cat];
-            const active = category === cat;
-            return (
-              <Pressable
-                key={cat}
-                onPress={() => setCategory(cat)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: active ? meta.color + '22' : colors.bgSecondary,
-                    borderColor: active ? meta.color : colors.border,
-                  },
-                ]}
-              >
-                <Ionicons name={meta.icon as any} size={13} color={active ? meta.color : colors.textTertiary} />
-                <Text style={[styles.chipText, { color: active ? meta.color : colors.textSecondary }]}>
-                  {meta.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <View style={styles.modalActions}>
-          <Pressable
-            onPress={() => {
-              setShowForm(false);
-              resetForm();
-            }}
-            style={[styles.cancelBtn, { borderColor: colors.border }]}
-          >
-            <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable
-            onPress={handleSaveTemplate}
-            disabled={isSaving}
-            style={[styles.saveBtn, { backgroundColor: colors.accent }]}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.saveText}>Save</Text>
-            )}
-          </Pressable>
-        </View>
-      </CustomModal>
     </View>
   );
 }
@@ -528,22 +375,4 @@ const styles = StyleSheet.create({
   emptyBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 11, marginTop: 6 },
   emptyBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   note: { fontSize: 11, lineHeight: 16, marginTop: 18, textAlign: 'center' },
-  modalTitle: { fontSize: 16, fontWeight: '700', marginBottom: 14 },
-  input: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginBottom: 10 },
-  chipRow: { gap: 8, paddingVertical: 4 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  chipText: { fontSize: 12, fontWeight: '600' },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
-  cancelBtn: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontSize: 14, fontWeight: '600' },
-  saveBtn: { flex: 1, minHeight: 46, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 });

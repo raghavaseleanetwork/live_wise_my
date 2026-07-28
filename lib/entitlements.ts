@@ -95,6 +95,20 @@ export function checkLimit(plan: PlanId, key: LimitKey, currentCount: number): L
   return { allowed, limit, attempted, recommendedPlan, triggerKey };
 }
 
+/**
+ * The paywall trigger for a limit, independent of any local count.
+ *
+ * `checkLimit` needs to know how many the user has already used; this does not.
+ * It exists for the case where the SERVER has already decided the limit is
+ * breached (a `403 {"error":"plan_limit","limitKey":...}` response) and the
+ * client only needs to know which paywall to present. Going through
+ * `checkLimit` there would re-derive the verdict from the local counter, which
+ * is exactly the counter the server just overruled.
+ */
+export function triggerForLimit(key: LimitKey): PaywallTriggerKey | null {
+  return LIMIT_TO_TRIGGER[key] ?? null;
+}
+
 export interface FlagCheck {
   allowed: boolean;
   recommendedPlan: PlanId | null;

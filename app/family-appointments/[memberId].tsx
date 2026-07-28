@@ -5,21 +5,17 @@ import {
   View,
   ScrollView,
   Pressable,
-  TextInput,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import {
   Appointment,
   loadAppointments,
-  addAppointment,
   toggleAppointmentDone,
   deleteAppointment,
 } from '@/lib/family-records';
@@ -28,19 +24,9 @@ export default function AppointmentsScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [items, setItems] = useState<Appointment[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const [doctorName, setDoctorName] = useState('');
-  const [specialty, setSpecialty] = useState('');
-  const [location, setLocation] = useState('');
-  const [notes, setNotes] = useState('');
-  const [isFollowUp, setIsFollowUp] = useState(false);
-  const [apptDate, setApptDate] = useState(new Date());
-  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -49,33 +35,8 @@ export default function AppointmentsScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const resetForm = () => {
-    setDoctorName('');
-    setSpecialty('');
-    setLocation('');
-    setNotes('');
-    setIsFollowUp(false);
-    setApptDate(new Date());
-    setError('');
-  };
-
-  const handleAdd = async () => {
-    if (!doctorName.trim()) {
-      setError('Please enter the doctor\'s name');
-      return;
-    }
-    if (!memberId) return;
-    await addAppointment(String(memberId), {
-      doctorName: doctorName.trim(),
-      specialty: specialty.trim(),
-      location: location.trim(),
-      notes: notes.trim(),
-      isFollowUp,
-      date: apptDate.toISOString(),
-    });
-    setShowAdd(false);
-    resetForm();
-    load();
+  const openAdd = () => {
+    router.push({ pathname: '/family-appointments/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const upcoming = items.filter((a) => !a.completed).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -91,7 +52,7 @@ export default function AppointmentsScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Doctor Appointments</Text>
-          <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
+          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
@@ -101,60 +62,7 @@ export default function AppointmentsScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showAdd && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>New appointment</Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Doctor Name</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={doctorName}
-              onChangeText={setDoctorName}
-              placeholder="e.g. Dr. Sharma"
-              placeholderTextColor={colors.textTertiary}
-              autoFocus
-            />
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Specialty (optional)</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={specialty}
-              onChangeText={setSpecialty}
-              placeholder="e.g. Cardiologist"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date & Location</Text>
-            <Pressable
-              onPress={() => setShowDatePicker(true)}
-              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}
-            >
-              <Text style={{ color: colors.text }}>{apptDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
-            </Pressable>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Clinic / Hospital name"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <Pressable onPress={() => setIsFollowUp(!isFollowUp)} style={styles.followUpRow}>
-              <Ionicons name={isFollowUp ? 'checkbox' : 'square-outline'} size={22} color={isFollowUp ? colors.accent : colors.textTertiary} />
-              <Text style={[styles.followUpText, { color: colors.text }]}>This is a follow-up visit</Text>
-            </Pressable>
-
-            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Save Appointment</Text>
-            </Pressable>
-            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {showAdd ? null : items.length === 0 ? (
+        {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No appointments yet</Text>
@@ -193,19 +101,6 @@ export default function AppointmentsScreen() {
           </>
         )}
       </ScrollView>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={apptDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          themeVariant={isDark ? 'dark' : 'light'}
-          onChange={(event, date) => {
-            setShowDatePicker(false);
-            if (date) setApptDate(date);
-          }}
-        />
-      )}
     </View>
   );
 }
@@ -259,15 +154,4 @@ const styles = StyleSheet.create({
   checkCircle: { padding: 2 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  followUpRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  followUpText: { fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

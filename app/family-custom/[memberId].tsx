@@ -1,24 +1,20 @@
-import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import {
   CustomFeatureConfig,
   CustomTrackerItem,
   loadCustomConfig,
-  saveCustomConfig,
   loadCustomItems,
-  addCustomItem,
   toggleCustomItem,
   deleteCustomItem,
 } from '@/lib/family-records';
-
-const ICON_OPTIONS = ['star', 'fitness', 'book', 'musical-notes', 'brush', 'football', 'game-controller', 'leaf'];
 
 export default function FamilyCustomScreen() {
   const router = useRouter();
@@ -28,48 +24,44 @@ export default function FamilyCustomScreen() {
 
   const [config, setConfig] = useState<CustomFeatureConfig | null>(null);
   const [items, setItems] = useState<CustomTrackerItem[]>([]);
-  const [showSetup, setShowSetup] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
+  // First visit with no tracker configured pushes straight to setup; the ref stops
+  // it firing again when setup returns here via router.back().
+  const autoSetupSent = useRef(false);
 
-  const [trackerName, setTrackerName] = useState('');
-  const [trackerIcon, setTrackerIcon] = useState('star');
-  const [itemTitle, setItemTitle] = useState('');
-  const [error, setError] = useState('');
+  const openSetup = useCallback((current: CustomFeatureConfig | null) => {
+    router.push({
+      pathname: '/family-custom/setup',
+      params: {
+        memberId: String(memberId),
+        memberName: memberName ? String(memberName) : '',
+        currentName: current?.name ?? '',
+        currentIcon: current?.icon ?? '',
+      },
+    });
+  }, [memberId, memberName, router]);
 
   const load = useCallback(async () => {
     if (!memberId) return;
     const [c, i] = await Promise.all([loadCustomConfig(String(memberId)), loadCustomItems(String(memberId))]);
     setConfig(c);
     setItems(i);
-    if (!c) setShowSetup(true);
-  }, [memberId]);
+    if (!c && !autoSetupSent.current) {
+      autoSetupSent.current = true;
+      openSetup(null);
+    }
+  }, [memberId, openSetup]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const handleSaveConfig = async () => {
-    if (!trackerName.trim()) {
-      setError('Please name your custom tracker');
-      return;
-    }
-    if (!memberId) return;
-    const newConfig: CustomFeatureConfig = { name: trackerName.trim(), icon: trackerIcon };
-    await saveCustomConfig(String(memberId), newConfig);
-    setConfig(newConfig);
-    setShowSetup(false);
-    setError('');
-  };
-
-  const handleAddItem = async () => {
-    if (!itemTitle.trim()) {
-      setError('Please enter an entry');
-      return;
-    }
-    if (!memberId) return;
-    await addCustomItem(String(memberId), itemTitle.trim());
-    setItemTitle('');
-    setShowAdd(false);
-    setError('');
-    load();
+  const openAdd = () => {
+    router.push({
+      pathname: '/family-custom/add',
+      params: {
+        memberId: String(memberId),
+        memberName: memberName ? String(memberName) : '',
+        trackerName: config?.name ?? '',
+      },
+    });
   };
 
   const headerHeight = 110 + insets.top;
@@ -84,11 +76,11 @@ export default function FamilyCustomScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>{config?.name || 'Custom Feature'}</Text>
           <View style={styles.headerActions}>
             {config && (
-              <Pressable onPress={() => { setTrackerName(config.name); setTrackerIcon(config.icon); setShowSetup(true); }} hitSlop={12}>
+              <Pressable onPress={() => openSetup(config)} hitSlop={12}>
                 <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
               </Pressable>
             )}
-            <Pressable onPress={() => setShowAdd(true)} hitSlop={12}>
+            <Pressable onPress={openAdd} hitSlop={12}>
               <Ionicons name="add-circle" size={30} color={colors.accent} />
             </Pressable>
           </View>
@@ -97,72 +89,7 @@ export default function FamilyCustomScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showSetup && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>Name your tracker</Text>
-            <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
-              Give it a name and pick an icon. You can change this later.
-            </Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Tracker Name</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={trackerName}
-              onChangeText={setTrackerName}
-              placeholder="e.g. Physiotherapy Sessions"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Icon</Text>
-            <View style={styles.iconGrid}>
-              {ICON_OPTIONS.map((icon) => (
-                <Pressable
-                  key={icon}
-                  onPress={() => setTrackerIcon(icon)}
-                  style={[styles.iconOption, { backgroundColor: colors.inputBg, borderColor: colors.border }, trackerIcon === icon && { backgroundColor: colors.accentDim, borderColor: colors.accent }]}
-                >
-                  <Ionicons name={icon as any} size={22} color={trackerIcon === icon ? colors.accent : colors.textTertiary} />
-                </Pressable>
-              ))}
-            </View>
-
-            <Pressable onPress={handleSaveConfig} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Save</Text>
-            </Pressable>
-            {!!config && (
-              <Pressable onPress={() => { setShowSetup(false); setError(''); }} style={styles.cancelBtn}>
-                <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-              </Pressable>
-            )}
-          </Animated.View>
-        )}
-
-        {showAdd && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>New entry</Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Entry</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={itemTitle}
-              onChangeText={setItemTitle}
-              placeholder="What do you want to log?"
-              placeholderTextColor={colors.textTertiary}
-              autoFocus
-            />
-
-            <Pressable onPress={handleAddItem} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Add</Text>
-            </Pressable>
-            <Pressable onPress={() => { setShowAdd(false); setItemTitle(''); setError(''); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {showSetup || showAdd ? null : items.length === 0 ? (
+        {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name={(config?.icon || 'star') as any} size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>Nothing tracked yet</Text>
@@ -199,13 +126,6 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   headerTitle: { fontFamily: 'Inter_700Bold', fontSize: 17, flex: 1, textAlign: 'center' },
   headerSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: 4, textAlign: 'center' },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20 },
-  sectionHint: { fontFamily: 'Inter_400Regular', fontSize: 13, marginTop: 4, lineHeight: 18 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 10 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
@@ -213,9 +133,4 @@ const styles = StyleSheet.create({
   checkCircle: { padding: 2 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  iconOption: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

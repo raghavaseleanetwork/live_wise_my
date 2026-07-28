@@ -1,11 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import { useSubscription } from '@/lib/subscription-context';
@@ -14,7 +13,6 @@ import {
   FamilyDocument,
   DOCUMENT_TYPE_LABELS,
   loadFamilyDocuments,
-  addFamilyDocument,
   deleteFamilyDocument,
 } from '@/lib/family-records';
 
@@ -22,20 +20,11 @@ export default function FamilyDocumentsScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { checkLimit } = useSubscription();
   const { presentPaywall } = usePaywall();
 
   const [items, setItems] = useState<FamilyDocument[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState<FamilyDocument['type']>('insurance');
-  const [hasReminder, setHasReminder] = useState(false);
-  const [reminderDate, setReminderDate] = useState(new Date());
-  const [notes, setNotes] = useState('');
-  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -45,40 +34,14 @@ export default function FamilyDocumentsScreen() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   // Gate: storing another document beyond the plan's limit shows the paywall
-  // (doc §5.1 — "2nd document on Free"). Opens the add form only if allowed.
+  // (doc §5.1 — "2nd document on Free"). Opens the add page only if allowed.
   const handleOpenAdd = () => {
     const check = checkLimit('documents', items.length);
     if (!check.allowed && check.triggerKey) {
       presentPaywall(check.triggerKey);
       return;
     }
-    setShowAdd(true);
-  };
-
-  const resetForm = () => {
-    setTitle('');
-    setType('insurance');
-    setHasReminder(false);
-    setReminderDate(new Date());
-    setNotes('');
-    setError('');
-  };
-
-  const handleAdd = async () => {
-    if (!title.trim()) {
-      setError('Please enter a document title');
-      return;
-    }
-    if (!memberId) return;
-    await addFamilyDocument(String(memberId), {
-      title: title.trim(),
-      type,
-      reminderDate: hasReminder ? reminderDate.toISOString() : null,
-      notes: notes.trim(),
-    });
-    setShowAdd(false);
-    resetForm();
-    load();
+    router.push({ pathname: '/family-documents/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const headerHeight = 110 + insets.top;
@@ -99,63 +62,7 @@ export default function FamilyDocumentsScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showAdd && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>New Document</Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <View style={styles.typeGrid}>
-              {(Object.keys(DOCUMENT_TYPE_LABELS) as FamilyDocument['type'][]).map((t) => (
-                <Pressable
-                  key={t}
-                  onPress={() => setType(t)}
-                  style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, type === t && { backgroundColor: colors.accent, borderColor: colors.accent }]}
-                >
-                  <Ionicons name={DOCUMENT_TYPE_LABELS[t].icon as any} size={14} color={type === t ? '#FFF' : colors.textSecondary} />
-                  <Text style={[styles.typeChipText, { color: type === t ? '#FFF' : colors.textSecondary }]}>{DOCUMENT_TYPE_LABELS[t].label}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Title</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="e.g. Health Insurance Policy"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <Pressable onPress={() => setHasReminder(!hasReminder)} style={styles.reminderRow}>
-              <Ionicons name={hasReminder ? 'checkbox' : 'square-outline'} size={22} color={hasReminder ? colors.accent : colors.textTertiary} />
-              <Text style={[styles.reminderText, { color: colors.text }]}>Set a renewal reminder</Text>
-            </Pressable>
-
-            {hasReminder && (
-              <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center', marginTop: 10 }]}>
-                <Text style={{ color: colors.text }}>{reminderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
-              </Pressable>
-            )}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Notes (optional)</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="e.g. Policy number, provider"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Save</Text>
-            </Pressable>
-            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {showAdd ? null : items.length === 0 ? (
+        {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="document-text-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No documents tracked yet</Text>
@@ -185,17 +92,6 @@ export default function FamilyDocumentsScreen() {
           })
         )}
       </ScrollView>
-
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={reminderDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          themeVariant={isDark ? 'dark' : 'light'}
-          onChange={(event, date) => { setShowDatePicker(false); if (date) setReminderDate(date); }}
-        />
-      )}
     </View>
   );
 }
@@ -216,18 +112,4 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
   cardNotes: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 4, fontStyle: 'italic' },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
-  typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
-  typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  reminderText: { fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

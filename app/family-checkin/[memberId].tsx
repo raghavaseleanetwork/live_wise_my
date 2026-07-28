@@ -1,17 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import {
   CheckinItem,
   loadCheckins,
-  addCheckin,
   markCheckinDone,
   toggleCheckin,
   deleteCheckin,
@@ -23,16 +21,9 @@ export default function FamilyCheckinScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [items, setItems] = useState<CheckinItem[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
-  const [label, setLabel] = useState('');
-  const [time, setTime] = useState(new Date());
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -41,28 +32,8 @@ export default function FamilyCheckinScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const resetForm = () => {
-    setLabel('');
-    setTime(new Date());
-    setSelectedDays([]);
-    setError('');
-  };
-
-  const toggleDay = (d: number) => {
-    setSelectedDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
-  };
-
-  const handleAdd = async () => {
-    if (!label.trim()) {
-      setError('Please describe this check-in (e.g. "Daily call")');
-      return;
-    }
-    if (!memberId) return;
-    const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    await addCheckin(String(memberId), { label: label.trim(), time: timeStr, days: selectedDays });
-    setShowAdd(false);
-    resetForm();
-    load();
+  const openAdd = () => {
+    router.push({ pathname: '/family-checkin/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const isDoneToday = (item: CheckinItem) => {
@@ -82,7 +53,7 @@ export default function FamilyCheckinScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Call & Check-in</Text>
-          <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
+          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
@@ -90,48 +61,7 @@ export default function FamilyCheckinScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showAdd && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>New Check-in</Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Description</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={label}
-              onChangeText={setLabel}
-              placeholder="e.g. Daily evening call"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Time</Text>
-            <Pressable onPress={() => setShowTimePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
-              <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
-            </Pressable>
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Repeat on (leave blank for every day)</Text>
-            <View style={styles.dayRow}>
-              {DAY_LABELS.map((d, idx) => (
-                <Pressable
-                  key={d}
-                  onPress={() => toggleDay(idx)}
-                  style={[styles.dayChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.includes(idx) && { backgroundColor: colors.accent, borderColor: colors.accent }]}
-                >
-                  <Text style={[styles.dayChipText, { color: selectedDays.includes(idx) ? '#FFF' : colors.textSecondary }]}>{d}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Save</Text>
-            </Pressable>
-            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {showAdd ? null : items.length === 0 ? (
+        {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="call-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No check-ins set yet</Text>
@@ -168,17 +98,6 @@ export default function FamilyCheckinScreen() {
           })
         )}
       </ScrollView>
-
-
-      {showTimePicker && (
-        <DateTimePicker
-          value={time}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          themeVariant={isDark ? 'dark' : 'light'}
-          onChange={(event, date) => { setShowTimePicker(false); if (date) setTime(date); }}
-        />
-      )}
     </View>
   );
 }
@@ -199,16 +118,4 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },
   doneBtn: { width: 32, height: 32, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  dayRow: { flexDirection: 'row', gap: 6 },
-  dayChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
-  dayChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
 });

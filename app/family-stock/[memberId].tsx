@@ -1,16 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import {
   MedicationStockItem,
   loadStock,
-  addStockItem,
   adjustStock,
   deleteStockItem,
   daysOfStockLeft,
@@ -24,13 +23,6 @@ export default function MedicationStockScreen() {
   const { colors } = useTheme();
 
   const [items, setItems] = useState<MedicationStockItem[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
-
-  const [medicineName, setMedicineName] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [threshold, setThreshold] = useState('5');
-  const [dailyUsage, setDailyUsage] = useState('1');
-  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -39,34 +31,8 @@ export default function MedicationStockScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const resetForm = () => {
-    setMedicineName('');
-    setQuantity('');
-    setThreshold('5');
-    setDailyUsage('1');
-    setError('');
-  };
-
-  const handleAdd = async () => {
-    if (!medicineName.trim()) {
-      setError('Please enter the medicine name');
-      return;
-    }
-    const qty = parseInt(quantity, 10);
-    if (!quantity.trim() || Number.isNaN(qty) || qty < 0) {
-      setError('Please enter a valid quantity remaining');
-      return;
-    }
-    if (!memberId) return;
-    await addStockItem(String(memberId), {
-      medicineName: medicineName.trim(),
-      quantityRemaining: qty,
-      lowStockThreshold: parseInt(threshold, 10) || 5,
-      dailyUsage: parseInt(dailyUsage, 10) || 1,
-    });
-    setShowAdd(false);
-    resetForm();
-    load();
+  const openAdd = () => {
+    router.push({ pathname: '/family-stock/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const lowStockItems = items.filter(isLowStock);
@@ -80,7 +46,7 @@ export default function MedicationStockScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Medication Stock</Text>
-          <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
+          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
@@ -88,64 +54,6 @@ export default function MedicationStockScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showAdd && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>Track Medicine Stock</Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Medicine Name</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={medicineName}
-              onChangeText={setMedicineName}
-              placeholder="e.g. Metformin"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Quantity Remaining</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={quantity}
-              onChangeText={setQuantity}
-              placeholder="e.g. 30"
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="numeric"
-            />
-
-            <View style={styles.formRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Daily Usage</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-                  value={dailyUsage}
-                  onChangeText={setDailyUsage}
-                  placeholder="1"
-                  placeholderTextColor={colors.textTertiary}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Low Stock Alert At</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-                  value={threshold}
-                  onChangeText={setThreshold}
-                  placeholder="5"
-                  placeholderTextColor={colors.textTertiary}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-
-            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Save</Text>
-            </Pressable>
-            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
         {lowStockItems.length > 0 && (
           <View style={[styles.warningBanner, { backgroundColor: colors.warningDim, borderColor: colors.warning + '40' }]}>
             <Ionicons name="warning" size={18} color={colors.warning} />
@@ -155,7 +63,7 @@ export default function MedicationStockScreen() {
           </View>
         )}
 
-        {showAdd ? null : items.length === 0 ? (
+        {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cube-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No stock tracked yet</Text>
@@ -237,14 +145,4 @@ const styles = StyleSheet.create({
   stockBtn: { width: 40, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   stockBtnWide: { flex: 1, flexDirection: 'row', gap: 6 },
   refillText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  formRow: { flexDirection: 'row', gap: 12 },
 });

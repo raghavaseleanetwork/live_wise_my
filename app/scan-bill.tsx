@@ -29,6 +29,7 @@ import { type CategoryType } from '@/lib/data';
 import { useAlert } from '@/lib/alert-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
+import { triggerForLimit, type LimitKey } from '@/lib/entitlements';
 import PremiumLoader from '@/components/PremiumLoader';
 import { scheduleLocalNotification } from '@/lib/notifications';
 import { useCurrency } from '@/lib/currency-context';
@@ -99,7 +100,14 @@ export default function ScanBillScreen() {
   }, []);
 
   // Gate: bill scan is monthly-metered (doc §5.1 — "4th bill scan" → paywall).
-  // Returns true if the scan may proceed; records one use when it does.
+  //
+  // THIS IS A FAST PRE-CHECK ONLY, NOT THE SOURCE OF TRUTH. The server meters
+  // the same quota on `POST /api/bills/scan/commit` and is authoritative. The
+  // two necessarily disagree: this one counts scan *attempts* (it fires when the
+  // camera opens) while the server counts *commits*, and this one is stored
+  // per-device so it resets on reinstall. Its only job is to avoid making the
+  // user photograph a bill that cannot be saved. When the counters drift, the
+  // server's 403 wins — see `handlePlanLimit`.
   const guardScan = useCallback((): boolean => {
     const check = checkLimit('billScanPerMonth');
     if (!check.allowed && check.triggerKey) {
@@ -109,6 +117,39 @@ export default function ScanBillScreen() {
     incrementUsage('billScanPerMonth');
     return true;
   }, [checkLimit, incrementUsage, presentPaywall]);
+
+  /**
+   * Turns the server's plan-limit rejection into the paywall the user is meant
+   * to see.
+   *
+   * `POST /api/bills/scan/commit` answers a quota breach with
+   * `403 {"error":"plan_limit","limitKey":"billScanPerMonth", ...}`. That body
+   * used to be logged and discarded, so a hard paywall surfaced as "Could not
+   * save bill — check your connection", which is both wrong and un-retryable.
+   *
+   * Returns true when it handled the response, so the caller can bail out
+   * without showing its generic error alert.
+   */
+  const handlePlanLimit = useCallback(
+    (status: number, body: string): boolean => {
+      if (status !== 403) return false;
+      let parsed: any;
+      try {
+        parsed = JSON.parse(body);
+      } catch {
+        return false;
+      }
+      if (parsed?.error !== 'plan_limit') return false;
+
+      // Map the server's limitKey onto our trigger table; fall back to the bill
+      // scan trigger since that is the only quota this screen can breach.
+      const key: LimitKey = parsed.limitKey ?? 'billScanPerMonth';
+      const trigger = triggerForLimit(key) ?? 'fourthBillScan';
+      presentPaywall(trigger);
+      return true;
+    },
+    [presentPaywall],
+  );
 
   const takePictureFromCamera = useCallback(async () => {
     if (!guardScan()) return;
@@ -353,6 +394,8 @@ export default function ScanBillScreen() {
 
         if (!res.ok) {
           const detail = await res.text().catch(() => '');
+          // Paywall, not a failure — `finally` clears the saving flag.
+          if (handlePlanLimit(res.status, detail)) return;
           console.error(`[ScanBill] Update failed HTTP ${res.status}:`, detail.slice(0, 300));
           throw new Error('Update failed');
         }
@@ -369,6 +412,8 @@ export default function ScanBillScreen() {
 
         if (!res.ok) {
           const detail = await res.text().catch(() => '');
+          // Paywall, not a failure — `finally` clears the saving flag.
+          if (handlePlanLimit(res.status, detail)) return;
           console.error(`[ScanBill] Save failed HTTP ${res.status}:`, detail.slice(0, 300));
           throw new Error('Save failed');
         }
@@ -424,6 +469,7 @@ export default function ScanBillScreen() {
     isExpenseMode,
     showAlert,
     isSavingReminder,
+    handlePlanLimit,
   ]);
 
   /**

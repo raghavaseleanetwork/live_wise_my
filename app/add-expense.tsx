@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -22,21 +23,19 @@ import { useExpenses } from '@/lib/expense-context';
 import { apiRequest } from '@/lib/query-client';
 import { uploadReceipt } from '@/lib/upload-receipt';
 import { CATEGORIES, CategoryType, PaymentMode } from '@/lib/data';
-import CustomModal from '@/components/CustomModal';
 
 /**
- * Quick Add — Method 1 in the product doc (iOS & Android). The fastest way to log
- * an expense: amount, category, member, save.
+ * Add Expense — Method 1 in the product doc (iOS & Android). The fastest way to
+ * log an expense: amount, category, member, save.
+ *
+ * This is a full page, not a sheet: per user instruction (2026-07-28) expense
+ * entry must not open in a popup. It replaces the former `QuickAddSheet`.
  *
  * The doc asks for "3 taps / under 10 seconds" but also lists seven fields. Both
  * cannot be true, so the three that decide where the money went (amount,
  * category, member) are always visible and the rest — note, date, payment mode —
  * live behind "More" with smart defaults applied (date = today, payment mode =
  * last used, per the doc's own "remembers last used" note).
- *
- * Bulk import (Methods 4 & 5) is reachable from the footer rather than the home
- * screen: importing a statement is a once-a-month action and should not compete
- * with the several-times-a-day one.
  */
 
 /** The subset of CATEGORIES offered as chips, in the order the doc lists them. */
@@ -67,13 +66,6 @@ interface FamilyMemberLite {
   avatarUrl: string | null;
 }
 
-interface QuickAddSheetProps {
-  visible: boolean;
-  onClose: () => void;
-  /** Opens the statement/CSV import flow (Module 2). */
-  onImport?: () => void;
-}
-
 /**
  * Time-of-day category hint. The doc asks for "smart AI pre-selects last-used
  * category for that time of day" and note suggestions like "7 PM — Dinner?".
@@ -87,9 +79,10 @@ function suggestionForNow(): { category: CategoryType; note: string } | null {
   return null;
 }
 
-export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSheetProps) {
+export default function AddExpenseScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { currentCurrency } = useCurrency();
   const { showAlert } = useAlert();
@@ -98,7 +91,7 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
   const suggestion = useMemo(() => suggestionForNow(), []);
 
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<CategoryType>('food');
+  const [category, setCategory] = useState<CategoryType>(() => suggestionForNow()?.category ?? 'food');
   const [memberId, setMemberId] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
@@ -110,25 +103,9 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
   const [receiptUri, setReceiptUri] = useState<string | null>(null);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
-  // Reset to a clean slate each time the sheet opens, applying the time-of-day
-  // hint so the common case is a single tap on the amount.
-  useEffect(() => {
-    if (!visible) return;
-    setAmount('');
-    setCategory(suggestionForNow()?.category ?? 'food');
-    setMemberId(null);
-    setNote('');
-    setDate(new Date());
-    setShowMore(false);
-    setShowDatePicker(false);
-    setIsSaving(false);
-    setReceiptUri(null);
-    setIsUploadingReceipt(false);
-  }, [visible]);
-
   // Family members for the "who spent this?" selector.
   useEffect(() => {
-    if (!visible || !token) return;
+    if (!token) return;
     let mounted = true;
     (async () => {
       try {
@@ -143,7 +120,7 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
     return () => {
       mounted = false;
     };
-  }, [visible, token]);
+  }, [token]);
 
   const amountValue = Number(amount);
   const canSave = Number.isFinite(amountValue) && amountValue > 0 && !isSaving && !isUploadingReceipt;
@@ -222,9 +199,8 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
       source: 'manual',
     });
 
-    setIsSaving(false);
-
     if (!created) {
+      setIsSaving(false);
       showAlert({
         title: 'Could not save',
         message: 'The expense was not saved. Please check your connection and try again.',
@@ -243,7 +219,7 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
       }${selectedMember ? ` · ${selectedMember.name}` : ''}`,
       type: 'success',
     });
-    onClose();
+    router.back();
   }, [
     canSave,
     members,
@@ -257,30 +233,26 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
     addTransaction,
     showAlert,
     currentCurrency.symbol,
-    onClose,
+    router,
   ]);
 
   const isToday = new Date().toDateString() === date.toDateString();
 
   return (
-    <CustomModal visible={visible} onClose={onClose} showCloseButton={false}>
+    <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.headerBtn}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </Pressable>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Add Expense</Text>
+        <View style={styles.headerBtn} />
+      </View>
+
       <ScrollView
+        contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
-        bounces={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Add Expense</Text>
-          <Pressable
-            onPress={onClose}
-            hitSlop={12}
-            style={[styles.closeBtn, { backgroundColor: colors.bgSecondary }]}
-          >
-            <Ionicons name="close" size={18} color={colors.textSecondary} />
-          </Pressable>
-        </View>
-
         {/* Amount */}
         <View style={[styles.amountBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
           <Text style={[styles.currency, { color: colors.textTertiary }]}>
@@ -598,28 +570,20 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
         </Pressable>
 
         {/* Bulk import — Methods 4 & 5, deliberately low-prominence. */}
-        {onImport && (
-          <Pressable
-            onPress={() => {
-              onClose();
-              onImport();
-            }}
-            style={[styles.importRow, { borderTopColor: colors.border }]}
-          >
-            <Ionicons name="document-text-outline" size={15} color={colors.textSecondary} />
-            <Text style={[styles.importText, { color: colors.textSecondary }]}>
-              Import bank statement or CSV
-            </Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
-          </Pressable>
-        )}
+        <Pressable
+          onPress={() => router.replace('/import-statement')}
+          style={[styles.importRow, { borderTopColor: colors.border }]}
+        >
+          <Ionicons name="document-text-outline" size={15} color={colors.textSecondary} />
+          <Text style={[styles.importText, { color: colors.textSecondary }]}>
+            Import bank statement or CSV
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+        </Pressable>
 
         {/* Recurring templates — Method 6. Setup, not entry, so it lives here. */}
         <Pressable
-          onPress={() => {
-            onClose();
-            router.push('/recurring-expenses');
-          }}
+          onPress={() => router.replace('/recurring-expenses')}
           style={[styles.importRow, { borderTopColor: colors.border }]}
         >
           <Ionicons name="repeat" size={15} color={colors.textSecondary} />
@@ -629,25 +593,23 @@ export default function QuickAddSheet({ visible, onClose, onImport }: QuickAddSh
           <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
         </Pressable>
       </ScrollView>
-    </CustomModal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  title: { fontSize: 19, fontWeight: '700', letterSpacing: -0.3 },
-  closeBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  headerBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 16, fontWeight: '700' },
+  body: { padding: 16 },
   amountBox: {
     flexDirection: 'row',
     alignItems: 'center',

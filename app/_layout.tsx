@@ -8,7 +8,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useSegments, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Platform, ActivityIndicator, Image } from "react-native";
+import { View, Text, StyleSheet, Platform, ActivityIndicator } from "react-native";
+// expo-image, not RN Image: shares the cache warmed by `preloadBrandAssets()`
+// so the splash mark is already decoded when this paints.
+import { Image } from "expo-image";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,7 +38,7 @@ import { SeniorProvider } from "@/lib/senior-context";
 import { AlertProvider } from "@/lib/alert-context";
 import CustomAlert from "@/components/CustomAlert";
 
-import PremiumLoader from "@/components/PremiumLoader";
+import PremiumLoader, { BRAND_LOGO, preloadBrandAssets } from "@/components/PremiumLoader";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -56,9 +59,11 @@ function AnimatedSplash() {
           style={splashStyles.logoShadow}
         >
           <Image
-            source={require("../logo.png")}
+            source={BRAND_LOGO}
             style={splashStyles.logo}
-            resizeMode="contain"
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            transition={0}
           />
         </Animated.View>
         <Animated.Text
@@ -261,6 +266,8 @@ function AuthGate() {
         <Stack.Screen name="add-family-member" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-family-member" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="add-medicine" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="add-expense" />
+        <Stack.Screen name="add-recurring-expense" />
         <Stack.Screen name="family-member-detail/[memberId]" />
         <Stack.Screen name="family-appointments/[memberId]" />
         <Stack.Screen name="family-health/[memberId]" />
@@ -276,6 +283,20 @@ function AuthGate() {
         <Stack.Screen name="family-emergency/[memberId]" />
         <Stack.Screen name="family-custom/[memberId]" />
         <Stack.Screen name="family-caregivers/[memberId]" />
+        <Stack.Screen name="family-appointments/add" />
+        <Stack.Screen name="family-health/add" />
+        <Stack.Screen name="family-stock/add" />
+        <Stack.Screen name="family-routine/add" />
+        <Stack.Screen name="family-bills/add" />
+        <Stack.Screen name="family-subscriptions/add" />
+        <Stack.Screen name="family-expenses/add" />
+        <Stack.Screen name="family-tasks/add" />
+        <Stack.Screen name="family-documents/add" />
+        <Stack.Screen name="family-checkin/add" />
+        <Stack.Screen name="family-travel/add" />
+        <Stack.Screen name="family-custom/add" />
+        <Stack.Screen name="family-custom/setup" />
+        <Stack.Screen name="family-caregivers/add" />
         <Stack.Screen name="caregiver-invites" />
         <Stack.Screen name="assistant" />
         <Stack.Screen name="+not-found" />
@@ -297,9 +318,15 @@ export default function RootLayout() {
     Dmsans_500SemiBold: DMSans_500Medium,
   });
 
+  // Warm the logo cache before the native splash is dismissed. Once it hides,
+  // our own splash paints immediately — a cold image cache at that moment shows
+  // an empty frame where the mark should be. Failure is non-blocking: the
+  // splash still hides, the logo just pops in a frame late.
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      preloadBrandAssets().finally(() => {
+        SplashScreen.hideAsync();
+      });
     }
   }, [fontsLoaded, fontError]);
 

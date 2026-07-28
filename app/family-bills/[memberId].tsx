@@ -1,18 +1,16 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Platform } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { FadeInDown, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import {
   FamilyBill,
   loadFamilyBills,
-  addFamilyBill,
   toggleFamilyBillPaid,
   deleteFamilyBill,
 } from '@/lib/family-records';
@@ -28,18 +26,10 @@ export default function FamilyBillsScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { formatAmount } = useCurrency();
 
   const [items, setItems] = useState<FamilyBill[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<FamilyBill['category']>('electricity');
-  const [dueDate, setDueDate] = useState(new Date());
-  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -48,34 +38,8 @@ export default function FamilyBillsScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const resetForm = () => {
-    setName('');
-    setAmount('');
-    setCategory('electricity');
-    setDueDate(new Date());
-    setError('');
-  };
-
-  const handleAdd = async () => {
-    if (!name.trim()) {
-      setError('Please enter a bill name');
-      return;
-    }
-    const amt = parseFloat(amount);
-    if (!amount.trim() || Number.isNaN(amt) || amt <= 0) {
-      setError('Please enter a valid amount');
-      return;
-    }
-    if (!memberId) return;
-    await addFamilyBill(String(memberId), {
-      name: name.trim(),
-      amount: amt,
-      category,
-      dueDate: dueDate.toISOString(),
-    });
-    setShowAdd(false);
-    resetForm();
-    load();
+  const openAdd = () => {
+    router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const unpaid = items.filter((b) => !b.isPaid).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
@@ -90,7 +54,7 @@ export default function FamilyBillsScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Bill Management</Text>
-          <Pressable onPress={() => setShowAdd(true)} style={styles.addBtn} hitSlop={12}>
+          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
@@ -98,66 +62,7 @@ export default function FamilyBillsScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        {showAdd && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.formSection}>
-            <Text style={[styles.sectionHeading, { color: colors.text }]}>New Bill</Text>
-            {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
-
-            <View style={styles.typeRow}>
-              {(Object.keys(CATEGORY_LABELS) as FamilyBill['category'][]).map((c) => (
-                <Pressable
-                  key={c}
-                  onPress={() => setCategory(c)}
-                  style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, category === c && { backgroundColor: colors.accent, borderColor: colors.accent }]}
-                >
-                  <Ionicons name={CATEGORY_LABELS[c].icon as any} size={14} color={category === c ? '#FFF' : colors.textSecondary} />
-                  <Text style={[styles.typeChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{CATEGORY_LABELS[c].label}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Bill Name</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g. Electricity Board"
-              placeholderTextColor={colors.textTertiary}
-            />
-
-            <View style={styles.formRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
-                <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
-                  <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>₹</Text>
-                  <TextInput
-                    style={[styles.amountInput, { color: colors.text }]}
-                    value={amount}
-                    onChangeText={setAmount}
-                    placeholder="0"
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Due Date</Text>
-                <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
-                  <Text style={{ color: colors.text }}>{dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
-                </Pressable>
-              </View>
-            </View>
-
-            <Pressable onPress={handleAdd} style={[styles.primaryBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.primaryBtnLabel}>Save Bill</Text>
-            </Pressable>
-            <Pressable onPress={() => { setShowAdd(false); resetForm(); }} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
-        {showAdd ? null : items.length === 0 ? (
+        {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="receipt-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No bills yet</Text>
@@ -188,17 +93,6 @@ export default function FamilyBillsScreen() {
           </>
         )}
       </ScrollView>
-
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={dueDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          themeVariant={isDark ? 'dark' : 'light'}
-          onChange={(event, date) => { setShowDatePicker(false); if (date) setDueDate(date); }}
-        />
-      )}
     </View>
   );
 }
@@ -247,20 +141,4 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },
   cardAmount: { fontFamily: 'Inter_700Bold', fontSize: 14 },
-  formSection: { marginBottom: 28 },
-  sectionHeading: { fontFamily: 'Inter_700Bold', fontSize: 20, marginBottom: 12 },
-  primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 22 },
-  primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
-  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  cancelBtnLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
-  errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
-  typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
-  typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  formRow: { flexDirection: 'row', gap: 12 },
-  amountWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, gap: 4 },
-  amountPrefix: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
-  amountInput: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14, paddingVertical: 12 },
 });
