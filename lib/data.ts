@@ -6,6 +6,11 @@ export type ReminderType = 'bill' | 'subscription' | 'custom';
 export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type ReminderStatus = 'active' | 'paid' | 'snoozed' | 'cancelled';
 
+export type PaymentMode = 'upi' | 'cash' | 'card' | 'netbanking';
+
+/** How an expense got into the app. Mirrors the 6 entry methods in the product doc. */
+export type ExpenseSource = 'manual' | 'sms' | 'scan' | 'voice' | 'import' | 'recurring';
+
 export interface Transaction {
   id: string;
   merchant: string;
@@ -15,6 +20,11 @@ export interface Transaction {
   upiId: string;
   isDebit: boolean;
   description: string;
+  /** Family member this expense belongs to. null/undefined = unassigned (legacy rows, or self). */
+  memberId?: string | null;
+  paymentMode?: PaymentMode;
+  receiptUrl?: string;
+  source?: ExpenseSource;
 }
 
 export interface Bill {
