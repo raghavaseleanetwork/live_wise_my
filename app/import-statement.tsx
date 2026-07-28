@@ -110,16 +110,32 @@ export default function ImportStatementScreen() {
       if (result.canceled || !result.assets?.length) return;
 
       const asset = result.assets[0];
-      const name = asset.name || 'statement';
+      const name = asset.name || 'statement.csv';
 
       setIsParsing(true);
       setFileName(name);
+
+      // Derive the MIME type from the extension rather than trusting the
+      // picker. On Android, DocumentPicker commonly reports files from
+      // Downloads as `application/octet-stream`, which a server that gates on
+      // content-type will reject outright even when the bytes are valid CSV.
+      const ext = name.split('.').pop()?.toLowerCase();
+      const mime =
+        ext === 'csv'
+          ? 'text/csv'
+          : ext === 'pdf'
+            ? 'application/pdf'
+            : ext === 'xls'
+              ? 'application/vnd.ms-excel'
+              : ext === 'xlsx'
+                ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                : asset.mimeType || 'text/csv';
 
       const form = new FormData();
       form.append('file', {
         uri: asset.uri,
         name,
-        type: asset.mimeType || 'text/csv',
+        type: mime,
       } as any);
 
       const baseUrl = getApiUrl();
@@ -135,6 +151,9 @@ export default function ImportStatementScreen() {
 
       if (res.status === 422) {
         const json = await res.json().catch(() => null);
+        // Log the detail so a rejected file can actually be diagnosed — the
+        // server's user-facing message doesn't say WHY it was rejected.
+        console.warn('[Import] 422 rejected:', name, mime, JSON.stringify(json));
         showAlert({
           title: 'Could not read this file',
           message:
@@ -145,9 +164,14 @@ export default function ImportStatementScreen() {
         return;
       }
       if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        console.error(`[Import] HTTP ${res.status}:`, detail.slice(0, 300));
         showAlert({
           title: 'Could not read this file',
-          message: 'Please try again, or pick a different file.',
+          message:
+            res.status === 401
+              ? 'Your session has expired. Please sign out and sign in again.'
+              : `Upload failed (error ${res.status}). Please try again.`,
           type: 'error',
         });
         return;
