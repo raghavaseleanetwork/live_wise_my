@@ -1,19 +1,19 @@
 /**
- * Bank statement CSV/Excel parsing — Method 5 in the product doc.
+ * UNUSED as of 2026-07-28 — kept for reference, not imported anywhere.
  *
- * Written by hand rather than pulling in Papa Parse because bank CSV exports are
- * simple (no embedded newlines in practice, one header row) and the column-
- * mapping problem — which is the actual hard part — is not something a CSV
- * library solves for you.
+ * On-device bank statement CSV parsing. Superseded by
+ * `POST /api/transactions/import/preview` (EXPENSE_ENTRY_BACKEND_UPDATE.md §5),
+ * which is now live and does this server-side — `app/import-statement.tsx` calls
+ * that endpoint directly instead of this module. Parsing moved server-side
+ * because it also needed to handle PDF eventually, which React Native cannot do
+ * on-device at all, so there was no reason to keep two parsers in sync.
  *
- * The doc rates CSV as "near 100% accurate since it's structured data" and
- * recommends it over PDF for exactly that reason. This module handles the
- * formats HDFC / ICICI / Axis / SBI / Kotak actually emit, which differ mostly
- * in column naming and in whether debit and credit are separate columns or one
- * signed amount.
- *
- * Nothing here touches the network. PDF is a separate path (server-side; see
- * EXPENSE_ENTRY_BACKEND_TODO.md §4) because React Native cannot extract PDF text.
+ * Left in place rather than deleted: `sha1Hex()` below is verified byte-for-byte
+ * against Node's `crypto.createHash('sha1')`, and the column-mapping logic
+ * (header variants, debit/credit vs. signed-amount columns, day-first dates,
+ * accounting negatives) may be useful as a reference for the server-side
+ * implementation or if an offline-preview path is ever wanted. Safe to delete
+ * outright if neither turns out to be needed.
  */
 import { CategoryType } from './data';
 

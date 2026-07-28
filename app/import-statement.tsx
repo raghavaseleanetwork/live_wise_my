@@ -12,17 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
 import { useTheme } from '@/lib/theme-context';
+import { useAuth } from '@/lib/auth-context';
 import { useCurrency } from '@/lib/currency-context';
 import { useAlert } from '@/lib/alert-context';
 import { useExpenses } from '@/lib/expense-context';
+import { getApiUrl } from '@/lib/query-client';
 import { CATEGORIES, CategoryType } from '@/lib/data';
-import {
-  ParsedStatementRow,
-  parseStatementCsv,
-  buildDedupeKey,
-} from '@/lib/parse-statement';
 import CustomModal from '@/components/CustomModal';
 
 /**
@@ -32,18 +28,36 @@ import CustomModal from '@/components/CustomModal';
  * SMS access entirely (doc §1), so one statement import stands in for a month of
  * automatic transaction capture.
  *
- * CSV/TXT is parsed fully on-device by `lib/parse-statement.ts`. The doc rates
- * CSV as "near 100% accurate" and recommends it over PDF for that reason, so it
- * is the primary path here.
+ * Parsing happens SERVER-SIDE via `POST /api/transactions/import/preview`
+ * (EXPENSE_ENTRY_BACKEND_UPDATE.md §5) — the server owns categorisation and
+ * `dedupeKey` generation, so this screen just uploads the file and renders
+ * whatever comes back. React Native cannot extract PDF text on-device, which is
+ * why this always had to be a server job.
  *
- * PDF IS NOT SUPPORTED YET and the UI says so plainly rather than failing at the
- * end of a long flow. React Native cannot extract PDF text — `react-native-pdf`,
- * which the doc names, is a viewer only. Parsing has to happen server-side; the
- * endpoint is specified in EXPENSE_ENTRY_BACKEND_TODO.md §4 and does not exist.
+ * PDF (and anything else that isn't CSV) currently gets a 422 from the same
+ * endpoint — "CSV only for now" per the backend note — so the UI shows that
+ * message rather than guessing by file extension itself.
  *
  * Nothing is written until the user reviews the rows and taps Import (doc Method
- * 4, Step 4) — a bulk write the user has not seen would be unrecoverable.
+ * 4, Step 4): §5's endpoint is preview-only, and the actual commit goes through
+ * the bulk endpoint in `addTransactionsBulk()`.
  */
+
+/** Row shape returned by POST /api/transactions/import/preview. */
+interface PreviewRow {
+  date: string;
+  description: string;
+  amount: number;
+  isDebit: boolean;
+  suggestedCategory: CategoryType;
+  dedupeKey: string;
+}
+
+/** Local, editable copy of a preview row — `id` and `category` are UI-only. */
+interface ImportRow extends PreviewRow {
+  id: string;
+  category: CategoryType;
+}
 
 type Stage = 'pick' | 'review' | 'saving';
 
@@ -58,6 +72,7 @@ export default function ImportStatementScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { token } = useAuth();
   const { formatAmount } = useCurrency();
   const { showAlert } = useAlert();
   const { addTransactionsBulk } = useExpenses();
@@ -65,10 +80,10 @@ export default function ImportStatementScreen() {
   const [stage, setStage] = useState<Stage>('pick');
   const [isParsing, setIsParsing] = useState(false);
   const [fileName, setFileName] = useState('');
-  const [rows, setRows] = useState<ParsedStatementRow[]>([]);
+  const [rows, setRows] = useState<ImportRow[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [skippedCount, setSkippedCount] = useState(0);
-  const [editingRow, setEditingRow] = useState<ParsedStatementRow | null>(null);
+  const [editingRow, setEditingRow] = useState<ImportRow | null>(null);
   const [savedCount, setSavedCount] = useState(0);
 
   /** Debits only — a statement's credits are income, not expenses. */
@@ -85,6 +100,7 @@ export default function ImportStatementScreen() {
   );
 
   const handlePickFile = useCallback(async () => {
+    if (!token) return;
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/pdf', '*/*'],
@@ -95,58 +111,82 @@ export default function ImportStatementScreen() {
 
       const asset = result.assets[0];
       const name = asset.name || 'statement';
-      const lower = name.toLowerCase();
-
-      // Fail fast on formats we cannot read, and say why.
-      if (lower.endsWith('.pdf')) {
-        showAlert({
-          title: 'PDF not supported yet',
-          message:
-            'PDF statements need server-side parsing, which is not built yet. Most banks also offer a CSV or Excel export — that works here and is more accurate.',
-          type: 'info',
-        });
-        return;
-      }
-      if (lower.endsWith('.xls') || lower.endsWith('.xlsx')) {
-        showAlert({
-          title: 'Excel not supported yet',
-          message:
-            'Please re-export as CSV from your bank or open the file and "Save as CSV". CSV imports are more accurate than Excel anyway.',
-          type: 'info',
-        });
-        return;
-      }
 
       setIsParsing(true);
       setFileName(name);
 
-      const content = await new File(asset.uri).text();
-      const parsed = parseStatementCsv(content);
+      const form = new FormData();
+      form.append('file', {
+        uri: asset.uri,
+        name,
+        type: asset.mimeType || 'text/csv',
+      } as any);
+
+      const baseUrl = getApiUrl();
+      const res = await fetch(new URL('/api/transactions/import/preview', baseUrl).toString(), {
+        method: 'POST',
+        // Do NOT set Content-Type manually — fetch needs to generate the
+        // multipart boundary itself (same rule as receipt/avatar upload).
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+
       setIsParsing(false);
 
-      if (parsed.error || parsed.rows.length === 0) {
+      if (res.status === 422) {
+        const json = await res.json().catch(() => null);
         showAlert({
           title: 'Could not read this file',
-          message: parsed.error || 'No transactions were found.',
+          message:
+            json?.message ||
+            'This format is not supported yet. Please use your bank\'s CSV export instead.',
+          type: 'info',
+        });
+        return;
+      }
+      if (!res.ok) {
+        showAlert({
+          title: 'Could not read this file',
+          message: 'Please try again, or pick a different file.',
           type: 'error',
         });
         return;
       }
 
-      setRows(parsed.rows);
-      setSkippedCount(parsed.skipped);
+      const { rows: previewRows, meta } = (await res.json()) as {
+        rows: PreviewRow[];
+        meta: { rowsFound: number; rowsSkipped: number };
+      };
+
+      if (!previewRows || previewRows.length === 0) {
+        showAlert({
+          title: 'No transactions found',
+          message: 'This file did not contain any readable transactions.',
+          type: 'error',
+        });
+        return;
+      }
+
+      const importRows: ImportRow[] = previewRows.map((r, i) => ({
+        ...r,
+        id: `imp_${i}_${r.dedupeKey}`,
+        category: r.suggestedCategory || 'others',
+      }));
+
+      setRows(importRows);
+      setSkippedCount(meta?.rowsSkipped || 0);
       // Pre-select every debit — the doc's flow is "uncheck what you don't want".
-      setSelected(new Set(parsed.rows.filter((r) => r.isDebit).map((r) => r.id)));
+      setSelected(new Set(importRows.filter((r) => r.isDebit).map((r) => r.id)));
       setStage('review');
     } catch (err) {
       setIsParsing(false);
       showAlert({
         title: 'Could not open the file',
-        message: 'Please try again, or pick a different file.',
+        message: 'Please check your connection and try again.',
         type: 'error',
       });
     }
-  }, [showAlert]);
+  }, [token, showAlert]);
 
   const toggleRow = useCallback((id: string) => {
     setSelected((prev) => {
@@ -179,9 +219,10 @@ export default function ImportStatementScreen() {
         date: r.date,
         description: r.description,
         source: 'import' as const,
-        // Matches the scheme the backend is asked to dedupe on. Harmless while
-        // the server ignores it; prevents duplicate rows once it does not.
-        dedupeKey: buildDedupeKey(r),
+        // Server-generated in the preview call — reusing it (rather than
+        // recomputing) is what lets a re-import of the same statement resolve
+        // to the exact same key the server already indexed.
+        dedupeKey: r.dedupeKey,
       })),
     );
 
@@ -315,18 +356,13 @@ export default function ImportStatementScreen() {
               <Text style={[styles.rowDesc, { color: colors.text }]} numberOfLines={1}>
                 {row.description}
               </Text>
-              <View style={styles.rowMetaLine}>
-                <Text style={[styles.rowDate, { color: colors.textTertiary }]}>
-                  {new Date(row.date).toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    timeZone: 'UTC',
-                  })}
-                </Text>
-                {row.uncertain && (
-                  <Ionicons name="alert-circle-outline" size={12} color={colors.warning} />
-                )}
-              </View>
+              <Text style={[styles.rowDate, { color: colors.textTertiary }]}>
+                {new Date(row.date).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  timeZone: 'UTC',
+                })}
+              </Text>
             </View>
 
             <Pressable
@@ -346,9 +382,7 @@ export default function ImportStatementScreen() {
       })}
 
       <Text style={[styles.footnote, { color: colors.textTertiary }]}>
-        Tap a category chip to change it. Rows marked{' '}
-        <Ionicons name="alert-circle-outline" size={11} color={colors.warning} /> had an ambiguous
-        date or amount — worth a check before importing.
+        Tap a category chip to change it. Uncheck anything that shouldn't be imported.
       </Text>
     </>
   );
