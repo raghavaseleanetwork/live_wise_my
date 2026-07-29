@@ -7,8 +7,13 @@ import {
   Pressable,
   Platform,
   TextInput,
+  KeyboardAvoidingView as RNKeyboardAvoidingView,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+// Guarded seam: the library's version in a dev/production build, React
+// Native's own in Expo Go, which has no native module for it.
+import { KeyboardAvoidingView as NativeKeyboardAvoidingView } from '@/lib/keyboard-controller';
+
+const KeyboardAvoidingView = NativeKeyboardAvoidingView ?? RNKeyboardAvoidingView;
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -310,7 +315,7 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },
   messageList: { paddingHorizontal: 16, paddingBottom: 8 },
   chipsSection: { paddingVertical: 16, gap: 10 },
-  chipsSectionTitle: { fontFamily: 'Inter_500Medium', fontSize: 12, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+  chipsSectionTitle: { fontFamily: 'Inter_500Medium', fontSize: 12 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   quickChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1 },
   quickChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },

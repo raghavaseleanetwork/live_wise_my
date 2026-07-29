@@ -13,7 +13,9 @@ import { View, Text, StyleSheet, Platform, ActivityIndicator } from "react-nativ
 // so the splash mark is already decoded when this paints.
 import { Image } from "expo-image";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
+// Guarded re-export: the real provider in a dev/production build, a
+// pass-through in Expo Go, which has no native module for it.
+import { KeyboardProvider } from "@/lib/keyboard-controller";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeIn } from "react-native-reanimated";
