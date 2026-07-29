@@ -29,7 +29,8 @@ import { type CategoryType } from '@/lib/data';
 import { useAlert } from '@/lib/alert-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
-import { triggerForLimit, type LimitKey } from '@/lib/entitlements';
+import { triggerForLimit } from '@/lib/entitlements';
+import { type LimitKey } from '@/constants/plans';
 import PremiumLoader from '@/components/PremiumLoader';
 import { scheduleLocalNotification } from '@/lib/notifications';
 import { useCurrency } from '@/lib/currency-context';
@@ -645,7 +646,7 @@ export default function ScanBillScreen() {
                 </View>
                 <View style={styles.brandInfo}>
                   <Text style={[styles.brandName, { color: colors.text }]} numberOfLines={1}>{editingData?.name || 'Bill Detected'}</Text>
-                  <Text style={[styles.brandCategory, { color: colors.textTertiary }]}>{(editingData?.category || 'Utility').toUpperCase()}</Text>
+                  <Text style={[styles.brandCategory, { color: colors.textTertiary }]}>{(() => { const c = editingData?.category || 'Utility'; return c.charAt(0).toUpperCase() + c.slice(1).toLowerCase(); })()}</Text>
                 </View>
                 {confidence !== null && (
                   <View style={[styles.statusTag, { backgroundColor: confidence >= 90 ? '#10B98115' : '#F59E0B15' }]}>
@@ -656,11 +657,11 @@ export default function ScanBillScreen() {
               <View style={[styles.modernDivider, { backgroundColor: colors.border }]} />
               <View style={styles.modernSummaryGrid}>
                 <View style={styles.modernGridItem}>
-                  <Text style={styles.modernGridLabel}>AMOUNT DUE</Text>
+                  <Text style={styles.modernGridLabel}>Amount due</Text>
                   <Text style={[styles.modernGridValue, { color: colors.text }]}>{formatAmount(editingData?.amount || 0)}</Text>
                 </View>
                 <View style={[styles.modernGridItem, { alignItems: 'flex-end' }]}>
-                  <Text style={styles.modernGridLabel}>DUE DATE</Text>
+                  <Text style={styles.modernGridLabel}>Due date</Text>
                   <Text style={[styles.modernGridValue, { color: colors.textSecondary }]}>
                     {editingData?.dueDate ? new Date(editingData.dueDate).toLocaleDateString('en-IN') : 'N/A'}
                   </Text>
@@ -676,7 +677,7 @@ export default function ScanBillScreen() {
           <ScrollView style={styles.editScroll}>
             <View style={styles.editingForm}>
               <View style={styles.formSection}>
-                <Text style={[styles.formSectionTitle, { color: colors.textTertiary }]}>PRIMARY DETAILS</Text>
+                <Text style={[styles.formSectionTitle, { color: colors.textTertiary }]}>Primary details</Text>
                 <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Bill Name</Text>
                 <TextInput
                   style={[styles.formInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
@@ -954,7 +955,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
-    textTransform: 'uppercase',
   },
   fallbackFrame: {
     width: '100%',
