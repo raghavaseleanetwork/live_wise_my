@@ -110,7 +110,7 @@ export default function FamilyEmergencyScreen() {
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>SETTINGS</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Settings</Text>
         <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
@@ -146,7 +146,7 @@ export default function FamilyEmergencyScreen() {
           <Text style={styles.checkBtnText}>{isChecking ? 'Checking…' : 'Check Now'}</Text>
         </Pressable>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 24 }]}>ALERT LOG</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 24 }]}>Alert log</Text>
         {log.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="shield-checkmark-outline" size={40} color={colors.textTertiary} />
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   infoBanner: { flexDirection: 'row', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 20 },
   infoText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17 },
   sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1, marginBottom: 10 },
-  settingsCard: { borderRadius: 18, borderWidth: 1, padding: 4 },
+  settingsCard: { borderRadius: 16, borderWidth: 1, padding: 4 },
   settingRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   settingTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   settingSub: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },

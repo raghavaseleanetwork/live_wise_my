@@ -52,6 +52,15 @@ export interface Bill {
   lateFee?: number;
   taxAmount?: number;
   phoneNumber?: string;
+  /**
+   * Set when this reminder was projected from a Family Hub record rather than
+   * created directly. `memberId` is whose it is; `sourceKind`/`sourceId` point
+   * back at the originating family record so the projection can be matched to
+   * it on edit and delete. See `lib/family-reminders.ts`.
+   */
+  memberId?: string | null;
+  sourceKind?: string;
+  sourceId?: string;
 }
 
 export interface MoneyLeak {
@@ -155,6 +164,35 @@ export function formatCurrency(amount: number): string {
     return amount.toLocaleString('en-IN');
   }
   return amount.toString();
+}
+
+/**
+ * Format a Date as a calendar day (`YYYY-MM-DD`) in the *local* timezone.
+ *
+ * `toISOString().split('T')[0]` is the obvious-looking version of this and is
+ * wrong everywhere east of UTC: a date picker hands back local midnight, which
+ * in IST (UTC+5:30) converts to 18:30 the previous day in UTC, so the stored
+ * day lands one behind what the user tapped. Calendar dates like a birthday
+ * have no time or zone attached, so they must never round-trip through UTC.
+ */
+export function toLocalDateString(date: Date): string {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * Parse a `YYYY-MM-DD` calendar day into a Date at *local* midnight.
+ *
+ * The inverse of `toLocalDateString`, and needed for the same reason: `new
+ * Date('2011-12-03')` is defined to parse as UTC midnight, which reads back as
+ * the 2nd in any timezone behind UTC and shifts the picker a day each time it
+ * reopens. Falls back to the platform parser for full timestamps.
+ */
+export function fromLocalDateString(value: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec((value || '').trim());
+  if (!match) return new Date(value);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
 export function formatDate(dateStr: string): string {

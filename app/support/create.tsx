@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Switch, Image, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Switch,
+  Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/lib/theme-context';
@@ -10,6 +19,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useAlert } from '@/lib/alert-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const CATEGORIES = [
   { label: 'Technical Issue', value: 'technical' },
@@ -60,13 +70,25 @@ export default function CreateTicketScreen() {
       return;
     }
 
+    // Mirrors the server's SupportTicketSchema (subject min 3, description min 10)
+    // so the user is told what's wrong here instead of getting a 400 back.
+    if (subject.trim().length < 3) {
+      showAlert({ title: 'Subject Too Short', message: 'Please use at least 3 characters for the subject.' });
+      return;
+    }
+
+    if (description.trim().length < 10) {
+      showAlert({ title: 'Description Too Short', message: 'Please describe your issue in at least 10 characters.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const baseUrl = getApiUrl();
       const formData = new FormData();
-      formData.append('subject', subject);
+      formData.append('subject', subject.trim());
       formData.append('category', category);
-      formData.append('description', description);
+      formData.append('description', description.trim());
       
       if (media) {
         formData.append('media', {
@@ -84,7 +106,21 @@ export default function CreateTicketScreen() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error('Failed to create ticket');
+      if (!res.ok) {
+        // The server sends a real reason (validation, auth, upload); keep it
+        // instead of collapsing every failure into "please try again".
+        const detail = await res.text().catch(() => '');
+        let message = '';
+        try {
+          message = JSON.parse(detail)?.message || '';
+        } catch {
+          message = '';
+        }
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('Your session has expired. Please sign in again.');
+        }
+        throw new Error(message || `Failed to create ticket (${res.status})`);
+      }
 
       queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
 
@@ -101,7 +137,12 @@ export default function CreateTicketScreen() {
       });
     } catch (err) {
       console.error('Create ticket error:', err);
-      showAlert({ title: 'Error', message: 'Could not create ticket. Please try again.' });
+      showAlert({
+        title: 'Error',
+        message: err instanceof Error && err.message
+          ? err.message
+          : 'Could not create ticket. Please try again.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -208,7 +249,7 @@ export default function CreateTicketScreen() {
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#FFF" />
+            <LoadingIndicator color="#FFF" />
           ) : (
             <>
               <Text style={styles.submitButtonText}>Submit Ticket</Text>
@@ -263,7 +304,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
     marginLeft: 4,
-    textTransform: 'uppercase',
     letterSpacing: 1,
   },
   input: {

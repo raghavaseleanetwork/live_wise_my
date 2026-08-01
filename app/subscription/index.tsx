@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,8 +22,9 @@ import {
   BillingInterval,
   PLAN_ORDER,
   PLAN_META,
-  formatPlanPrice,
+  resolvePlanPrice,
 } from '@/constants/plans';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 /**
  * Manage Plan screen (doc §4). Current-plan card, trial banner, monthly/yearly
@@ -69,17 +71,21 @@ function PlanCard({
   isCurrent,
   onChoose,
   canStartTrial,
+  storePrices,
+  isPurchasing,
 }: {
   planId: PlanId;
   interval: BillingInterval;
   isCurrent: boolean;
   onChoose: (plan: PlanId) => void;
   canStartTrial: boolean;
+  storePrices: Record<string, string>;
+  isPurchasing: boolean;
 }) {
   const { colors } = useTheme();
   const meta = PLAN_META[planId];
   const isFamily = planId === 'family';
-  const price = interval === 'year' ? meta.priceYearly : meta.priceMonthly;
+  const price = resolvePlanPrice(planId, interval, storePrices);
   const per = meta.priceMonthly === 0 ? '' : interval === 'year' ? '/year' : '/month';
 
   const accent = isFamily ? colors.warning : colors.accent;
@@ -120,7 +126,7 @@ function PlanCard({
       </View>
 
       <View style={styles.priceRow}>
-        <Text style={[styles.price, { color: colors.text }]}>{formatPlanPrice(price)}</Text>
+        <Text style={[styles.price, { color: colors.text }]}>{price}</Text>
         {per ? <Text style={[styles.pricePer, { color: colors.textSecondary }]}>{per}</Text> : null}
         {interval === 'year' && meta.yearlyDiscountLabel ? (
           <View style={[styles.discountChip, { backgroundColor: colors.accentMintDim }]}>
@@ -156,7 +162,11 @@ function PlanCard({
           </Text>
         </Pressable>
       ) : (
-        <Pressable onPress={() => onChoose(planId)} style={styles.planCtaWrap}>
+        <Pressable
+          onPress={() => onChoose(planId)}
+          disabled={isPurchasing}
+          style={[styles.planCtaWrap, isPurchasing && { opacity: 0.6 }]}
+        >
           <LinearGradient
             colors={
               (isFamily
@@ -167,7 +177,11 @@ function PlanCard({
             end={{ x: 1, y: 0 }}
             style={styles.planCta}
           >
-            <Text style={[styles.planCtaText, { color: '#FFFFFF' }]}>{ctaLabel}</Text>
+            {isPurchasing ? (
+              <LoadingIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={[styles.planCtaText, { color: '#FFFFFF' }]}>{ctaLabel}</Text>
+            )}
           </LinearGradient>
         </Pressable>
       )}
@@ -182,11 +196,18 @@ export default function SubscriptionScreen() {
   const {
     currentPlan,
     ownedPlan,
-    isTrialActive,
+    isTrialProvidingPlan,
     trialDaysLeft,
     canStartTrial,
     startTrial,
     purchasePlan,
+    restore,
+    isStoreActive,
+    storePrices,
+    isPurchasing,
+    isTestMode,
+    setTestMode,
+    isTestModeAllowed,
   } = useSubscription();
 
   const [interval, setInterval] = useState<BillingInterval>('month');
@@ -199,10 +220,42 @@ export default function SubscriptionScreen() {
     else router.replace('/(tabs)/settings');
   };
 
+  /** Apply a plan without the store, after the tester confirms. */
+  const applyTestPlan = async (plan: PlanId) => {
+    const meta = PLAN_META[plan];
+    await purchasePlan(plan, interval);
+    showAlert({
+      title: `${meta.name} activated`,
+      message: `Test mode: you're now on ${meta.name} with no payment taken. All ${meta.name} features are unlocked.`,
+      type: 'success',
+      buttons: [{ text: 'Done' }],
+    });
+  };
+
   const handleChoose = async (plan: PlanId) => {
-    if (plan === currentPlan) return;
+    // Compare against the OWNED plan, not the effective one: during a trial the
+    // effective plan is Family, which would otherwise make the Family card
+    // unselectable even though the user doesn't own it yet.
+    if (plan === ownedPlan) return;
 
     const meta = PLAN_META[plan];
+
+    // TEST MODE: confirm, then grant directly — no store, no payment.
+    // Checked before the trial branch so testers can reach any tier on demand
+    // rather than being redirected into the one-time Family trial.
+    if (isTestMode && plan !== 'free') {
+      showAlert({
+        title: `Activate ${meta.name}?`,
+        message: `This is a TEST activation — no payment will be taken and no real subscription is created. ${meta.name} features will be unlocked on this device.`,
+        type: 'warning',
+        buttons: [
+          { text: 'Cancel', style: 'cancel' },
+          { text: `Activate ${meta.name}`, onPress: () => applyTestPlan(plan) },
+        ],
+      });
+      return;
+    }
+
     if (canStartTrial && plan !== 'free') {
       await startTrial();
       showAlert({
@@ -214,15 +267,44 @@ export default function SubscriptionScreen() {
       return;
     }
 
-    await purchasePlan(plan, interval);
+    const result = await purchasePlan(plan, interval);
+
+    // Backing out of the store sheet is normal — say nothing.
+    if (result.cancelled) return;
+
+    if (!result.success) {
+      showAlert({
+        title: 'Purchase failed',
+        message:
+          result.error === 'product_not_found' || result.error === 'no_offerings'
+            ? 'This plan is not available right now. Please try again later.'
+            : "We couldn't complete your purchase. You have not been charged.",
+        type: 'error',
+        buttons: [{ text: 'OK' }],
+      });
+      return;
+    }
+
     showAlert({
       title: plan === 'free' ? 'Plan changed' : `Welcome to ${meta.name}!`,
       message:
         plan === 'free'
           ? "You're now on the Free plan."
-          : `You're now on the ${meta.name} plan. (Payment is added in a later update.)`,
+          : `You're now on the ${meta.name} plan. Enjoy!`,
       type: 'success',
       buttons: [{ text: 'Done' }],
+    });
+  };
+
+  const handleRestore = async () => {
+    const result = await restore();
+    showAlert({
+      title: result.success ? 'Purchases restored' : 'Nothing to restore',
+      message: result.success
+        ? 'Any active subscription on this account has been restored.'
+        : "We couldn't find a previous purchase for this account.",
+      type: result.success ? 'success' : 'info',
+      buttons: [{ text: 'OK' }],
     });
   };
 
@@ -255,12 +337,12 @@ export default function SubscriptionScreen() {
               <Text style={[styles.currentLabel, { color: colors.textSecondary }]}>
                 Current plan
               </Text>
-              <PlanBadge plan={currentPlan} showStar trial={isTrialActive} />
+              <PlanBadge plan={currentPlan} showStar trial={isTrialProvidingPlan} />
             </View>
             <Text style={[styles.currentPlanName, { color: colors.text }]}>
               {PLAN_META[currentPlan].name}
             </Text>
-            {isTrialActive ? (
+            {isTrialProvidingPlan ? (
               <View style={styles.trialBanner}>
                 <Ionicons name="time" size={15} color={colors.warning} />
                 <Text style={[styles.trialBannerText, { color: colors.warning }]}>
@@ -276,6 +358,53 @@ export default function SubscriptionScreen() {
             )}
           </LinearGradient>
         </Animated.View>
+
+        {/*
+          TEST PAYMENT MODE — dev builds only (`__DEV__`), never in a release
+          binary. Lets testers exercise every paid tier while the real gateway
+          is still being set up.
+        */}
+        {isTestModeAllowed && (
+          <View
+            style={[
+              styles.testModeCard,
+              {
+                backgroundColor: isTestMode ? colors.warningDim : colors.card,
+                borderColor: isTestMode ? colors.warning : colors.border,
+              },
+            ]}
+          >
+            <View style={styles.testModeRow}>
+              <Ionicons
+                name={isTestMode ? 'flask' : 'flask-outline'}
+                size={20}
+                color={isTestMode ? colors.warning : colors.textSecondary}
+              />
+              <View style={styles.testModeTextWrap}>
+                <Text style={[styles.testModeTitle, { color: colors.text }]}>
+                  Test payment mode
+                </Text>
+                <Text style={[styles.testModeSub, { color: colors.textSecondary }]}>
+                  {isTestMode
+                    ? 'Plans activate instantly without payment.'
+                    : 'Use the real payment gateway.'}
+                </Text>
+              </View>
+              <Switch
+                value={isTestMode}
+                onValueChange={setTestMode}
+                trackColor={{ false: colors.border, true: colors.warning }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            {isTestMode && (
+              <Text style={[styles.testModeWarn, { color: colors.warning }]}>
+                No payment is taken. Plans granted here are local to this device and are
+                cleared when you turn this off.
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Billing interval toggle */}
         <View style={[styles.toggle, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -309,9 +438,13 @@ export default function SubscriptionScreen() {
             <PlanCard
               planId={planId}
               interval={interval}
-              isCurrent={planId === currentPlan}
+              // Owned, not effective: during a trial the user hasn't bought
+              // Family, so its card must stay selectable.
+              isCurrent={planId === ownedPlan}
               onChoose={handleChoose}
               canStartTrial={canStartTrial}
+              storePrices={storePrices}
+              isPurchasing={isPurchasing}
             />
           </Animated.View>
         ))}
@@ -326,9 +459,26 @@ export default function SubscriptionScreen() {
           </Text>
         </Pressable>
 
+        {/* Restore is required by App Store review and expected on Play. */}
+        {isStoreActive && !isTestMode && (
+          <Pressable onPress={handleRestore} disabled={isPurchasing} style={styles.restoreLink}>
+            <Text
+              style={[
+                styles.restoreLinkText,
+                { color: colors.textSecondary, opacity: isPurchasing ? 0.5 : 1 },
+              ]}
+            >
+              Restore purchases
+            </Text>
+          </Pressable>
+        )}
+
         <Text style={[styles.footnote, { color: colors.textTertiary }]}>
-          Payment is added in a later update. Choosing a plan now activates it locally so you can
-          explore the features.
+          {isTestMode
+            ? 'Test mode is on — no real payment is processed and no subscription is created.'
+            : isStoreActive
+              ? 'Subscriptions renew automatically until cancelled. Manage or cancel anytime in your store account settings.'
+              : 'Payments are unavailable on this platform. Choosing a plan here activates it locally so you can explore the features.'}
         </Text>
       </ScrollView>
     </View>
@@ -508,6 +658,44 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   compareLinkText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+  },
+  testModeCard: {
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  testModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  testModeTextWrap: {
+    flex: 1,
+  },
+  testModeTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 15,
+  },
+  testModeSub: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  testModeWarn: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 10,
+  },
+  restoreLink: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  restoreLinkText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
   },

@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   typingRow: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 8, gap: 10, alignItems: 'flex-start' },
   msgRowUser: { justifyContent: 'flex-end' },
   botAvatar: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  msgBubble: { maxWidth: '80%', borderRadius: 18, padding: 14 },
+  msgBubble: { maxWidth: '80%', borderRadius: 16, padding: 14 },
   msgText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21 },
   cardsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   analysisCard: { flex: 1, minWidth: 90, borderRadius: 14, padding: 12, borderWidth: 1, gap: 6, alignItems: 'center' },

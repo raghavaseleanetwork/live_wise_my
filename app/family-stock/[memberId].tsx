@@ -87,6 +87,9 @@ export default function MedicationStockScreen() {
                       <Text style={[styles.lowBadgeText, { color: colors.warning }]}>Low</Text>
                     </View>
                   )}
+                  <Pressable onPress={() => router.push({ pathname: '/family-stock/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                    <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
+                  </Pressable>
                   <Pressable onPress={async () => { await deleteStockItem(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 10 }}>
                     <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
                   </Pressable>
@@ -135,12 +138,12 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 10 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
-  card: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
   lowBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  lowBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 10, textTransform: 'uppercase' },
+  lowBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   stockControls: { flexDirection: 'row', gap: 8, marginTop: 12 },
   stockBtn: { width: 40, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   stockBtnWide: { flex: 1, flexDirection: 'row', gap: 6 },

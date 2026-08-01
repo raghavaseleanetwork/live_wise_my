@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, Platform } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  Platform,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -7,6 +13,7 @@ import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { useAlert } from '@/lib/alert-context';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 type NotificationItem = {
   id: string;
@@ -96,7 +103,7 @@ export default function NotificationDetailsScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.accent} />
+          <LoadingIndicator size="large" color={colors.accent} />
         </View>
       ) : item ? (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -192,7 +199,7 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 20,
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     gap: 12,

@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
   tableCard: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 16,
   },
   manageBtn: {

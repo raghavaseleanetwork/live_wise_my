@@ -5,7 +5,6 @@ import {
   View,
   ScrollView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +16,7 @@ import { useExpenses } from '@/lib/expense-context';
 import { useTabBarContentInset } from '@/lib/tab-bar';
 import PremiumLoader from '@/components/PremiumLoader';
 import { CATEGORIES, MoneyLeak } from '@/lib/data';
+import Money from '@/components/Money';
 import { ThemeColors } from '@/constants/colors';
 
 function LeakCard({ leak, index, colors, formatAmount }: { leak: MoneyLeak; index: number; colors: ThemeColors; formatAmount: (n: number) => string }) {
@@ -40,7 +40,7 @@ function LeakCard({ leak, index, colors, formatAmount }: { leak: MoneyLeak; inde
             </View>
           </View>
           <View style={styles.leakAmountBox}>
-            <Text style={[styles.leakAmount, { color: colors.danger }]}>{formatAmount(leak.monthlyEstimate)}</Text>
+            <Money style={[styles.leakAmount, { color: colors.danger }]}>{formatAmount(leak.monthlyEstimate)}</Money>
             <Text style={[styles.leakAmountLabel, { color: colors.textTertiary }]}>per month</Text>
           </View>
         </View>
@@ -111,9 +111,9 @@ export default function LeaksScreen() {
               </View>
               <View style={styles.savingsContent}>
                 <Text style={[styles.savingsLabel, { color: colors.textSecondary }]}>Potential Savings</Text>
-                <Text style={[styles.savingsAmount, { color: colors.accentMint }]}>
+                <Money style={[styles.savingsAmount, { color: colors.accentMint }]}>
                   {formatAmount(totalLeaks)}
-                </Text>
+                </Money>
                 <Text style={[styles.savingsAmountSuffix, { color: colors.textTertiary }]}>per month</Text>
               </View>
             </View>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   savingsIconWrap: {
     width: 56,
     height: 56,
-    borderRadius: 18,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -230,7 +230,6 @@ const styles = StyleSheet.create({
   savingsLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    textTransform: 'uppercase' as const,
     letterSpacing: 1,
     marginBottom: 4,
   },
@@ -314,7 +313,6 @@ const styles = StyleSheet.create({
   freqText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
-    textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
   },
   leakCount: {
@@ -396,7 +394,7 @@ const styles = StyleSheet.create({
   },
   howItWorks: {
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     marginBottom: 8,
   },

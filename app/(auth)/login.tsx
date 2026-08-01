@@ -26,6 +26,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Tracked separately from `isSubmitting` so the spinner appears on the button
+  // the user actually pressed. The backend token verification takes a visible
+  // moment, during which the Google sheet has already closed — without this the
+  // screen looks frozen and invites a second tap.
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
@@ -50,17 +55,45 @@ export default function LoginScreen() {
     setIsSubmitting(false);
     if (!result.success) {
       setError(result.error || 'Login failed');
+      return;
+    }
+    // An account created before verification completed still needs its code.
+    // Without this the user is stuck: correct password, but no session.
+    if (result.otpRequired) {
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { email: result.email ?? trimmedEmail },
+      });
     }
   };
 
   const handleGoogleLogin = async () => {
+    if (isGoogleSubmitting) return;
     setError('');
-    const res = await loginWithGoogle();
-    if (res.success) {
-      router.replace('/(tabs)');
-    } else {
-      setError(res.error || 'Google sign-in failed');
+    setIsGoogleSubmitting(true);
+    let res;
+    try {
+      res = await loginWithGoogle();
+    } finally {
+      // Cleared in `finally` so a thrown error cannot strand the button in a
+      // permanently disabled spinner state.
+      setIsGoogleSubmitting(false);
     }
+    if (!res.success) {
+      setError(res.error || 'Google sign-in failed');
+      return;
+    }
+    // Must be checked BEFORE navigating into the app: on an OTP-required
+    // response no token was stored, so replacing to /(tabs) would land on an
+    // unauthenticated shell.
+    if (res.otpRequired && res.email) {
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { email: res.email },
+      });
+      return;
+    }
+    router.replace('/(tabs)');
   };
 
   return (
@@ -126,7 +159,7 @@ export default function LoginScreen() {
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(300).duration(600) : undefined}>
             <Pressable
               onPress={handleLogin}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isGoogleSubmitting}
               style={styles.loginBtnWrap}
               testID="login-submit"
             >
@@ -137,7 +170,7 @@ export default function LoginScreen() {
                 style={styles.loginBtn}
               >
                 {isSubmitting ? (
-                  <PremiumLoader size={20} />
+                  <PremiumLoader size={28} compact />
                 ) : (
                   <Text style={styles.loginBtnText}>Sign In</Text>
                 )}
@@ -156,10 +189,33 @@ export default function LoginScreen() {
           <View style={styles.socialRow}>
             <Pressable
               onPress={handleGoogleLogin}
-              style={[styles.googleBtn, { backgroundColor: '#FFFFFF', borderColor: colors.border }]}
+              disabled={isGoogleSubmitting || isSubmitting}
+              style={[
+                styles.googleBtn,
+                {
+                  backgroundColor: '#FFFFFF',
+                  borderColor: colors.border,
+                  opacity: isGoogleSubmitting || isSubmitting ? 0.7 : 1,
+                },
+              ]}
+              testID="login-google"
             >
-              <Ionicons name="logo-google" size={24} color="#4285F4" />
-              <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+              {isGoogleSubmitting ? (
+                <>
+                  <PremiumLoader size={24} compact />
+                  {/* Named step rather than a bare spinner: the account sheet has
+                      already closed by this point, so saying what is happening
+                      is what makes the wait legible. */}
+                  <Text style={[styles.googleBtnText, { color: colors.textSecondary }]}>
+                    Verifying…
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={24} color="#4285F4" />
+                  <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+                </>
+              )}
             </Pressable>
           </View>
         </Animated.View>
@@ -222,7 +278,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
     marginBottom: 8,
   },
@@ -246,7 +301,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   loginBtn: {
-    paddingVertical: 18,
+    // Fixed, not padding-derived: the button swaps its label for a spinner
+    // while submitting, and any content-driven height makes it jump between the
+    // two states. 56 is what `paddingVertical: 18` around the 16px bold label
+    // resolved to, so the resting appearance is unchanged.
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 14,

@@ -8,7 +8,6 @@ import {
   TextInput,
   Platform,
   KeyboardAvoidingView,
-  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +22,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 import { apiRequest, getApiUrl } from '@/lib/query-client';
+import { toLocalDateString, fromLocalDateString } from '@/lib/data';
 import { Avatar } from '../components/Avatar';
 import FeatureSelector from '@/components/FeatureSelector';
 import {
@@ -32,6 +32,7 @@ import {
   loadMemberFeatures,
   saveMemberFeatures,
 } from '@/lib/family-features';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const RELATIONSHIPS = [
   { key: 'self', label: 'Self', icon: 'person' },
@@ -125,8 +126,12 @@ export default function EditFamilyMemberScreen() {
           }
           setAvatarUrl(member.avatarUrl || null);
           if (member.dateOfBirth) {
-            setDateOfBirth(member.dateOfBirth);
-            setDobDate(new Date(member.dateOfBirth));
+            // Normalise to a local calendar day: the stored value may be a bare
+            // YYYY-MM-DD (which `new Date` would read as UTC) or a full
+            // timestamp, and either must show the day the user actually picked.
+            const dob = fromLocalDateString(member.dateOfBirth);
+            setDateOfBirth(toLocalDateString(dob));
+            setDobDate(dob);
           }
           // Prefer locally-stored feature selection (Phase 1 source of truth);
           // fall back to whatever the server returned (legacy boolean shape or
@@ -263,7 +268,7 @@ export default function EditFamilyMemberScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <LoadingIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -330,7 +335,7 @@ export default function EditFamilyMemberScreen() {
             ) : null}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              RELATIONSHIP <Text style={{ color: colors.danger }}>*</Text>
+              Relationship <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <View style={styles.relGrid}>
               {RELATIONSHIPS.map((rel) => {
@@ -360,7 +365,7 @@ export default function EditFamilyMemberScreen() {
             {relationship === 'other' && (
               <Animated.View entering={FadeInDown}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                  SPECIFY RELATIONSHIP <Text style={{ color: colors.danger }}>*</Text>
+                  Specify relationship <Text style={{ color: colors.danger }}>*</Text>
                 </Text>
                 <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}>
                   <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
@@ -384,7 +389,7 @@ export default function EditFamilyMemberScreen() {
               </Animated.View>
             )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DATE OF BIRTH</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Date of birth</Text>
             <Pressable
               onPress={() => setShowDatePicker(true)}
               style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}
@@ -406,14 +411,14 @@ export default function EditFamilyMemberScreen() {
                   setShowDatePicker(false);
                   if (date) {
                     setDobDate(date);
-                    setDateOfBirth(date.toISOString().split('T')[0]);
+                    setDateOfBirth(toLocalDateString(date));
                   }
                 }}
               />
             )}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              MANAGED FEATURES <Text style={{ color: colors.danger }}>*</Text>
+              Managed features <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
               Tap to turn features on or off for {name.trim() || 'this member'}.
@@ -549,7 +554,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 20,
   },
   errorText: {
@@ -563,7 +568,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 8,
     letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   sectionHint: {
     fontFamily: 'Inter_400Regular',
@@ -574,16 +578,18 @@ const styles = StyleSheet.create({
   relGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    rowGap: 14,
-    columnGap: 12,
-    justifyContent: 'space-between',
+    rowGap: 10,
+    columnGap: 10,
     marginBottom: 12,
   },
   relCard: {
-    width: '30%',
-    borderRadius: 20,
+    // Matches Add Family Member — see the note there on why `space-between`
+    // is avoided for this grid.
+    flexBasis: '31%',
+    flexGrow: 1,
+    borderRadius: 16,
     borderWidth: 1.5,
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 8,
     alignItems: 'center',
     gap: 8,
@@ -601,7 +607,7 @@ const styles = StyleSheet.create({
   infoCard: {
     marginTop: 24,
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
@@ -622,7 +628,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 62,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   saveGradient: {
@@ -640,7 +646,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,

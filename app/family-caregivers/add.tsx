@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Pressable,
+  TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +16,7 @@ import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { useAlert } from '@/lib/alert-context';
 import { inviteCaregiver } from '@/lib/family-caregivers';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function InviteCaregiverScreen() {
   const router = useRouter();
@@ -83,7 +91,7 @@ export default function InviteCaregiverScreen() {
         />
 
         <Pressable onPress={handleInvite} disabled={sending} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: sending ? 0.6 : 1 }]}>
-          {sending ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnLabel}>Send Invite</Text>}
+          {sending ? <LoadingIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnLabel}>Send Invite</Text>}
         </Pressable>
       </ScrollView>
     </View>
@@ -101,6 +109,6 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
   primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 4 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

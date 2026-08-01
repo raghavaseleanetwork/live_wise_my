@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
   summaryBanner: {
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
@@ -352,7 +352,6 @@ const styles = StyleSheet.create({
   tagLabel: { 
     fontFamily: 'Inter_700Bold', 
     fontSize: 10, 
-    textTransform: 'uppercase' as const, 
     letterSpacing: 0.6 
   },
   cardBody: {

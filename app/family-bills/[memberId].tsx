@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
+import Money from '@/components/Money';
 import {
   FamilyBill,
   loadFamilyBills,
@@ -72,20 +73,22 @@ export default function FamilyBillsScreen() {
           <>
             {unpaid.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>DUE</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Due</Text>
                 {unpaid.map((bill) => (
                   <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount}
                     onToggle={async () => { await toggleFamilyBillPaid(String(memberId), bill.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: bill.id } })}
                     onDelete={async () => { await deleteFamilyBill(String(memberId), bill.id); load(); }} />
                 ))}
               </>
             )}
             {paid.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>PAID</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>Paid</Text>
                 {paid.map((bill) => (
                   <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount}
                     onToggle={async () => { await toggleFamilyBillPaid(String(memberId), bill.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: bill.id } })}
                     onDelete={async () => { await deleteFamilyBill(String(memberId), bill.id); load(); }} />
                 ))}
               </>
@@ -98,8 +101,8 @@ export default function FamilyBillsScreen() {
 }
 
 function BillCard({
-  bill, colors, formatAmount, onToggle, onDelete,
-}: { bill: FamilyBill; colors: any; formatAmount: (n: number) => string; onToggle: () => void; onDelete: () => void }) {
+  bill, colors, formatAmount, onToggle, onEdit, onDelete,
+}: { bill: FamilyBill; colors: any; formatAmount: (n: number) => string; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
   const def = CATEGORY_LABELS[bill.category];
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -115,7 +118,10 @@ function BillCard({
           Due {new Date(bill.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
         </Text>
       </View>
-      <Text style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(bill.amount)}</Text>
+      <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(bill.amount)}</Money>
+      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+        <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
+      </Pressable>
       <Pressable onPress={onDelete} hitSlop={10} style={{ marginLeft: 10 }}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
       </Pressable>
@@ -135,7 +141,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
   sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1, marginBottom: 10 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
+  rowAction: { marginRight: 14 },
   checkCircle: { padding: 2 },
   iconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },

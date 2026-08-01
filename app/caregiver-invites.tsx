@@ -1,5 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Pressable,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +22,7 @@ import {
   acceptInvite,
   declineInvite,
 } from '@/lib/family-caregivers';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function CaregiverInvitesScreen() {
   const router = useRouter();
@@ -89,7 +96,7 @@ export default function CaregiverInvitesScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {loading ? (
           <View style={styles.centerBox}>
-            <ActivityIndicator color={colors.accent} />
+            <LoadingIndicator color={colors.accent} />
           </View>
         ) : loadError ? (
           <View style={[styles.noticeBox, { backgroundColor: colors.warningDim, borderColor: colors.warning }]}>
@@ -131,7 +138,7 @@ export default function CaregiverInvitesScreen() {
                   disabled={busyId === invite.id}
                   style={[styles.acceptBtn, { backgroundColor: colors.accent }]}
                 >
-                  {busyId === invite.id ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.acceptBtnText}>Accept</Text>}
+                  {busyId === invite.id ? <LoadingIndicator color="#FFF" size="small" /> : <Text style={styles.acceptBtnText}>Accept</Text>}
                 </Pressable>
               </View>
             </Animated.View>
@@ -149,12 +156,12 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: 'Inter_700Bold', fontSize: 18 },
   centerBox: { paddingVertical: 40, alignItems: 'center' },
-  noticeBox: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, alignItems: 'flex-start' },
+  noticeBox: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, alignItems: 'flex-start' },
   noticeText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 19 },
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 10 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
-  card: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12, gap: 14 },
+  card: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 12, gap: 14 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },

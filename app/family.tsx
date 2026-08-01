@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -151,18 +152,17 @@ export default function FamilyScreen() {
     router.push('/add-family-member');
   };
 
-  const handleBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)');
-  };
-
-  const headerHeight = 110 + insets.top;
+  const topInset = Platform.OS === 'web' ? 67 : insets.top;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: topInset + 16,
+          paddingBottom: insets.bottom + 100,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -172,37 +172,44 @@ export default function FamilyScreen() {
           />
         }
       >
-        {/* Premium Header */}
-        <LinearGradient
-          colors={colors.heroGradient as any}
-          style={[styles.header, { height: headerHeight, paddingTop: insets.top }]}
-        >
-          <View style={styles.headerTop}>
-            <Pressable onPress={handleBack} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
-            </Pressable>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Family Hub</Text>
-            <View style={styles.headerRightActions}>
-              <Pressable onPress={() => router.push('/caregiver-invites')} style={styles.inviteBellBtn} hitSlop={8}>
-                <Ionicons name="notifications-outline" size={24} color={colors.text} />
-                {pendingInviteCount > 0 && (
-                  <View style={[styles.inviteBadge, { backgroundColor: colors.danger }]}>
-                    <Text style={styles.inviteBadgeText}>{pendingInviteCount > 9 ? '9+' : pendingInviteCount}</Text>
-                  </View>
-                )}
-              </Pressable>
-              <Pressable onPress={handleAddMember} style={styles.addBtn}>
-                <Ionicons name="add-circle" size={32} color={colors.accent} />
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.headerContent}>
-            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-              Manage medicines, health, bills & more for your loved ones
+        <View style={styles.headerRow}>
+          <View style={styles.headerTitleWrap}>
+            <Text style={[styles.screenTitle, { color: colors.text }]}>Family Hub</Text>
+            <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
+              Manage medicines, health, bills & more
             </Text>
           </View>
-        </LinearGradient>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/caregiver-invites')}
+              style={[styles.headerIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Caregiver invites"
+            >
+              {/* Deliberately NOT a bell. This opens Caregiver Invites, not a
+                  notification list — the bell made it read as a second
+                  notification centre alongside the one on Home, which is the
+                  confusion this icon change removes. All notifications,
+                  including Family Hub ones, live in `app/notifications.tsx`. */}
+              <Ionicons name="person-add-outline" size={20} color={colors.textSecondary} />
+              {pendingInviteCount > 0 && (
+                <View style={[styles.inviteBadge, { backgroundColor: colors.danger }]}>
+                  <Text style={styles.inviteBadgeText}>{pendingInviteCount > 9 ? '9+' : pendingInviteCount}</Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable onPress={handleAddMember} accessibilityLabel="Add family member">
+              <LinearGradient
+                colors={colors.buttonGradient as any}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.addBtnGradient}
+              >
+                <Ionicons name="add" size={22} color="#FFFFFF" />
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </View>
 
         <View style={styles.content}>
           {members.length === 0 ? (
@@ -249,7 +256,7 @@ export default function FamilyScreen() {
                           <Text style={[styles.memberName, { color: colors.text }]}>{member.name}</Text>
                           {member.isSharedWithMe && (
                             <View style={[styles.sharedBadge, { backgroundColor: colors.accentDim }]}>
-                              <Text style={[styles.sharedBadgeText, { color: colors.accent }]}>SHARED</Text>
+                              <Text style={[styles.sharedBadgeText, { color: colors.accent }]}>Shared</Text>
                             </View>
                           )}
                         </View>
@@ -310,51 +317,50 @@ export default function FamilyScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-  },
-  headerTop: {
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerTitleWrap: {
+    flex: 1,
+    paddingRight: 12,
   },
-  headerTitle: {
+  screenTitle: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 22,
+    fontSize: 30,
+    letterSpacing: -0.5,
   },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+  screenSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    marginTop: 4,
   },
-  headerRightActions: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 10,
   },
-  inviteBellBtn: {
-    width: 40,
-    height: 40,
+  headerIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  addBtnGradient: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   inviteBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 2,
+    right: 2,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
@@ -382,19 +388,8 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 0.4,
   },
-  headerContent: {
-    marginTop: -2,
-    alignItems: 'center',
-  },
-  headerSubtitle: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 13,
-    opacity: 0.8,
-    textAlign: 'center',
-  },
   content: {
-    padding: 16,
-    paddingTop: 8,
+    paddingBottom: 16,
   },
   emptyState: {
     alignItems: 'center',
@@ -425,7 +420,7 @@ const styles = StyleSheet.create({
   },
   emptyActionBtn: {
     height: 56,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     width: '100%',
   },
@@ -459,7 +454,7 @@ const styles = StyleSheet.create({
   avatarWrap: {
     width: 52,
     height: 52,
-    borderRadius: 18,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -471,7 +466,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
     marginTop: 2,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   memberActions: {

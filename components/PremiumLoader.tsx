@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   withRepeat,
@@ -16,23 +16,17 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '@/lib/theme-context';
 
 /**
- * The app's loading indicator.
+ * The app's loading indicator — the ONLY loader used anywhere in the app.
  *
- * At `size >= LOGO_MIN_SIZE` the LifeWise mark sits at the centre, framed by the
- * glass disc and orbited by the progress ring — the "branded" form used on the
- * splash and on full-screen loads. Below that threshold the logo is omitted and
- * only the gradient ring renders: these small instances live inside buttons and
- * list rows (size 20-40), where the mark would be an illegible smudge and would
- * read as a rendering fault rather than a logo.
+ * The LifeWise mark sits at the centre, framed by the glass disc and orbited by
+ * the progress ring, at every size. There is deliberately no size threshold
+ * that drops the logo: the brand mark is the loader, and a plain ring is a
+ * second, unbranded loader by another name.
  *
- * Pass `logo={false}` to force the plain ring at any size.
+ * `logo={false}` still exists as an explicit escape hatch, but nothing in the
+ * app passes it. Do not reintroduce a raw `ActivityIndicator` — see the note in
+ * `LoadingIndicator` below.
  */
-
-/**
- * Below this the logo is dropped. 60 is the smallest size in use that gives the
- * mark a >=30px tile once the glass frame and its padding are subtracted.
- */
-const LOGO_MIN_SIZE = 60;
 
 /**
  * Orbit diameter of the rotating indicator, as a multiple of `size`.
@@ -46,6 +40,13 @@ const LOGO_MIN_SIZE = 60;
  * detached from the small gradient disc — so the plain form keeps the original
  * tight orbit.
  */
+/**
+ * At or above this, a loader is treated as a full-screen/block instance and
+ * keeps its full padding; below it, it is inline (inside a button or row) and
+ * is rendered compact so it does not change the host's height.
+ */
+const LOGO_MIN_FULLSCREEN_SIZE = 60;
+
 const ORBIT_RATIO_WITH_LOGO = 1.15;
 const ORBIT_RATIO_PLAIN = 0.7;
 
@@ -79,23 +80,44 @@ export async function preloadBrandAssets(): Promise<void> {
   }
 }
 
+/**
+ * Padding around the glass disc, as a multiple of `size`.
+ *
+ * The glass is `size * 1.6` and the ring-2 pulse scales to 1.6x of `size`, so
+ * `size * 1.6` is the real drawn extent; 2.5 was chosen as comfortable breathing
+ * room on the splash, where the loader sits alone on the screen. Inside a button
+ * that slack is not free — it is laid-out height, and at `size={20}` it made a
+ * 50px box where the label it replaces is ~19px tall, so the button visibly grew
+ * the moment it started loading. `compact` drops the wrapper to the drawn extent
+ * so the loader occupies only what it actually paints.
+ */
+const WRAPPER_RATIO = 2.5;
+const WRAPPER_RATIO_COMPACT = 1.6;
+
 interface PremiumLoaderProps {
   size?: number;
   text?: string;
   /** Force the logo on or off. Defaults to on at `size >= 60`. */
   logo?: boolean;
+  /**
+   * Shrink the outer box to the loader's drawn extent. For inline use — inside
+   * buttons and rows — where the standard padding would push the container's
+   * height around.
+   */
+  compact?: boolean;
 }
 
 export default function PremiumLoader({
   size = 64,
   text,
   logo,
+  compact = false,
 }: PremiumLoaderProps) {
   const { colors, isDark } = useTheme();
   const progress = useSharedValue(0);
   const ring2Progress = useSharedValue(0);
 
-  const showLogo = logo ?? size >= LOGO_MIN_SIZE;
+  const showLogo = logo ?? true;
 
   useEffect(() => {
     progress.value = withRepeat(
@@ -158,10 +180,11 @@ export default function PremiumLoader({
    */
   const logoTile = size * 0.62;
   const orbitRatio = showLogo ? ORBIT_RATIO_WITH_LOGO : ORBIT_RATIO_PLAIN;
+  const wrapperRatio = compact ? WRAPPER_RATIO_COMPACT : WRAPPER_RATIO;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.loaderWrapper, { width: size * 2.5, height: size * 2.5 }]}>
+      <View style={[styles.loaderWrapper, { width: size * wrapperRatio, height: size * wrapperRatio }]}>
         {/* Outer Glow / Ring 2 */}
         <Animated.View style={[
           styles.ring2,
@@ -239,6 +262,44 @@ export default function PremiumLoader({
       </View>
     </View>
   );
+}
+
+/**
+ * Drop-in replacement for `<ActivityIndicator />`.
+ *
+ * Exists so call sites that used the OS spinner can render the branded loader
+ * without each one having to work out a pixel size: it accepts the same
+ * `size="small" | "large"` vocabulary and maps it onto `PremiumLoader`.
+ *
+ * `color` is accepted and ignored — the loader draws itself from the theme's
+ * accent gradient, and honouring an arbitrary colour would mean tinting the
+ * brand mark. It stays in the signature only so replacing an `ActivityIndicator`
+ * is a rename rather than a prop-by-prop rewrite.
+ *
+ * `compact` follows `size` unless set explicitly. `small` is the in-button /
+ * in-row case, where the standard 2.5x wrapper visibly grows the button the
+ * moment it starts loading; `large` is the full-screen case, where that
+ * padding is the breathing room the loader is meant to have.
+ */
+export function LoadingIndicator({
+  size = 'small',
+  compact,
+  text,
+  style,
+}: {
+  size?: 'small' | 'large' | number;
+  compact?: boolean;
+  text?: string;
+  /** Accepted for parity with ActivityIndicator; the loader is theme-coloured. */
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  // 28 keeps an inline loader close to the ~19px cap height of the button label
+  // it replaces; 64 is the component's own full-screen default.
+  const resolved = typeof size === 'number' ? size : size === 'large' ? 64 : 28;
+  const isInline = resolved < LOGO_MIN_FULLSCREEN_SIZE;
+  const loader = <PremiumLoader size={resolved} compact={compact ?? isInline} text={text} />;
+  return style ? <View style={style}>{loader}</View> : loader;
 }
 
 const styles = StyleSheet.create({

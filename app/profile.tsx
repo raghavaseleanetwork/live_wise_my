@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, Pressable, Platform, Image, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  Platform,
+  Image,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -7,7 +16,9 @@ import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadAvatar } from '@/lib/upload-avatar';
+import { toLocalDateString, fromLocalDateString } from '@/lib/data';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -24,7 +35,9 @@ export default function ProfileScreen() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>((user as any)?.avatarUrl || null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState<Date>(
-    (user as any)?.dateOfBirth ? new Date((user as any).dateOfBirth) : new Date(2000, 0, 1)
+    (user as any)?.dateOfBirth
+      ? fromLocalDateString((user as any).dateOfBirth)
+      : new Date(2000, 0, 1)
   );
 
   useEffect(() => {
@@ -32,6 +45,9 @@ export default function ProfileScreen() {
     setPhone(user?.phone || '');
     setEmail(user?.email || '');
     setDateOfBirth((user as any)?.dateOfBirth || '');
+    if ((user as any)?.dateOfBirth) {
+      setDobDate(fromLocalDateString((user as any).dateOfBirth));
+    }
     setAvatarUrl((user as any)?.avatarUrl || null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -115,7 +131,7 @@ export default function ProfileScreen() {
             )}
             {uploadingAvatar && (
               <View style={styles.avatarUploadingOverlay}>
-                <ActivityIndicator color="#FFFFFF" />
+                <LoadingIndicator color="#FFFFFF" />
               </View>
             )}
             <View style={[styles.avatarEditBadge, { backgroundColor: colors.accent }]}>
@@ -208,7 +224,7 @@ export default function ProfileScreen() {
                   }
                   if (date) {
                     setDobDate(date);
-                    setDateOfBirth(date.toISOString().split('T')[0]);
+                    setDateOfBirth(toLocalDateString(date));
                   }
                 }}
               />
@@ -265,13 +281,13 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   card: {
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 18,
     marginBottom: 20,
   },
   fieldCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
   },
@@ -323,7 +339,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },

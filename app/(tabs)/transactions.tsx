@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DatePickerModal from '@/components/DatePickerModal';
 import CustomModal from '@/components/CustomModal';
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -31,6 +31,7 @@ import {
 } from '@/lib/data';
 import { ThemeColors } from '@/constants/colors';
 import CategoryIcon from '@/components/CategoryIcon';
+import Money from '@/components/Money';
 
 const FILTER_OPTIONS: { key: string; label: string; icon?: string }[] = [
   { key: 'all', label: 'All' },
@@ -61,7 +62,7 @@ const TIME_FILTER_CHIPS: Array<{ key: TimeFilterKey; label: string; icon: string
   { key: 'custom', label: 'Custom', icon: 'apps' },
 ];
 
-const TransactionItem = React.memo(({ item, colors, isDark, formatAmount, isSeniorMode }: { item: Transaction; colors: ThemeColors; isDark: boolean; formatAmount: (n: number) => string; isSeniorMode: boolean }) => {
+const TransactionItem = React.memo(({ item, colors, isDark, formatAmountOn, isSeniorMode }: { item: Transaction; colors: ThemeColors; isDark: boolean; formatAmountOn: (n: number, date: Date | string) => string; isSeniorMode: boolean }) => {
   const safeCat = (item.category || 'others').toLowerCase() as CategoryType;
   const cat = CATEGORIES[safeCat] || CATEGORIES.others;
   return (
@@ -87,7 +88,9 @@ const TransactionItem = React.memo(({ item, colors, isDark, formatAmount, isSeni
       </View>
       <View style={styles.txRight}>
         <Text style={[styles.txAmount, { color: colors.danger }, isSeniorMode && { fontSize: 19 }]}>
-          -{formatAmount(item.amount)}
+          {/* Converted at the rate on the transaction's own date, so a past
+              expense is not restated when the rupee moves. */}
+          -{formatAmountOn(item.amount, item.date)}
         </Text>
         <Text style={[styles.txTime, { color: colors.textTertiary }, isSeniorMode && { fontSize: 13 }]}>
           {formatTime(item.date)}
@@ -101,7 +104,7 @@ export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarContentInset();
   const { colors, isDark } = useTheme();
-  const { formatAmount } = useCurrency();
+  const { formatAmountOn, convertForDisplayOn, formatConverted } = useCurrency();
   const { transactions, isLoading } = useExpenses();
   const { isSeniorMode } = useSeniorMode();
   const [activeFilter, setActiveFilter] = useState('all');
@@ -223,11 +226,18 @@ export default function TransactionsScreen() {
     return Object.entries(grouped).map(([title, data]) => ({
       title,
       data,
-      total: data.filter(tx => tx.isDebit).reduce((s, tx) => s + tx.amount, 0),
+      // Each transaction is converted at its OWN date's rate before summing.
+      // Summing the INR values and converting the total once would apply
+      // today's rate to every row and contradict the per-row amounts above it.
+      total: data
+        .filter(tx => tx.isDebit)
+        .reduce((s, tx) => s + convertForDisplayOn(tx.amount, tx.date), 0),
     }));
-  }, [filtered]);
+  }, [filtered, convertForDisplayOn]);
 
-  const totalFiltered = filtered.filter(tx => tx.isDebit).reduce((s, tx) => s + tx.amount, 0);
+  const totalFiltered = filtered
+    .filter(tx => tx.isDebit)
+    .reduce((s, tx) => s + convertForDisplayOn(tx.amount, tx.date), 0);
   const txCount = filtered.filter(tx => tx.isDebit).length;
 
   if (isLoading) {
@@ -299,9 +309,9 @@ export default function TransactionsScreen() {
               <Text style={[styles.summaryLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 15 }]}>
                 Total Spent
               </Text>
-              <Text style={[styles.summaryAmount, { color: colors.text }, isSeniorMode && { fontSize: 32 }]}>
-                {formatAmount(totalFiltered)}
-              </Text>
+              <Money style={[styles.summaryAmount, { color: colors.text }, isSeniorMode && { fontSize: 32 }]}>
+                {formatConverted(totalFiltered)}
+              </Money>
             </View>
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryRight}>
@@ -333,16 +343,16 @@ export default function TransactionsScreen() {
       <SectionList
         sections={sections}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <TransactionItem item={item} colors={colors} isDark={isDark} formatAmount={formatAmount} isSeniorMode={isSeniorMode} />}
+        renderItem={({ item }) => <TransactionItem item={item} colors={colors} isDark={isDark} formatAmountOn={formatAmountOn} isSeniorMode={isSeniorMode} />}
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
               {section.title}
             </Text>
             <View style={[styles.sectionBadge, { backgroundColor: colors.surfaceGlow }]}>
-              <Text style={[styles.sectionTotal, { color: colors.accent }]}>
-                {formatAmount((section as any).total)}
-              </Text>
+              <Money style={[styles.sectionTotal, { color: colors.accent }]}>
+                {formatConverted((section as any).total)}
+              </Money>
             </View>
           </View>
         )}
@@ -501,76 +511,41 @@ export default function TransactionsScreen() {
       </CustomModal>
 
       {/* Year picker */}
-      <CustomModal visible={showYearPicker} onClose={() => setShowYearPicker(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Pick year</Text>
-        <View style={{ paddingVertical: 16 }}>
-          <DateTimePicker
-            value={new Date(selectedYear, 0, 1)}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(_, d) => { if (d) setSelectedYear(d.getFullYear()); }}
-          />
-        </View>
-        <Pressable onPress={() => setShowYearPicker(false)} style={[styles.filterDoneBtn, { backgroundColor: colors.accent }]}>
-          <Text style={styles.filterDoneBtnText}>Done</Text>
-        </Pressable>
-      </CustomModal>
+      <DatePickerModal
+        visible={showYearPicker}
+        onClose={() => setShowYearPicker(false)}
+        title="Pick year"
+        value={new Date(selectedYear, 0, 1)}
+        onConfirm={(d) => setSelectedYear(d.getFullYear())}
+      />
 
       {/* Custom start date */}
-      <CustomModal visible={showCustomStartPicker} onClose={() => setShowCustomStartPicker(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Select start date</Text>
-        <View style={{ paddingVertical: 16 }}>
-          <DateTimePicker
-            value={draftCustomStart}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(_, d) => {
-              if (!d) return;
-              const next = new Date(d); next.setHours(0, 0, 0, 0);
-              setDraftCustomStart((prev) => (prev.getTime() === next.getTime() ? prev : next));
-            }}
-          />
-        </View>
-        <Pressable
-          onPress={() => {
-            const fixedStart = new Date(draftCustomStart); fixedStart.setHours(0, 0, 0, 0);
-            setCustomStart(fixedStart);
-            if (fixedStart.getTime() > customEnd.getTime()) setCustomEnd(endOfDay(fixedStart));
-            setShowCustomStartPicker(false);
-          }}
-          style={[styles.filterDoneBtn, { backgroundColor: colors.accent }]}
-        >
-          <Text style={styles.filterDoneBtnText}>Done</Text>
-        </Pressable>
-      </CustomModal>
+      <DatePickerModal
+        visible={showCustomStartPicker}
+        onClose={() => setShowCustomStartPicker(false)}
+        title="Select start date"
+        value={draftCustomStart}
+        onConfirm={(d) => {
+          const fixedStart = new Date(d); fixedStart.setHours(0, 0, 0, 0);
+          setDraftCustomStart(fixedStart);
+          setCustomStart(fixedStart);
+          if (fixedStart.getTime() > customEnd.getTime()) setCustomEnd(endOfDay(fixedStart));
+        }}
+      />
 
       {/* Custom end date */}
-      <CustomModal visible={showCustomEndPicker} onClose={() => setShowCustomEndPicker(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Select end date</Text>
-        <View style={{ paddingVertical: 16 }}>
-          <DateTimePicker
-            value={draftCustomEnd}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(_, d) => {
-              if (!d) return;
-              const next = new Date(d); next.setHours(23, 59, 59, 999);
-              setDraftCustomEnd((prev) => (prev.getTime() === next.getTime() ? prev : next));
-            }}
-          />
-        </View>
-        <Pressable
-          onPress={() => {
-            const fixedEnd = new Date(draftCustomEnd); fixedEnd.setHours(23, 59, 59, 999);
-            setCustomEnd(fixedEnd);
-            if (customStart.getTime() > fixedEnd.getTime()) setCustomStart(startOfDay(fixedEnd));
-            setShowCustomEndPicker(false);
-          }}
-          style={[styles.filterDoneBtn, { backgroundColor: colors.accent }]}
-        >
-          <Text style={styles.filterDoneBtnText}>Done</Text>
-        </Pressable>
-      </CustomModal>
+      <DatePickerModal
+        visible={showCustomEndPicker}
+        onClose={() => setShowCustomEndPicker(false)}
+        title="Select end date"
+        value={draftCustomEnd}
+        onConfirm={(d) => {
+          const fixedEnd = new Date(d); fixedEnd.setHours(23, 59, 59, 999);
+          setDraftCustomEnd(fixedEnd);
+          setCustomEnd(fixedEnd);
+          if (customStart.getTime() > fixedEnd.getTime()) setCustomStart(startOfDay(fixedEnd));
+        }}
+      />
     </View>
   );
 }
@@ -647,7 +622,6 @@ const styles = StyleSheet.create({
   filterSectionLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
   },
@@ -735,7 +709,7 @@ const styles = StyleSheet.create({
   summaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 20,
     marginBottom: 20,
@@ -756,7 +730,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
     letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
     marginBottom: 6,
   },
   summaryAmount: {
@@ -780,7 +753,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
     letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
   },
   sectionBadge: {
     paddingHorizontal: 12,
@@ -794,7 +766,7 @@ const styles = StyleSheet.create({
   txCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
   },

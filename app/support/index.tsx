@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, Pressable, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Pressable, Dimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/lib/theme-context';
@@ -380,7 +380,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
     marginLeft: 4,
@@ -472,7 +471,6 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     fontWeight: '700',
-    textTransform: 'uppercase',
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -482,7 +480,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    textTransform: 'uppercase',
   },
   searchContainer: {
     flexDirection: 'row',

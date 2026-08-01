@@ -64,20 +64,22 @@ export default function FamilyTravelScreen() {
           <>
             {upcoming.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>UPCOMING</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Upcoming</Text>
                 {upcoming.map((item) => (
                   <TravelCard key={item.id} item={item} colors={colors}
                     onToggle={async () => { await toggleTravelItem(String(memberId), item.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-travel/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })}
                     onDelete={async () => { await deleteTravelItem(String(memberId), item.id); load(); }} />
                 ))}
               </>
             )}
             {past.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>PAST</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>Past</Text>
                 {past.map((item) => (
                   <TravelCard key={item.id} item={item} colors={colors}
                     onToggle={async () => { await toggleTravelItem(String(memberId), item.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-travel/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })}
                     onDelete={async () => { await deleteTravelItem(String(memberId), item.id); load(); }} />
                 ))}
               </>
@@ -90,8 +92,8 @@ export default function FamilyTravelScreen() {
 }
 
 function TravelCard({
-  item, colors, onToggle, onDelete,
-}: { item: TravelItem; colors: any; onToggle: () => void; onDelete: () => void }) {
+  item, colors, onToggle, onEdit, onDelete,
+}: { item: TravelItem; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
   const def = TRAVEL_TYPE_LABELS[item.type];
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -108,6 +110,9 @@ function TravelCard({
           {item.location ? ` · ${item.location}` : ''}
         </Text>
       </View>
+      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+        <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
+      </Pressable>
       <Pressable onPress={onDelete} hitSlop={10}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
       </Pressable>
@@ -127,7 +132,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
   sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1, marginBottom: 10 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
+  rowAction: { marginRight: 14 },
   checkCircle: { padding: 2 },
   iconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },

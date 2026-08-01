@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  Pressable,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/lib/theme-context';
@@ -11,6 +22,7 @@ import { BlurView } from 'expo-blur';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue, interpolate, FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function ChatScreen() {
   const { id: ticketId } = useLocalSearchParams();
@@ -242,7 +254,7 @@ export default function ChatScreen() {
             <View style={styles.headerBadgeRow}>
               <View style={[styles.statusDot, { backgroundColor: getStatusColor(ticket?.status || 'active') }]} />
               <Text style={[styles.headerStatusText, { color: theme.textSecondary }]}>
-                {ticket?.status === 'active' ? 'Active' : ticket?.status.replace('_', ' ').toUpperCase()} • ID: {String(ticketId).slice(-6).toUpperCase()}
+                {ticket?.status === 'active' ? 'Active' : (() => { const s = ticket?.status.replace('_', ' ') || ''; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); })()} • ID: {String(ticketId).slice(-6).toUpperCase()}
               </Text>
             </View>
           </View>
@@ -287,7 +299,7 @@ export default function ChatScreen() {
 
       {(isMessagesLoading || isTicketLoading) ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.accent} />
+          <LoadingIndicator size="large" color={theme.accent} />
         </View>
       ) : (
         <FlatList
@@ -445,7 +457,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     paddingHorizontal: 12,
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   messageRow: {
     flexDirection: 'row',
@@ -476,7 +487,7 @@ const styles = StyleSheet.create({
   messageBubble: {
     padding: 12,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 16,
   },
   messageText: {
     fontSize: 15,

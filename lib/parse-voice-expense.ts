@@ -104,8 +104,15 @@ const CREDIT_WORDS = /\b(mila|mile|received|aaya|aaye|credit|credited|refund|wap
 /** Words that mean "spent" — their presence raises confidence that this is an expense. */
 const SPEND_WORDS = /\b(kharch|kharcha|spend|spent|kiya|kiye|diya|diye|bhara|bhare|paid|pay|kharida|kharidi|liya|liye|dala|daala|gaya|lag[ae])\b/i;
 
-/** Strip filler so the leftover text makes a usable transaction title. */
-const FILLER = /\b(ke liye|k liye|kelie|mein|me|main|par|pe|ko|ka|ki|se|aaj|kal|today|yesterday|rupaye|rupees|rupee|rs|inr|ka hisab|about|around|approx)\b/gi;
+/**
+ * Strip filler so the leftover text makes a usable transaction title.
+ *
+ * Covers the English scaffolding of a spoken sentence as well as the Hinglish
+ * particles — "I paid 100 on food" must reduce to "Food", not "I on Food".
+ * Pronouns, articles, and the prepositions that attach a spend to its subject
+ * all have to go, since `SPEND_WORDS` only removes the verb itself.
+ */
+const FILLER = /\b(ke liye|k liye|kelie|mein|me|main|par|pe|ko|ka|ki|se|aaj|kal|today|yesterday|rupaye|rupees|rupee|rs|inr|ka hisab|about|around|approx|i|we|my|our|myself|on|for|of|at|to|in|from|the|a|an|and|some|this|that|it|was|were|have|has|had|did|do|just|now|please|add|expense|transaction|entry|record|note|log)\b/gi;
 
 function wordsToNumber(text: string): number | null {
   const tokens = text.toLowerCase().split(/\s+/);
@@ -197,8 +204,11 @@ function buildMerchant(text: string, category: CategoryType, fallbackLabel: stri
     .replace(/(?:rs\.?|inr|₹)\s*\d+(?:\.\d{1,2})?/gi, ' ')
     .replace(/\d+(?:\.\d{1,2})?\s*(?:rupaye|rupees|rupee|rs\b|inr|hazaar|hajaar|lakh|k)\b/gi, ' ')
     .replace(/\b\d+(?:\.\d{1,2})?\b/g, ' ')
-    .replace(SPEND_WORDS, ' ')
+    // FILLER before SPEND_WORDS: multi-word particles like "ke liye" share a
+    // token with the spend verbs ("liye"), so stripping verbs first would break
+    // the phrase apart and strand a bare "ke" in the title.
     .replace(FILLER, ' ')
+    .replace(SPEND_WORDS, ' ')
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();

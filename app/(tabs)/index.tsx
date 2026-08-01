@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Platform,
-  ActivityIndicator,
   RefreshControl,
   TextInput,
 } from 'react-native';
@@ -28,11 +27,13 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
+import Money from '@/components/Money';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useExpenses } from '@/lib/expense-context';
 import { useAuth } from '@/lib/auth-context';
+import { hasSmsPermission } from '@/lib/sms-reader';
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import { useTabBarContentInset } from '@/lib/tab-bar';
@@ -67,7 +68,7 @@ function SpendingScoreRing({ score, colors, isDark, onPress, isSeniorMode }: { s
       <View style={[ringStyles.outerRing, { borderColor: scoreColor + '25', width: size, height: size, borderRadius: size / 2, borderWidth: ringWidth }]}>
         <View style={[ringStyles.innerRing, { borderColor: scoreColor + '60', width: innerSize, height: innerSize, borderRadius: innerSize / 2, borderWidth: innerRingWidth }]}>
           <Text style={[ringStyles.scoreValue, { color: colors.text }, isSeniorMode && { fontSize: 32 }]}>{clampedScore}</Text>
-          <Text style={[ringStyles.scoreLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 12 }]}>SCORE</Text>
+          <Text style={[ringStyles.scoreLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 12 }]}>Score</Text>
         </View>
       </View>
     </Pressable>
@@ -96,6 +97,29 @@ const ringStyles = StyleSheet.create({
   scoreLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 8, letterSpacing: 1.5 },
 });
 
+/**
+ * Trims a formatted amount to a single decimal place — "$200.66" → "$200.6".
+ *
+ * The insight cards are a narrow three-across row, and two decimals pushed the
+ * value onto a second line ("$200.6" / "6"), which broke the card's alignment.
+ * Truncates rather than rounds so the figure never reads as higher than it is.
+ *
+ * Operates on the formatted string so it keeps the currency symbol, grouping,
+ * and the INR lakh suffix that `formatAmount` applies. Values with no decimal
+ * point (counts, "₹1.2L") pass through untouched.
+ */
+function oneDecimal(formatted: string): string {
+  const dot = formatted.lastIndexOf('.');
+  if (dot === -1) return formatted;
+
+  const decimals = formatted.slice(dot + 1);
+  // Only plain trailing digits are decimals; anything else (a lakh "L", a
+  // currency code) means this is not a two-decimal amount.
+  if (!/^\d{2,}$/.test(decimals)) return formatted;
+
+  return `${formatted.slice(0, dot)}.${decimals[0]}`;
+}
+
 const InsightCard = React.memo(({ icon, iconColor, bgColor, title, value, subtitle, colors, isSeniorMode }: {
   icon: string; iconColor: string; bgColor: string; title: string; value: string; subtitle: string; colors: any; isSeniorMode: boolean;
 }) => {
@@ -122,7 +146,7 @@ const CategoryPill = React.memo(({ category, total, index, colors, formatAmount,
         </View>
         <View style={styles.catTextWrap}>
           <Text style={[styles.categoryPillLabel, { color: colors.textSecondary }, isSeniorMode && { fontSize: 13 }]}>{cat.label}</Text>
-          <Text style={[styles.categoryPillAmount, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>{formatAmount(total)}</Text>
+          <Money style={[styles.categoryPillAmount, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>{formatAmount(total)}</Money>
         </View>
       </View>
     </Animated.View>
@@ -141,7 +165,7 @@ const TransactionRow = React.memo(({ merchant, amount, category, date, colors, f
         <Text style={[styles.txMerchant, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>{merchant}</Text>
         <Text style={[styles.txTime, { color: colors.textTertiary }, isSeniorMode && { fontSize: 13 }]}>{formatTime(date)}</Text>
       </View>
-      <Text style={[styles.txAmount, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>- {formatAmount(amount)}</Text>
+      <Money style={[styles.txAmount, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>- {formatAmount(amount)}</Money>
     </View>
   );
 });
@@ -647,6 +671,43 @@ export default function HomeScreen() {
     }
   }, [refreshData, syncSmsFromDevice, isSyncingSms]);
 
+  /**
+   * Scan for new bank SMS as soon as the home screen opens.
+   *
+   * Previously the only trigger was pull-to-refresh, so a user who opened the
+   * app and never pulled down saw stale data and assumed Auto Track was
+   * broken — the messages were there, nothing had read them yet.
+   *
+   * Two constraints shape this:
+   *
+   * 1. **Never prompt.** `syncSmsFromDevice` asks for SMS permission and, on
+   *    iOS, opens an explanatory alert. Firing that automatically would greet
+   *    every user with a popup on launch, so this runs only when permission is
+   *    *already* granted. Asking still happens from the Auto Track button.
+   * 2. **Once per app session.** The ref guard means switching tabs and coming
+   *    back does not re-scan; pull-to-refresh remains the way to force one.
+   */
+  const didAutoSyncSms = useRef(false);
+
+  useEffect(() => {
+    if (!token || didAutoSyncSms.current) return;
+
+    let cancelled = false;
+    (async () => {
+      if (!(await hasSmsPermission())) return;
+      // Re-check after the await: the guard above ran before it, and a
+      // pull-to-refresh could have started a sync in the meantime.
+      if (cancelled || didAutoSyncSms.current || isSyncingSms) return;
+      didAutoSyncSms.current = true;
+      await syncSmsFromDevice();
+    })();
+
+    return () => { cancelled = true; };
+    // `isSyncingSms` is deliberately not a dependency — it flips during the
+    // sync this effect starts, which would re-run it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, syncSmsFromDevice]);
+
   const fetchUnreadCount = useCallback(async () => {
     if (!token) return;
     try {
@@ -927,9 +988,9 @@ export default function HomeScreen() {
             <Text style={[styles.seniorHeroLabel, { color: colors.textSecondary }]}>
               {isLastMonthFallback ? 'Last Month' : 'Balance Left'}
             </Text>
-            <Text style={[styles.seniorHeroAmount, { color: colors.text }]}>
+            <Money style={[styles.seniorHeroAmount, { color: colors.text }]}>
               {formatAmount(Math.max(0, monthlyBudget - displaySpend))}
-            </Text>
+            </Money>
           </View>
 
           {upcomingBills.length > 0 && (
@@ -970,9 +1031,9 @@ export default function HomeScreen() {
                           <Text style={[styles.reminderPillDue, { color: colors.textTertiary }]}>{dueOrRepeatText}</Text>
                         ) : null}
                       </View>
-                      <Text style={[styles.reminderPillAmount, { color: colors.accent, opacity: showAmount ? 1 : 0 }]}>
+                      <Money style={[styles.reminderPillAmount, { color: colors.accent, opacity: showAmount ? 1 : 0 }]}>
                         {formatAmount(bill.amount)}
-                      </Text>
+                      </Money>
                     </Pressable>
                   );
                 })}
@@ -1119,7 +1180,7 @@ export default function HomeScreen() {
                 <Text style={[styles.heroLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(15,23,42,0.45)' }]}>
                   {isLastMonthFallback ? 'Last Month' : 'This Month'}
                 </Text>
-                <Text style={[styles.heroAmount, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{formatAmount(displaySpend)}</Text>
+                <Money style={[styles.heroAmount, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{formatAmount(displaySpend)}</Money>
                 <View style={styles.budgetSection}>
                   <View style={[styles.budgetTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)' }]}>
                     <LinearGradient
@@ -1142,23 +1203,23 @@ export default function HomeScreen() {
                 <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>
                   {isLastMonthFallback ? 'Today (no spend yet)' : 'Today'}
                 </Text>
-                <Text style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{formatAmount(todaySpend)}</Text>
+                <Money style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{formatAmount(todaySpend)}</Money>
               </View>
               <View style={[styles.heroStatDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)' }]} />
               <View style={styles.heroStat}>
                 <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>
                   {isLastMonthFallback ? 'Avg (last mo.)' : 'Daily Avg'}
                 </Text>
-                <Text style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
+                <Money style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
                   {formatAmount(Math.round(dailyAvg))}
-                </Text>
+                </Money>
               </View>
               <View style={[styles.heroStatDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)' }]} />
               <View style={styles.heroStat}>
                 <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>Remaining</Text>
-                <Text style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }, monthlyBudget - displaySpend < 0 ? { color: colors.danger } : {}]}>
+                <Money style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }, monthlyBudget - displaySpend < 0 ? { color: colors.danger } : {}]}>
                   {formatAmount(Math.max(0, monthlyBudget - displaySpend))}
-                </Text>
+                </Money>
               </View>
             </View>
           </LinearGradient>
@@ -1202,9 +1263,9 @@ export default function HomeScreen() {
                       ) : null}
                     </View>
                     {showAmount && (
-                      <Text style={[styles.reminderPillAmount, { color: colors.accent }]}>
+                      <Money style={[styles.reminderPillAmount, { color: colors.accent }]}>
                         {formatAmount(bill.amount)}
-                      </Text>
+                      </Money>
                     )}
                   </Pressable>
                 );
@@ -1221,7 +1282,7 @@ export default function HomeScreen() {
                 iconColor={colors.danger}
                 bgColor={colors.dangerDim}
                 title="Leaks"
-                value={formatAmount(totalLeakAmount)}
+                value={oneDecimal(formatAmount(totalLeakAmount))}
                 subtitle="/month"
                 colors={colors}
                 isSeniorMode={isSeniorMode}
@@ -1365,11 +1426,10 @@ export default function HomeScreen() {
       <AddExpenseFab actions={fabActions} />
 
       <CustomModal visible={showScoreDetail} onClose={() => setShowScoreDetail(false)}>
+        {/* No close button here — CustomModal renders its own, and a second one
+            sat directly on top of it. */}
         <View style={[styles.scoreDetailHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.scoreDetailTitle, { color: colors.text }]}>Life Score Breakdown</Text>
-          <Pressable onPress={() => setShowScoreDetail(false)} hitSlop={10}>
-            <Ionicons name="close" size={22} color={colors.textTertiary} />
-          </Pressable>
         </View>
 
         <View style={{ alignItems: 'center', paddingVertical: 20 }}>
@@ -1412,14 +1472,16 @@ export default function HomeScreen() {
         </Pressable>
       </CustomModal>
 
-      <CustomModal visible={showQuickAdd} onClose={() => setShowQuickAdd(false)}>
+      {/* The close button is hidden mid-save, as the old inline one was — the
+          sheet should not be dismissable while the reminder is being created. */}
+      <CustomModal
+        visible={showQuickAdd}
+        onClose={() => setShowQuickAdd(false)}
+        showCloseButton={!isQuickAdding}
+      >
+        {/* Close button comes from CustomModal; a second one here overlapped it. */}
         <View style={[styles.scoreDetailHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.scoreDetailTitle, { color: colors.text }]}>Quick Add Reminder</Text>
-          {!isQuickAdding && (
-            <Pressable onPress={() => setShowQuickAdd(false)} hitSlop={10}>
-              <Ionicons name="close" size={22} color={colors.textTertiary} />
-            </Pressable>
-          )}
         </View>
         <Text style={[styles.lifeInsightText, { color: colors.textSecondary, marginBottom: 12 }]}>
           {`Type something like "Pay electricity bill tomorrow at 8 pm".`}
@@ -1460,7 +1522,7 @@ export default function HomeScreen() {
           ]}
         >
           {isQuickAdding ? (
-            <PremiumLoader size={20} />
+            <PremiumLoader size={28} compact />
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
@@ -1626,7 +1688,7 @@ const styles = StyleSheet.create({
   heroCard: { borderRadius: 24, padding: 24, marginBottom: 20 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroLeft: { flex: 1, marginRight: 16 },
-  heroLabel: { fontFamily: 'Inter_500Medium', fontSize: 12, textTransform: 'uppercase' as const, letterSpacing: 1.5, marginBottom: 6 },
+  heroLabel: { fontFamily: 'Inter_500Medium', fontSize: 12, letterSpacing: 1.5, marginBottom: 6 },
   heroAmount: { fontFamily: 'Inter_700Bold', fontSize: 36, marginBottom: 12 },
   budgetSection: { gap: 6 },
   budgetTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
@@ -1636,13 +1698,13 @@ const styles = StyleSheet.create({
   heroStats: { flexDirection: 'row', alignItems: 'center' },
   heroStat: { flex: 1, alignItems: 'center' },
   heroStatDivider: { width: 1, height: 28 },
-  heroStatLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: 0.5, marginBottom: 4 },
+  heroStatLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, marginBottom: 4 },
   heroStatValue: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   sectionTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 17, marginBottom: 14 },
   emptyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -1673,20 +1735,20 @@ const styles = StyleSheet.create({
   reminderPillDue: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   reminderPillAmount: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   insightsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  insightCard: { flex: 1, borderRadius: 18, padding: 14, gap: 6, borderWidth: 1 },
+  insightCard: { flex: 1, borderRadius: 16, padding: 14, gap: 6, borderWidth: 1 },
   insightIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  insightTitle: { fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+  insightTitle: { fontFamily: 'Inter_500Medium', fontSize: 11 },
   insightValue: { fontFamily: 'Inter_700Bold', fontSize: 18 },
   insightSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 10 },
   quickAccessScroll: { gap: 10, paddingBottom: 20 },
   quickReachRow: { flexDirection: 'row', gap: 10, paddingBottom: 20 },
-  quickCard: { flex: 1, minWidth: 0, borderRadius: 18, padding: 16, borderWidth: 1, gap: 8 },
+  quickCard: { flex: 1, minWidth: 0, borderRadius: 16, padding: 16, borderWidth: 1, gap: 8 },
   quickCardIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   quickCardLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   quickCardSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   lifeInsightCard: {
     flexDirection: 'row',
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 18,
     gap: 14,
     alignItems: 'center',
@@ -1703,7 +1765,7 @@ const styles = StyleSheet.create({
   catTextWrap: { gap: 2 },
   categoryPillLabel: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   categoryPillAmount: { fontFamily: 'Inter_700Bold', fontSize: 16 },
-  txCard: { borderRadius: 20, padding: 6, borderWidth: 1 },
+  txCard: { borderRadius: 16, padding: 6, borderWidth: 1 },
   txRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   txIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   txInfo: { flex: 1 },
@@ -1756,7 +1818,9 @@ const styles = StyleSheet.create({
   scoreOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   grabber: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   scoreDetailCard: { borderRadius: 24, padding: 24, borderWidth: 1, width: '100%', maxWidth: 360 },
-  scoreDetailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottomWidth: 1, marginBottom: 4 },
+  // `paddingRight` keeps the title clear of CustomModal's floating close
+  // button, which sits absolutely positioned in the sheet's top-right corner.
+  scoreDetailHeader: { flexDirection: 'row', alignItems: 'center', paddingRight: 44, paddingBottom: 16, borderBottomWidth: 1, marginBottom: 4 },
   scoreDetailTitle: { fontFamily: 'Inter_700Bold', fontSize: 18 },
   input: {
     borderWidth: 1,

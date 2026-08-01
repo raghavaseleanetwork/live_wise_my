@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   Platform,
   StyleSheet,
@@ -37,7 +36,7 @@ import { getApiUrl } from '@/lib/query-client';
 import { REPEAT_OPTIONS, ReminderType, RepeatType, REMINDER_TYPE_CONFIG, type Bill } from '@/lib/data';
 import { scheduleLocalNotification } from '@/lib/notifications';
 import { getIntentPolicy, getReminderIntentFromBill } from '@/lib/reminder-intent';
-import CategoryIcon from '@/components/CategoryIcon';
+import Money from '@/components/Money';
 
 function timeLabelFromDate(d: Date) {
   const hour24 = d.getHours();
@@ -269,15 +268,6 @@ export default function BillDetailsScreen() {
       {/* Premium Header */}
       <View style={styles.headerOuter}>
         <View style={[styles.headerGradient, { paddingTop: headerTop, backgroundColor: '#1E1B4B' }]}>
-          {/* Abstract pattern decoration */}
-          <View style={styles.headerDecoration1} />
-          <View style={styles.headerDecoration2} />
-          
-          {/* Animated Category Icon Decoration */}
-          <View style={styles.headerCatIconPos}>
-            <CategoryIcon category={bill.category} size={120} color="rgba(255,255,255,0.12)" />
-          </View>
-
           <View style={styles.headerTop}>
             <Pressable onPress={() => router.back()} style={[styles.headerBackBtn, isSeniorMode && { width: 50, height: 50, borderRadius: 25 }]}>
               <Ionicons name="chevron-back" size={isSeniorMode ? 32 : 24} color="#FFFFFF" />
@@ -291,7 +281,7 @@ export default function BillDetailsScreen() {
           <View style={styles.headerHero}>
             {bill.amount > 0 && (
               <View style={styles.heroAmountBadge}>
-                <Text style={styles.heroAmount}>{formatAmount(bill.amount)}</Text>
+                <Money style={styles.heroAmount}>{formatAmount(bill.amount)}</Money>
               </View>
             )}
             <Text style={styles.heroName}>{bill.name}</Text>
@@ -377,7 +367,7 @@ export default function BillDetailsScreen() {
         {/* Smart Insights Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Smart Insights</Text>
+            <Text style={[styles.sectionTitle, styles.sectionTitleInRow, { color: colors.text }]}>Smart Insights</Text>
             <View style={[styles.aiBadge, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' }]}>
               <Ionicons name="sparkles" size={10} color={colors.accent} />
               <Text style={[styles.aiBadgeText, { color: colors.accent }]}>AI</Text>
@@ -403,7 +393,7 @@ export default function BillDetailsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment History</Text>
           <View style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {loadingHistory ? (
-              <PremiumLoader size={40} />
+              <PremiumLoader size={40} compact />
             ) : history.length === 0 ? (
               <View style={{ padding: 20, alignItems: 'center' }}>
                 <Text style={{ color: colors.textTertiary, fontFamily: 'Inter_500Medium', fontSize: 13 }}>
@@ -421,11 +411,11 @@ export default function BillDetailsScreen() {
                       {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </Text>
                     <Text style={[styles.historyStatus, { color: getActionColor(item.action).text }]}>
-                      {item.action.toUpperCase()}
+                      {item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}
                     </Text>
                   </View>
                   {item.amount ? (
-                    <Text style={[styles.historyAmount, { color: colors.text }]}>{formatAmount(item.amount)}</Text>
+                    <Money style={[styles.historyAmount, { color: colors.text }]}>{formatAmount(item.amount)}</Money>
                   ) : (
                     <Text style={[styles.historyStatus, { color: colors.textSecondary }]}>{item.note}</Text>
                   )}
@@ -478,7 +468,7 @@ export default function BillDetailsScreen() {
       <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
         {/* Primary Action Row */}
         <Pressable
-          style={[styles.bottomBtnMain, { backgroundColor: isPaid ? '#94A3B8' : '#10B981' }, isSeniorMode && { height: 74, borderRadius: 20 }]}
+          style={[styles.bottomBtnMain, { backgroundColor: isPaid ? '#94A3B8' : '#10B981' }, isSeniorMode && { height: 74, borderRadius: 16 }]}
           onPress={onToggleDone}
         >
           <Ionicons name={isPaid ? "refresh-outline" : "checkmark-circle-outline"} size={isSeniorMode ? 32 : 22} color="#FFFFFF" />
@@ -681,30 +671,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  headerDecoration1: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  headerDecoration2: {
-    position: 'absolute',
-    bottom: -80,
-    left: -20,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  headerCatIconPos: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    opacity: 0.8,
-  },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -763,7 +729,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 16,
     marginTop: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
@@ -776,7 +742,6 @@ const styles = StyleSheet.create({
   heroStatusText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   contentScroll: {
@@ -828,7 +793,6 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 11,
-    textTransform: 'uppercase',
   },
   section: {
     marginTop: 32,
@@ -840,6 +804,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingLeft: 4,
   },
+  sectionTitleInRow: {
+    marginBottom: 0,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -849,6 +816,7 @@ const styles = StyleSheet.create({
   aiBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
     backgroundColor: '#F5F3FF',
     paddingHorizontal: 8,
@@ -1006,7 +974,7 @@ const styles = StyleSheet.create({
   },
   metaCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 16,
     gap: 14,
     borderWidth: 1,
@@ -1028,7 +996,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   billImageContainer: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
     height: 200,
     backgroundColor: '#000',
@@ -1078,7 +1046,7 @@ const styles = StyleSheet.create({
   bottomBtnMain: {
     width: '100%',
     height: 60,
-    borderRadius: 18,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1138,7 +1106,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     fontSize: 14,
     color: '#64748B',
-    textTransform: 'uppercase',
     letterSpacing: 1,
   },
   inputGroup: {
@@ -1166,7 +1133,7 @@ const styles = StyleSheet.create({
   },
   saveGradientAction: {
     height: 60,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

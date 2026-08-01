@@ -37,6 +37,23 @@ export async function requestSmsPermission(): Promise<boolean> {
   return result.status === 'granted';
 }
 
+/**
+ * Whether SMS permission is already granted, without ever prompting.
+ *
+ * This is what makes an automatic sync on app open acceptable: the background
+ * sync runs only for users who have already said yes, so opening the app never
+ * triggers a permission dialog or an "iOS can't do this" alert on its own.
+ * Asking is still done explicitly, from the Auto Track entry point.
+ */
+export async function hasSmsPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android') return false;
+  try {
+    return await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_SMS);
+  } catch {
+    return false;
+  }
+}
+
 /** Request SMS permission (Android) with detailed status for UX handling. */
 export async function requestSmsPermissionDetails(): Promise<SmsPermissionResult> {
   if (Platform.OS !== 'android') {

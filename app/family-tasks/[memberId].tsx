@@ -63,20 +63,22 @@ export default function FamilyTasksScreen() {
           <>
             {pending.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>TO DO</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>To do</Text>
                 {pending.map((task) => (
                   <TaskRow key={task.id} task={task} colors={colors}
                     onToggle={async () => { await toggleFamilyTask(String(memberId), task.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-tasks/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: task.id } })}
                     onDelete={async () => { await deleteFamilyTask(String(memberId), task.id); load(); }} />
                 ))}
               </>
             )}
             {done.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>DONE</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>Done</Text>
                 {done.map((task) => (
                   <TaskRow key={task.id} task={task} colors={colors}
                     onToggle={async () => { await toggleFamilyTask(String(memberId), task.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-tasks/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: task.id } })}
                     onDelete={async () => { await deleteFamilyTask(String(memberId), task.id); load(); }} />
                 ))}
               </>
@@ -89,8 +91,8 @@ export default function FamilyTasksScreen() {
 }
 
 function TaskRow({
-  task, colors, onToggle, onDelete,
-}: { task: FamilyTask; colors: any; onToggle: () => void; onDelete: () => void }) {
+  task, colors, onToggle, onEdit, onDelete,
+}: { task: FamilyTask; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Pressable onPress={onToggle} style={styles.checkCircle}>
@@ -104,6 +106,9 @@ function TaskRow({
           </Text>
         )}
       </View>
+      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+        <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
+      </Pressable>
       <Pressable onPress={onDelete} hitSlop={10}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
       </Pressable>
@@ -123,7 +128,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
   sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1, marginBottom: 10 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
+  rowAction: { marginRight: 14 },
   checkCircle: { padding: 2 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },

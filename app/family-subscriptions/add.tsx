@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,24 +7,49 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useTheme } from '@/lib/theme-context';
-import { FamilySubscription, addSubscription } from '@/lib/family-records';
+import { useCurrency } from '@/lib/currency-context';
+import { FamilySubscription, addSubscription, loadSubscriptions, updateSubscription } from '@/lib/family-records';
 
 export default function AddSubscriptionScreen() {
   const router = useRouter();
-  const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
+  const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { convertForStorage, convertForDisplay, symbol } = useCurrency();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [serviceName, setServiceName] = useState('');
   const [amount, setAmount] = useState('');
-  const [cycle, setCycle] = useState<FamilySubscription['cycle']>('monthly');
+  // Nothing preselected on a new subscription; editing seeds it from the record.
+  const [cycle, setCycle] = useState<FamilySubscription['cycle'] | null>(null);
   const [category] = useState<FamilySubscription['category']>('ott');
   const [renewalDate, setRenewalDate] = useState(new Date());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const isEditing = !!editId;
+
+  // Seed the form from the record being edited.
+  useEffect(() => {
+    if (!editId || !memberId) return;
+    let cancelled = false;
+    (async () => {
+      const items = await loadSubscriptions(String(memberId));
+      const found = items.find((x) => x.id === String(editId));
+      if (!found || cancelled) return;
+      setServiceName(found.serviceName);
+      setAmount(String(Math.round(convertForDisplay(found.amount) * 100) / 100));
+      setCycle(found.cycle);
+      setRenewalDate(new Date(found.renewalDate));
+    })();
+    return () => { cancelled = true; };
+  }, [editId, memberId]);
+
   const handleSave = async () => {
+    if (!cycle) {
+      setError('Please select a billing cycle');
+      return;
+    }
     if (!serviceName.trim()) {
       setError('Please enter a service name');
       return;
@@ -36,13 +61,19 @@ export default function AddSubscriptionScreen() {
     }
     if (!memberId || saving) return;
     setSaving(true);
-    await addSubscription(String(memberId), {
+    const data = {
       serviceName: serviceName.trim(),
-      amount: amt,
+      // Typed in the user's display currency; stored in INR like every amount.
+      amount: convertForStorage(amt),
       cycle,
       category,
       renewalDate: renewalDate.toISOString(),
-    });
+    };
+    if (isEditing) {
+      await updateSubscription(String(memberId), String(editId), data);
+    } else {
+      await addSubscription(String(memberId), data);
+    }
     router.back();
   };
 
@@ -55,7 +86,7 @@ export default function AddSubscriptionScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>New Subscription</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Subscription' : 'New Subscription'}</Text>
           <View style={styles.backBtn} />
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
@@ -78,7 +109,7 @@ export default function AddSubscriptionScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
             <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
-              <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>₹</Text>
+              <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>{symbol}</Text>
               <TextInput
                 style={[styles.amountInput, { color: colors.text }]}
                 value={amount}
@@ -107,7 +138,7 @@ export default function AddSubscriptionScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>Save</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
         </Pressable>
       </ScrollView>
 
@@ -134,7 +165,7 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
   primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   formRow: { flexDirection: 'row', gap: 12 },
   amountWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, gap: 4 },

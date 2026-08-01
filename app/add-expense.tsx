@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -23,6 +22,7 @@ import { useExpenses } from '@/lib/expense-context';
 import { apiRequest } from '@/lib/query-client';
 import { uploadReceipt } from '@/lib/upload-receipt';
 import { CATEGORIES, CategoryType, PaymentMode } from '@/lib/data';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 /**
  * Add Expense — Method 1 in the product doc (iOS & Android). The fastest way to
@@ -84,17 +84,23 @@ export default function AddExpenseScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
-  const { currentCurrency } = useCurrency();
+  const { currentCurrency, convertForStorage } = useCurrency();
   const { showAlert } = useAlert();
   const { addTransaction } = useExpenses();
 
   const suggestion = useMemo(() => suggestionForNow(), []);
 
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<CategoryType>(() => suggestionForNow()?.category ?? 'food');
+  // Nothing preselected. The time-of-day suggestion still hints the note
+  // placeholder ("e.g. Lunch"), but no longer picks a category for the user.
+  const [category, setCategory] = useState<CategoryType | null>(null);
   const [memberId, setMemberId] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
+  // Keeps a default, deliberately: payment mode lives inside the collapsed
+  // "More options" section, so requiring it would disable Save on open with
+  // the reason hidden from view. UPI is the common case in India and is one
+  // tap to change.
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('upi');
   const [showMore, setShowMore] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -123,7 +129,14 @@ export default function AddExpenseScreen() {
   }, [token]);
 
   const amountValue = Number(amount);
-  const canSave = Number.isFinite(amountValue) && amountValue > 0 && !isSaving && !isUploadingReceipt;
+  // Category is not preselected, so Save stays disabled until one is picked.
+  // The chips are on the main screen, so the reason is visible.
+  const canSave =
+    Number.isFinite(amountValue) &&
+    amountValue > 0 &&
+    !!category &&
+    !isSaving &&
+    !isUploadingReceipt;
 
   const tap = useCallback(() => {
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
@@ -179,7 +192,9 @@ export default function AddExpenseScreen() {
   );
 
   const handleSave = useCallback(async () => {
-    if (!canSave) return;
+    // `canSave` already covers this, but narrowing here is what lets the
+    // non-null uses below typecheck.
+    if (!canSave || !category) return;
     setIsSaving(true);
 
     const selectedMember = members.find((m) => m.id === memberId);
@@ -189,7 +204,8 @@ export default function AddExpenseScreen() {
 
     const created = await addTransaction({
       merchant,
-      amount: amountValue,
+      // The field is in the user's display currency; storage is always INR.
+      amount: convertForStorage(amountValue),
       category,
       date: date.toISOString(),
       memberId,
@@ -233,6 +249,7 @@ export default function AddExpenseScreen() {
     addTransaction,
     showAlert,
     currentCurrency.symbol,
+    convertForStorage,
     router,
   ]);
 
@@ -520,7 +537,7 @@ export default function AddExpenseScreen() {
               ]}
             >
               {isUploadingReceipt ? (
-                <ActivityIndicator size="small" color={colors.accent} />
+                <LoadingIndicator size="small" color={colors.accent} />
               ) : (
                 <Ionicons
                   name={receiptUri ? 'checkmark-circle' : 'camera-outline'}
@@ -563,7 +580,7 @@ export default function AddExpenseScreen() {
           ]}
         >
           {isSaving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <LoadingIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.saveText}>Save Expense</Text>
           )}
@@ -625,7 +642,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
   },
@@ -636,7 +652,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
   },
   chipText: { fontSize: 13, fontWeight: '600' },
@@ -691,7 +707,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 11,
     paddingVertical: 7,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
   },
   payText: { fontSize: 12, fontWeight: '600' },

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   RefreshControl,
   Dimensions,
 } from 'react-native';
@@ -18,6 +17,8 @@ import { useAuth } from '@/lib/auth-context';
 import { getApiUrl } from '@/lib/query-client';
 import { useCurrency } from '@/lib/currency-context';
 import { useTheme } from '@/lib/theme-context';
+import Money from '@/components/Money';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const { width } = Dimensions.get('window');
 
@@ -76,7 +77,7 @@ export default function BillHistoryScreen() {
   if (loading && !refreshing) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <LoadingIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -132,7 +133,7 @@ export default function BillHistoryScreen() {
                 {/* Content Card */}
                 <View style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={styles.cardHeader}>
-                    <Text style={[styles.actionText, { color: getActionColor(item.action).text }]}>{item.action.toUpperCase()}</Text>
+                    <Text style={[styles.actionText, { color: getActionColor(item.action).text }]}>{item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}</Text>
                     <Text style={[styles.dateText, { color: colors.textTertiary }]}>
                       {new Date(item.date).toLocaleDateString('en-IN', {
                         day: 'numeric',
@@ -149,7 +150,7 @@ export default function BillHistoryScreen() {
                   )}
 
                   {item.amount && (
-                    <Text style={[styles.amountText, { color: colors.accentMint }]}>{formatAmount(item.amount)}</Text>
+                    <Money style={[styles.amountText, { color: colors.accentMint }]}>{formatAmount(item.amount)}</Money>
                   )}
                 </View>
               </Animated.View>
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 16,
   },
   footerText: {
     fontFamily: 'Inter_600SemiBold',

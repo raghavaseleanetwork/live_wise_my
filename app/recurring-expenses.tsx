@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +15,7 @@ import { useCurrency } from '@/lib/currency-context';
 import { useAlert } from '@/lib/alert-context';
 import { useExpenses } from '@/lib/expense-context';
 import { CATEGORIES } from '@/lib/data';
+import Money from '@/components/Money';
 import {
   DueRecurringExpense,
   RecurringExpense,
@@ -24,6 +24,7 @@ import {
   loadRecurringExpenses,
   markRecurringHandled,
 } from '@/lib/recurring-expenses';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 /**
  * Recurring Expenses — Method 6 in the product doc.
@@ -183,7 +184,7 @@ export default function RecurringExpensesScreen() {
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} color={colors.accent} />
+          <LoadingIndicator style={{ marginTop: 40 }} color={colors.accent} />
         ) : (
           <>
             {/* Due this month — the actionable part. */}
@@ -216,9 +217,9 @@ export default function RecurringExpensesScreen() {
                           Due {item.dueDate.toLocaleDateString('en-IN')}
                         </Text>
                       </View>
-                      <Text style={[styles.dueAmount, { color: colors.text }]}>
+                      <Money style={[styles.dueAmount, { color: colors.text }]}>
                         {formatAmount(item.template.amount)}
-                      </Text>
+                      </Money>
                     </View>
                     <View style={styles.dueActions}>
                       <Pressable
@@ -233,7 +234,7 @@ export default function RecurringExpensesScreen() {
                         style={[styles.confirmBtn, { backgroundColor: colors.accent }]}
                       >
                         {confirmingId === item.template.id ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
+                          <LoadingIndicator size="small" color="#FFFFFF" />
                         ) : (
                           <Text style={styles.confirmText}>Confirm</Text>
                         )}
@@ -283,7 +284,7 @@ export default function RecurringExpensesScreen() {
                       Day {t.dayOfMonth} · {CATEGORIES[t.category].label}
                     </Text>
                   </View>
-                  <Text style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(t.amount)}</Text>
+                  <Money style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(t.amount)}</Money>
                   {/*
                     Log on demand. "Due now" only lists templates whose day has
                     already passed this month, so without this a template due
@@ -296,7 +297,7 @@ export default function RecurringExpensesScreen() {
                     style={{ marginLeft: 10 }}
                   >
                     {confirmingId === t.id ? (
-                      <ActivityIndicator size="small" color={colors.accent} />
+                      <LoadingIndicator size="small" color={colors.accent} />
                     ) : (
                       <Ionicons name="add-circle-outline" size={19} color={colors.accent} />
                     )}

@@ -212,10 +212,11 @@ const CategoryIcon = React.memo(({
 
   return (
     <Animated.View style={[styles.container, animatedStyle, { width: size, height: size }]}>
-      <Ionicons 
-        name={iconName as any} 
-        size={size} 
-        color={iconColor} 
+      <Ionicons
+        name={iconName as any}
+        size={size}
+        color={iconColor}
+        style={[styles.glyph, { width: size, height: size, lineHeight: size, fontSize: size }]}
       />
     </Animated.View>
   );
@@ -227,5 +228,12 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Icon fonts render a line box taller than `size`, and the overflow hangs
+  // below — pinning lineHeight to size keeps the glyph centred in its wrapper.
+  glyph: {
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
 });

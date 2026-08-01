@@ -2,7 +2,12 @@
 
 **Audience:** Backend team
 **File to edit:** `server/routes.ts`
-**Status:** Frontend part is fixed (real Google OAuth client IDs are now configured). This is a small, safe cleanup — not a functional bug, since Express only ever runs the first match.
+**Status:** Frontend part is fixed. This is a small, safe cleanup — not a functional bug, since Express only ever runs the first match.
+
+> **Correction (2026-07-31):** the earlier claim that "real Google OAuth client IDs are now configured" was wrong.
+> `EXPO_PUBLIC_ANDROID_GOOGLE_CLIENT_ID` held the **Web** client ID, which made Android sign-in fail with
+> `Error 400: invalid_request`. A dedicated Android OAuth client (`...lsp8e1sc...`, SHA-1 `5E:8F:16:...`) was created
+> on 2026-07-31 and wired into `.env`. Backend cleanup below is still valid and still unrelated to that bug.
 
 ---
 

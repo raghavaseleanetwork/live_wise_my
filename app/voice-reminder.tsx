@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, TextInput, ActivityIndicator, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, TextInput, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -9,7 +9,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DatePickerModal from '@/components/DatePickerModal';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
@@ -831,7 +831,7 @@ export default function VoiceReminderScreen() {
               <View style={[styles.micOuterGradient, { backgroundColor: colors.accent }]}>
                 <Animated.View style={[styles.micInner, { backgroundColor: colors.card }, micStyle]}>
                   {state === 'transcribing' ? (
-                    <PremiumLoader size={30} />
+                    <PremiumLoader size={30} compact />
                   ) : (
                     <Ionicons
                       name={state === 'recording' ? 'stop' : 'mic'}
@@ -1024,9 +1024,15 @@ export default function VoiceReminderScreen() {
               </Pressable>
 
               {state === 'review' && effectiveParsed && (
-                <Pressable onPress={handleConfirm} disabled={!canInteract} style={styles.expenseAltBtn}>
-                  <Ionicons name="notifications-outline" size={15} color="#FFFFFF" />
-                  <Text style={styles.expenseAltText}>Not spent yet — save as reminder</Text>
+                <Pressable
+                  onPress={handleConfirm}
+                  disabled={!canInteract}
+                  style={[styles.expenseAltBtn, { borderColor: colors.border }]}
+                >
+                  <Ionicons name="notifications-outline" size={15} color={colors.text} />
+                  <Text style={[styles.expenseAltText, { color: colors.text }]}>
+                    Not spent yet — save as reminder
+                  </Text>
                 </Pressable>
               )}
             </>
@@ -1052,9 +1058,13 @@ export default function VoiceReminderScreen() {
                 action that cannot succeed.
               */}
               {state === 'review' && voiceExpenseGuess && (
-                <Pressable onPress={handleSaveAsExpense} disabled={!canInteract} style={styles.expenseAltBtn}>
-                  <Ionicons name="wallet-outline" size={15} color="#FFFFFF" />
-                  <Text style={styles.expenseAltText}>
+                <Pressable
+                  onPress={handleSaveAsExpense}
+                  disabled={!canInteract}
+                  style={[styles.expenseAltBtn, { borderColor: colors.border }]}
+                >
+                  <Ionicons name="wallet-outline" size={15} color={colors.text} />
+                  <Text style={[styles.expenseAltText, { color: colors.text }]}>
                     Already spent — save as expense (₹
                     {voiceExpenseGuess.amount!.toLocaleString('en-IN')})
                   </Text>
@@ -1066,53 +1076,33 @@ export default function VoiceReminderScreen() {
       </View>
 
       {/* Time picker dropdown */}
-      <CustomModal visible={showTimePicker} onClose={() => setShowTimePicker(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Select time</Text>
-        <View style={styles.timePickerWrap}>
-          <DateTimePicker
-            value={tempTime ?? new Date()}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(_, selected) => {
-              if (selected) setTempTime(selected);
-            }}
-          />
-        </View>
-        <View style={styles.modalActionsRow}>
-          <Pressable onPress={() => setShowTimePicker(false)} style={styles.modalTextButton}>
-            <Text style={[styles.modalTextButtonLabel, { color: colors.textTertiary }]}>Cancel</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              if (!tempTime) {
-                setShowTimePicker(false);
-                return;
-              }
-              setServerParsed((prev) => {
-                const base = prev?.date ?? new Date();
-                const next = new Date(base);
-                next.setHours(tempTime.getHours(), tempTime.getMinutes(), 0, 0);
-                const baseParsed = prev ?? {
-                  title: spokenText.trim() || 'Reminder',
-                  date: new Date(),
-                  timeLabel: timeLabelFromDate(new Date()),
-                  repeatType: effectiveParsedForUI?.repeatType ?? ('none' as RepeatType),
-                  reminderType: effectiveParsedForUI?.reminderType ?? ('custom' as ReminderType),
-                };
-                return {
-                  ...baseParsed,
-                  date: next,
-                  timeLabel: timeLabelFromDate(next),
-                };
-              });
-              setShowTimePicker(false);
-            }}
-            style={[styles.modalPrimaryButton, { backgroundColor: colors.accent }]}
-          >
-            <Text style={[styles.modalPrimaryButtonLabel, { color: '#FFFFFF' }]}>Save</Text>
-          </Pressable>
-        </View>
-      </CustomModal>
+      <DatePickerModal
+        visible={showTimePicker}
+        onClose={() => setShowTimePicker(false)}
+        title="Select time"
+        mode="time"
+        value={tempTime ?? new Date()}
+        onConfirm={(picked) => {
+          setTempTime(picked);
+          setServerParsed((prev) => {
+            const base = prev?.date ?? new Date();
+            const next = new Date(base);
+            next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+            const baseParsed = prev ?? {
+              title: spokenText.trim() || 'Reminder',
+              date: new Date(),
+              timeLabel: timeLabelFromDate(new Date()),
+              repeatType: effectiveParsedForUI?.repeatType ?? ('none' as RepeatType),
+              reminderType: effectiveParsedForUI?.reminderType ?? ('custom' as ReminderType),
+            };
+            return {
+              ...baseParsed,
+              date: next,
+              timeLabel: timeLabelFromDate(next),
+            };
+          });
+        }}
+      />
 
       {/* Repeat picker dropdown */}
       <CustomModal visible={showRepeatPicker} onClose={() => setShowRepeatPicker(false)} showCloseButton={false}>
@@ -1267,7 +1257,7 @@ const styles = StyleSheet.create({
   },
   transcriptInput: {
     minHeight: 110,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
@@ -1304,7 +1294,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   confirmCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
@@ -1324,7 +1314,7 @@ const styles = StyleSheet.create({
   },
   schedulePanel: {
     marginTop: 8,
-    borderRadius: 18,
+    borderRadius: 16,
     backgroundColor: '#F2F7FF',
     borderWidth: 0,
     paddingVertical: 6,
@@ -1468,7 +1458,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   primaryBtn: {
-    borderRadius: 18,
+    borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1487,14 +1477,12 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingVertical: 12,
     marginTop: 10,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.28)',
   },
   expenseAltText: {
     fontFamily: 'Inter_800ExtraBold',
     fontSize: 13,
-    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   modalBackdrop: {

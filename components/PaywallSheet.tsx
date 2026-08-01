@@ -1,15 +1,23 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/lib/theme-context';
+import { useSubscription } from '@/lib/subscription-context';
 import CustomModal from '@/components/CustomModal';
 import {
   PlanId,
   PaywallTrigger,
   PLAN_META,
-  formatPlanPrice,
+  resolvePlanPrice,
 } from '@/constants/plans';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 /**
  * Soft paywall — a bottom-sheet upsell shown the moment a user tries to cross a
@@ -47,6 +55,7 @@ export default function PaywallSheet({
   onDismiss,
 }: PaywallSheetProps) {
   const { colors } = useTheme();
+  const { storePrices, isPurchasing } = useSubscription();
 
   if (!trigger) return null;
 
@@ -110,7 +119,7 @@ export default function PaywallSheet({
                   {meta.name}
                 </Text>
                 <Text style={[styles.pillPrice, { color: colors.textSecondary }]}>
-                  {formatPlanPrice(meta.priceMonthly)}
+                  {resolvePlanPrice(planId, 'month', storePrices)}
                   {meta.priceMonthly > 0 ? '/mo' : ''}
                 </Text>
               </Pressable>
@@ -129,14 +138,22 @@ export default function PaywallSheet({
         </View>
 
         {/* CTA */}
-        <Pressable onPress={() => onUpgrade(selectedPlan)} style={styles.ctaWrap}>
+        <Pressable
+          onPress={() => onUpgrade(selectedPlan)}
+          disabled={isPurchasing}
+          style={[styles.ctaWrap, isPurchasing && { opacity: 0.6 }]}
+        >
           <LinearGradient
             colors={colors.buttonGradient as unknown as [string, string]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.cta}
           >
-            <Text style={styles.ctaText}>{ctaLabel}</Text>
+            {isPurchasing ? (
+              <LoadingIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.ctaText}>{ctaLabel}</Text>
+            )}
           </LinearGradient>
         </Pressable>
 
@@ -160,7 +177,7 @@ const styles = StyleSheet.create({
   illo: {
     width: 72,
     height: 72,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

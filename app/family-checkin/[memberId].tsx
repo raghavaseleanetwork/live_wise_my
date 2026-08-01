@@ -90,6 +90,9 @@ export default function FamilyCheckinScreen() {
                 <Pressable onPress={async () => { await toggleCheckin(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name={item.enabled ? 'toggle' : 'toggle-outline'} size={30} color={item.enabled ? colors.accent : colors.textTertiary} />
                 </Pressable>
+                <Pressable onPress={() => router.push({ pathname: '/family-checkin/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                  <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
+                </Pressable>
                 <Pressable onPress={async () => { await deleteCheckin(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
                 </Pressable>
@@ -113,7 +116,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 10 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
   iconWrap: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },

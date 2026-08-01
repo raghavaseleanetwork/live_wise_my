@@ -5,7 +5,6 @@ import {
   View,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +16,7 @@ import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { useSeniorMode } from '@/lib/senior-context';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 type MedAppearance = 'capsule' | 'tablet' | 'round' | 'liquid';
 type MedInstruction = 'before_meal' | 'after_meal' | 'any';
@@ -104,7 +104,7 @@ export default function MedicineDetailsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <LoadingIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -163,7 +163,7 @@ export default function MedicineDetailsScreen() {
           </LinearGradient>
 
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>SCHEDULE</Text>
+            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>Schedule</Text>
             {parts.map((p, i) => (
               <View key={i} style={styles.slotRow}>
                 <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   iconLarge: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 12,
     marginBottom: 16,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
   },
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   bigActionBtn: {
     height: 60,
-    borderRadius: 18,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

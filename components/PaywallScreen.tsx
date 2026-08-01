@@ -1,17 +1,26 @@
 import React from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView, Platform } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
+import { useSubscription } from '@/lib/subscription-context';
 import CustomModal from '@/components/CustomModal';
 import PlanComparisonTable from '@/components/PlanComparisonTable';
 import {
   PlanId,
   PaywallTrigger,
   PLAN_META,
-  formatPlanPrice,
+  resolvePlanPrice,
 } from '@/constants/plans';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 /**
  * Hard paywall — full-screen, non-dismissible takeover shown only for CRITICAL
@@ -42,6 +51,7 @@ export default function PaywallScreen({
 }: PaywallScreenProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { storePrices, isPurchasing } = useSubscription();
 
   if (!trigger) return null;
 
@@ -96,18 +106,28 @@ export default function PaywallScreen({
 
         {/* Sticky CTA */}
         <View style={[styles.footer, { paddingBottom: bottomInset, backgroundColor: colors.bg, borderTopColor: colors.border }]}>
-          <Pressable onPress={() => onUpgrade(recommended)} style={styles.ctaWrap}>
+          <Pressable
+            onPress={() => onUpgrade(recommended)}
+            disabled={isPurchasing}
+            style={[styles.ctaWrap, isPurchasing && { opacity: 0.6 }]}
+          >
             <LinearGradient
               colors={colors.buttonGradient as unknown as [string, string]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.cta}
             >
-              <Text style={styles.ctaText}>{ctaLabel}</Text>
-              <Text style={styles.ctaSub}>
-                {formatPlanPrice(meta.priceMonthly)}
-                {meta.priceMonthly > 0 ? '/month' : ''}
-              </Text>
+              {isPurchasing ? (
+                <LoadingIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.ctaText}>{ctaLabel}</Text>
+                  <Text style={styles.ctaSub}>
+                    {resolvePlanPrice(recommended, 'month', storePrices)}
+                    {meta.priceMonthly > 0 ? '/month' : ''}
+                  </Text>
+                </>
+              )}
             </LinearGradient>
           </Pressable>
         </View>
@@ -174,7 +194,7 @@ const styles = StyleSheet.create({
   },
   tableCard: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 16,
   },
   footer: {

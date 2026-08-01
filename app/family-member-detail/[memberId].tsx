@@ -5,7 +5,6 @@ import {
   View,
   ScrollView,
   Pressable,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,6 +42,7 @@ import {
   loadCustomConfig,
 } from '@/lib/family-records';
 import { useCurrency } from '@/lib/currency-context';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const RELATIONSHIPS = [
   { key: 'self', label: 'Self', icon: 'person' },
@@ -221,7 +221,7 @@ export default function FamilyMemberDetailScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <LoadingIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -236,11 +236,6 @@ export default function FamilyMemberDetailScreen() {
       </View>
     );
   }
-
-  const activeMedCount = member.medicines.filter((m) => !m.taken).length;
-  const medicinesTitle = member.medicines.length === 0
-    ? 'Medicines'
-    : `Medicines (${activeMedCount} active)`;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -280,42 +275,8 @@ export default function FamilyMemberDetailScreen() {
             )}
 
             {member.featureKeys.map((key) => {
-              if (key === 'medicines') {
-                return (
-                  <View key={key} style={styles.featureSection}>
-                    <View style={styles.featureHeader}>
-                      <Ionicons name="medical" size={18} color={colors.accent} />
-                      <Text style={[styles.featureTitle, { color: colors.text }]}>{medicinesTitle}</Text>
-                    </View>
-
-                    {member.medicines.length === 0 ? (
-                      <View style={[styles.noMedsBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
-                        <Text style={[styles.noItemsText, { color: colors.textTertiary }]}>No active medications</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.medList}>
-                        {member.medicines.map((med) => {
-                          const pillColor = med.color || colors.accent;
-                          return (
-                            <View key={med.id} style={[styles.miniMedCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-                              <View style={[styles.miniMedIcon, { backgroundColor: pillColor + '20' }]}>
-                                <Ionicons name="medkit" size={12} color={pillColor} />
-                              </View>
-                              <Text style={[styles.miniMedName, { color: colors.text }]} numberOfLines={1}>{med.name}</Text>
-                              <Pressable
-                                onPress={() => markMedicine(med.id, 'taken')}
-                                style={[styles.miniCheck, med.taken && { backgroundColor: '#10B981' }]}
-                              >
-                                <Ionicons name="checkmark" size={12} color={med.taken ? '#FFF' : colors.textTertiary} />
-                              </Pressable>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-                  </View>
-                );
-              }
+              // Medicines list is hidden from the member detail page.
+              if (key === 'medicines') return null;
 
               const def = FAMILY_FEATURE_MAP[key];
               if (!def) return null;
@@ -461,7 +422,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
     marginTop: 2,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   content: {
@@ -546,7 +506,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 12,
   },
@@ -565,7 +525,6 @@ const styles = StyleSheet.create({
   comingSoonText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
-    textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
 });

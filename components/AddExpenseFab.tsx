@@ -6,8 +6,6 @@ import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  useAnimatedReaction,
-  runOnJS,
   withSpring,
   withTiming,
   interpolate,
@@ -103,6 +101,13 @@ export default function AddExpenseFab({ actions, extraBottom = 0 }: AddExpenseFa
   // button reads as belonging to the same layer instead of floating loose.
   const right = TAB_BAR_GUTTER + (insets.right || 0);
 
+  // Tall enough to hold the trigger plus every fanned-out item. Mirrors the
+  // `offset` formula in FabItem for the top-most item (stackIndex === length).
+  const stackHeight =
+    actions.length > 0
+      ? SIZE + GAP + (actions.length - 1) * (ITEM_SIZE + GAP) + ITEM_SIZE
+      : SIZE;
+
   const triggerStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${interpolate(progress.value, [0, 1], [0, 135])}deg` }],
   }));
@@ -126,7 +131,14 @@ export default function AddExpenseFab({ actions, extraBottom = 0 }: AddExpenseFa
         </Animated.View>
       )}
 
-      <View style={[styles.wrap, { right, bottom }]} pointerEvents="box-none">
+      {/* Explicit height so the fanned-out items stay INSIDE the wrap's bounds.
+          Android does not deliver touches to children rendered outside their
+          parent's box, so an auto-sized (trigger-height) wrap silently ate
+          every tap on the expanded items. */}
+      <View
+        style={[styles.wrap, { right, bottom, height: stackHeight }]}
+        pointerEvents="box-none"
+      >
         {visible &&
           actions.map((action, index) => (
             <FabItem
@@ -189,32 +201,22 @@ function FabItem({
   // an already-soft spring — the two combined read as "slow to expand".
   const startDelay = Math.min((total - stackIndex) * 0.035, 0.15);
 
-  // The item's LAYOUT position never moves — bottom:0/right:0, always — only
-  // the transform below visually slides it up. `Pressable` hit-testing in RN
-  // is not guaranteed to follow an animated transform on every frame, so while
-  // the fan-out is mid-flight a tap can land on a hit box that LOOKS like the
-  // icon but is still sitting at its collapsed position: the "sometimes not
-  // clickable" bug. Fix: keep the touch target disabled (via real React state,
-  // not an animated style prop — Reanimated does not reliably diff
-  // `pointerEvents` through native props) until the item is essentially in
-  // place, then enable it.
-  const [tappable, setTappable] = useState(false);
-  useAnimatedReaction(
-    () => {
-      const d = Math.max(0, Math.min(1, (progress.value - startDelay) / (1 - startDelay)));
-      return d > 0.8;
-    },
-    (isReady, wasReady) => {
-      if (isReady !== wasReady) runOnJS(setTappable)(isReady);
-    },
-  );
-
+  // Lay the item out at its FINAL resting position (`bottom: offset`) rather
+  // than at the trigger and sliding it up with translateY. RN hit-testing uses
+  // layout, not the animated transform, so a translated item's touch target
+  // stays behind at bottom:0 — every item's hit box ended up stacked on the
+  // same spot above the trigger, and the ones drawn higher (Import statement,
+  // Recurring expenses, Add expense) could not be tapped at all. Animating
+  // only opacity/scale keeps the fan-out look while the hit box stays put and
+  // correct.
   const style = useAnimatedStyle(() => {
     const delayed = Math.max(0, Math.min(1, (progress.value - startDelay) / (1 - startDelay)));
     return {
       opacity: delayed,
       transform: [
-        { translateY: interpolate(delayed, [0, 1], [0, -offset]) },
+        // Small residual rise, purely cosmetic — well inside the item's own
+        // height, so the visual never separates from the touch target.
+        { translateY: interpolate(delayed, [0, 1], [GAP, 0]) },
         { scale: interpolate(delayed, [0, 1], [0.4, 1]) },
       ],
     };
@@ -222,13 +224,12 @@ function FabItem({
 
   return (
     <Animated.View
-      style={[styles.item, style]}
-      pointerEvents={tappable ? 'box-none' : 'none'}
+      style={[styles.item, { bottom: offset }, style]}
+      pointerEvents="box-none"
     >
       <View style={styles.itemRow} pointerEvents="box-none">
         <Pressable
           onPress={onPress}
-          disabled={!tappable}
           accessibilityRole="button"
           accessibilityLabel={action.label}
           style={[
@@ -262,6 +263,11 @@ const styles = StyleSheet.create({
   scrim: { ...StyleSheet.absoluteFillObject, zIndex: 40 },
   wrap: { position: 'absolute', zIndex: 50, alignItems: 'flex-end' },
   trigger: {
+    // Pinned to the bottom of the (now taller) wrap so growing the wrap to
+    // contain the fanned-out items does not move the button itself.
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
     width: SIZE,
     height: SIZE,
     borderRadius: SIZE / 2,
@@ -272,7 +278,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  item: { position: 'absolute', bottom: 0, right: 0 },
+  // `bottom` is supplied per-item so each hit box sits where it is drawn.
+  item: { position: 'absolute', right: 0 },
   // Label sits to the LEFT of the icon, so it grows inward from the right edge
   // instead of running off the screen.
   itemRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },

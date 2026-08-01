@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -20,6 +19,8 @@ import { useExpenses } from '@/lib/expense-context';
 import { getApiUrl } from '@/lib/query-client';
 import { CATEGORIES, CategoryType } from '@/lib/data';
 import CustomModal from '@/components/CustomModal';
+import Money from '@/components/Money';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 /**
  * Bank statement import — Methods 4 & 5 in the product doc.
@@ -293,7 +294,7 @@ export default function ImportStatementScreen() {
         style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
       >
         {isParsing ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <LoadingIndicator size="small" color="#FFFFFF" />
         ) : (
           <>
             <Ionicons name="folder-open-outline" size={17} color="#FFFFFF" />
@@ -400,7 +401,7 @@ export default function ImportStatementScreen() {
               </Text>
             </Pressable>
 
-            <Text style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(row.amount)}</Text>
+            <Money style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(row.amount)}</Money>
           </Pressable>
         );
       })}
@@ -449,9 +450,9 @@ export default function ImportStatementScreen() {
             <Text style={[styles.footerLabel, { color: colors.textTertiary }]}>
               {selected.size} selected
             </Text>
-            <Text style={[styles.footerTotal, { color: colors.text }]}>
+            <Money style={[styles.footerTotal, { color: colors.text }]}>
               {formatAmount(selectedTotal)}
-            </Text>
+            </Money>
           </View>
           <Pressable
             onPress={handleImport}
@@ -464,7 +465,7 @@ export default function ImportStatementScreen() {
             ]}
           >
             {stage === 'saving' ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <LoadingIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.importBtnText}>
                 Import {selected.size > 0 ? selected.size : ''}
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
   catGridItem: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 11, paddingVertical: 9,
-    borderRadius: 18, borderWidth: 1,
+    borderRadius: 16, borderWidth: 1,
   },
   catGridText: { fontSize: 12, fontWeight: '600' },
 });

@@ -72,13 +72,14 @@ export default function AppointmentsScreen() {
           <>
             {upcoming.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>UPCOMING</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Upcoming</Text>
                 {upcoming.map((appt) => (
                   <AppointmentCard
                     key={appt.id}
                     appt={appt}
                     colors={colors}
                     onToggle={async () => { await toggleAppointmentDone(String(memberId), appt.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-appointments/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: appt.id } })}
                     onDelete={async () => { await deleteAppointment(String(memberId), appt.id); load(); }}
                   />
                 ))}
@@ -86,13 +87,14 @@ export default function AppointmentsScreen() {
             )}
             {past.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>COMPLETED</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>Completed</Text>
                 {past.map((appt) => (
                   <AppointmentCard
                     key={appt.id}
                     appt={appt}
                     colors={colors}
                     onToggle={async () => { await toggleAppointmentDone(String(memberId), appt.id); load(); }}
+                    onEdit={() => router.push({ pathname: '/family-appointments/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: appt.id } })}
                     onDelete={async () => { await deleteAppointment(String(memberId), appt.id); load(); }}
                   />
                 ))}
@@ -109,11 +111,13 @@ function AppointmentCard({
   appt,
   colors,
   onToggle,
+  onEdit,
   onDelete,
 }: {
   appt: Appointment;
   colors: any;
   onToggle: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -131,6 +135,9 @@ function AppointmentCard({
           {appt.location ? ` · ${appt.location}` : ''}
         </Text>
       </View>
+      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+        <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
+      </Pressable>
       <Pressable onPress={onDelete} hitSlop={10}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
       </Pressable>
@@ -150,7 +157,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
   sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1, marginBottom: 10 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
+  rowAction: { marginRight: 14 },
   checkCircle: { padding: 2 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },

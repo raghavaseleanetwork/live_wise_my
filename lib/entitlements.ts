@@ -18,13 +18,34 @@ import {
   PAYWALL_TRIGGERS,
 } from '@/constants/plans';
 
+/**
+ * ⚠️ MASTER KILL SWITCH — all plan limits and paywalls are DISABLED.
+ *
+ * Set `true` for client demos: every limit reads as unlimited, every feature
+ * flag reads as on, and no paywall can fire anywhere in the app. Set back to
+ * `false` to restore normal plan enforcement — that single edit is the whole
+ * revert, no other file changes.
+ *
+ * This is the only switch: every gate in the app routes through `getLimit`,
+ * `isFlagEnabled`, `checkLimit` and `checkFlag` below, so nothing can slip past.
+ *
+ * ⚠️ MUST be `false` before any production release — with it on, every paid
+ * feature is free for everyone.
+ *
+ * Set 2026-07-29 for client demos while the RevenueCat dashboard
+ * misconfiguration and backend enforcement are still being sorted out.
+ */
+export const LIMITS_DISABLED = true;
+
 /** Returns the numeric limit for a plan (`Infinity` = unlimited, `0` = unavailable). */
 export function getLimit(plan: PlanId, key: LimitKey): number {
+  if (LIMITS_DISABLED) return Infinity;
   return LIMITS[plan][key];
 }
 
 /** Whether a boolean feature flag is enabled on a plan. */
 export function isFlagEnabled(plan: PlanId, key: FlagKey): boolean {
+  if (LIMITS_DISABLED) return true;
   return FLAGS[plan][key];
 }
 
@@ -83,6 +104,19 @@ const LIMIT_TO_TRIGGER: Partial<Record<LimitKey, PaywallTriggerKey>> = {
  * @returns a full decision including which paywall to show if blocked.
  */
 export function checkLimit(plan: PlanId, key: LimitKey, currentCount: number): LimitCheck {
+  if (LIMITS_DISABLED) {
+    // `triggerKey: null` matters as much as `allowed: true` — call sites gate on
+    // `!allowed && triggerKey`, so a null trigger is a second guarantee that no
+    // paywall can be presented.
+    return {
+      allowed: true,
+      limit: Infinity,
+      attempted: currentCount + 1,
+      recommendedPlan: null,
+      triggerKey: null,
+    };
+  }
+
   const limit = LIMITS[plan][key];
   const attempted = currentCount + 1;
   const allowed = attempted <= limit;
@@ -124,6 +158,10 @@ const FLAG_TO_TRIGGER: Partial<Record<FlagKey, PaywallTriggerKey>> = {
 
 /** Checks whether a boolean feature is available, with the paywall to show if not. */
 export function checkFlag(plan: PlanId, key: FlagKey): FlagCheck {
+  if (LIMITS_DISABLED) {
+    return { allowed: true, recommendedPlan: null, triggerKey: null };
+  }
+
   const allowed = FLAGS[plan][key];
   const triggerKey = FLAG_TO_TRIGGER[key] ?? null;
   const recommendedPlan = allowed

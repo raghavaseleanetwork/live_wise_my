@@ -1,22 +1,143 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import {
+  pullRecords,
+  pushCreate,
+  pushDelete,
+  pushPatch,
+  type RecordKind,
+} from '@/lib/family-records-sync';
+
 /**
- * Family Hub — Phase 2, 3 & 4 local data layer.
+ * Family Hub — Phase 2, 3 & 4 data layer.
  *
  * Doctor Appointments, Health Monitoring, Medication Stock, Daily Routine
  * (Phase 2); Bill Management, Subscription Tracking, Expense Tracking,
  * Reminder Tasks, Insurance & Documents (Phase 3); and Call & Check-in,
- * Travel & Visits, Emergency Alerts, Custom Feature (Phase 4) all store
- * their entries on-device (AsyncStorage), keyed per family member, exactly
- * like Phase 1's feature selection. This keeps every screen fully working
- * with no server dependency; Phase 5 documents how the backend team mirrors
- * this server-side later — including the one piece that's genuinely
- * backend-only: pushing Emergency Alerts to *other* family members' devices.
+ * Travel & Visits, Emergency Alerts, Custom Feature (Phase 4).
+ *
+ * ## Phase 5 (2026-08-01): records now sync to the server
+ *
+ * These used to be AsyncStorage-only. The backend endpoints existed and were
+ * verified working, but nothing in the app ever called them, so records were
+ * trapped on the device that created them: connected caregivers saw none of the
+ * owner's appointments, and reinstalling the app destroyed everything.
+ *
+ * `lib/family-records-sync.ts` supplies the write-through. The per-kind
+ * `load*` / `save*` / `add*` / `update*` / `delete*` API below is unchanged, so
+ * no screen needed editing — the primitives underneath now reconcile with the
+ * server and fall back to the cache when it is unreachable.
+ *
+ * Emergency alerts and the custom-feature config stay local-only: alerts are a
+ * push concern rather than a record, and the config is a per-device UI
+ * preference.
  */
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).slice(2, 9);
 }
+
+// ---------------------------------------------------------------------------
+// Server-backed storage primitives
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads a list, preferring the server and falling back to the cache.
+ *
+ * A server response overwrites the cache so a second device's edits land
+ * locally. When the server cannot be reached the cache is returned untouched —
+ * an offline user sees their records, not an empty screen.
+ */
+async function loadSynced<T>(memberId: string, kind: RecordKind, key: string): Promise<T[]> {
+  const remote = await pullRecords<T>(memberId, kind);
+  if (remote) {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(remote));
+    } catch {
+      // Cache write failure is not fatal; the data is already in hand.
+    }
+    return remote;
+  }
+
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Writes the local cache. The server is updated by the add/update/delete pair. */
+async function saveLocal<T>(key: string, items: T[]): Promise<void> {
+  await AsyncStorage.setItem(key, JSON.stringify(items));
+}
+
+/**
+ * Reads the cache only, with no server round-trip.
+ *
+ * Mutations use this rather than `loadSynced` so that saving an edit cannot be
+ * silently reverted by a slow fetch landing mid-write, and so an offline edit
+ * doesn't stall behind a request that is going to fail anyway.
+ */
+async function loadCached<T>(key: string): Promise<T[]> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Local-first create: cache immediately, then mirror to the server. */
+async function addSynced<T extends { id: string }>(
+  memberId: string,
+  kind: RecordKind,
+  key: string,
+  record: T,
+): Promise<T> {
+  const items = await loadCached<T>(key);
+  await saveLocal(key, [record, ...items]);
+  await pushCreate(memberId, kind, record);
+  return record;
+}
+
+/** Local-first delete. */
+async function deleteSynced<T extends { id: string }>(
+  memberId: string,
+  kind: RecordKind,
+  key: string,
+  id: string,
+): Promise<T[]> {
+  const items = await loadCached<T>(key);
+  const next = items.filter((item) => item.id !== id);
+  await saveLocal(key, next);
+  await pushDelete(memberId, kind, id);
+  return next;
+}
+
+/**
+ * Local-first edit.
+ *
+ * Only `patch` is sent, never the merged record: `PATCH` merges server-side, so
+ * transmitting the whole object would let a form that omits a field overwrite
+ * whatever another device set there.
+ */
+async function updateSynced<T extends { id: string; createdAt: string }>(
+  memberId: string,
+  kind: RecordKind,
+  key: string,
+  id: string,
+  patch: Partial<T>,
+): Promise<T[]> {
+  const items = await loadCached<T>(key);
+  const next = items.map((item) =>
+    item.id === id ? { ...item, ...patch, id: item.id, createdAt: item.createdAt } : item,
+  );
+  await saveLocal(key, next);
+  await pushPatch(memberId, kind, id, patch as object);
+  return next;
+}
+
 
 // ---------------------------------------------------------------------------
 // Doctor Appointments
@@ -37,40 +158,41 @@ export interface Appointment {
 const APPT_KEY = (memberId: string) => `@lifewise_family_appointments_${memberId}`;
 
 export async function loadAppointments(memberId: string): Promise<Appointment[]> {
-  try {
-    const raw = await AsyncStorage.getItem(APPT_KEY(memberId));
-    return raw ? (JSON.parse(raw) as Appointment[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<Appointment>(memberId, 'appointments', APPT_KEY(memberId));
 }
 
 export async function saveAppointments(memberId: string, items: Appointment[]): Promise<void> {
-  await AsyncStorage.setItem(APPT_KEY(memberId), JSON.stringify(items));
+  await saveLocal(APPT_KEY(memberId), items);
 }
 
 export async function addAppointment(
   memberId: string,
   data: Omit<Appointment, 'id' | 'createdAt' | 'completed'>,
 ): Promise<Appointment> {
-  const items = await loadAppointments(memberId);
   const record: Appointment = { ...data, id: generateId(), completed: false, createdAt: new Date().toISOString() };
-  await saveAppointments(memberId, [record, ...items]);
-  return record;
+  return addSynced(memberId, 'appointments', APPT_KEY(memberId), record);
 }
 
 export async function toggleAppointmentDone(memberId: string, id: string): Promise<Appointment[]> {
-  const items = await loadAppointments(memberId);
-  const next = items.map((a) => (a.id === id ? { ...a, completed: !a.completed } : a));
-  await saveAppointments(memberId, next);
-  return next;
+  const items = await loadCached<Appointment>(APPT_KEY(memberId));
+  const current = items.find((a) => a.id === id);
+  // Completion is a property of the record, not the viewer — the owner marking
+  // an appointment done must show as done for every connected caregiver too.
+  return updateSynced<Appointment>(memberId, 'appointments', APPT_KEY(memberId), id, {
+    completed: !current?.completed,
+  } as Partial<Appointment>);
 }
 
 export async function deleteAppointment(memberId: string, id: string): Promise<Appointment[]> {
-  const items = await loadAppointments(memberId);
-  const next = items.filter((a) => a.id !== id);
-  await saveAppointments(memberId, next);
-  return next;
+  return deleteSynced<Appointment>(memberId, 'appointments', APPT_KEY(memberId), id);
+}
+
+export async function updateAppointment(
+  memberId: string,
+  id: string,
+  patch: Partial<Appointment>,
+): Promise<Appointment[]> {
+  return updateSynced<Appointment>(memberId, 'appointments', APPT_KEY(memberId), id, patch);
 }
 
 // ---------------------------------------------------------------------------
@@ -98,34 +220,26 @@ export const HEALTH_METRIC_LABELS: Record<HealthMetricType, { label: string; uni
 };
 
 export async function loadHealthLogs(memberId: string): Promise<HealthLog[]> {
-  try {
-    const raw = await AsyncStorage.getItem(HEALTH_KEY(memberId));
-    return raw ? (JSON.parse(raw) as HealthLog[]) : [];
-  } catch {
-    return [];
-  }
+  const items = await loadSynced<HealthLog>(memberId, 'health', HEALTH_KEY(memberId));
+  // Newest reading first. Sorted on read because the server returns insertion
+  // order, and this list is always shown chronologically.
+  return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function saveHealthLogs(memberId: string, items: HealthLog[]): Promise<void> {
-  await AsyncStorage.setItem(HEALTH_KEY(memberId), JSON.stringify(items));
+  await saveLocal(HEALTH_KEY(memberId), items);
 }
 
 export async function addHealthLog(
   memberId: string,
   data: Omit<HealthLog, 'id' | 'createdAt'>,
 ): Promise<HealthLog> {
-  const items = await loadHealthLogs(memberId);
   const record: HealthLog = { ...data, id: generateId(), createdAt: new Date().toISOString() };
-  const next = [record, ...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  await saveHealthLogs(memberId, next);
-  return record;
+  return addSynced(memberId, 'health', HEALTH_KEY(memberId), record);
 }
 
 export async function deleteHealthLog(memberId: string, id: string): Promise<HealthLog[]> {
-  const items = await loadHealthLogs(memberId);
-  const next = items.filter((h) => h.id !== id);
-  await saveHealthLogs(memberId, next);
-  return next;
+  return deleteSynced<HealthLog>(memberId, 'health', HEALTH_KEY(memberId), id);
 }
 
 // ---------------------------------------------------------------------------
@@ -147,42 +261,40 @@ export interface MedicationStockItem {
 const STOCK_KEY = (memberId: string) => `@lifewise_family_stock_${memberId}`;
 
 export async function loadStock(memberId: string): Promise<MedicationStockItem[]> {
-  try {
-    const raw = await AsyncStorage.getItem(STOCK_KEY(memberId));
-    return raw ? (JSON.parse(raw) as MedicationStockItem[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<MedicationStockItem>(memberId, 'stock', STOCK_KEY(memberId));
 }
 
 export async function saveStock(memberId: string, items: MedicationStockItem[]): Promise<void> {
-  await AsyncStorage.setItem(STOCK_KEY(memberId), JSON.stringify(items));
+  await saveLocal(STOCK_KEY(memberId), items);
 }
 
 export async function addStockItem(
   memberId: string,
   data: Omit<MedicationStockItem, 'id' | 'createdAt'>,
 ): Promise<MedicationStockItem> {
-  const items = await loadStock(memberId);
   const record: MedicationStockItem = { ...data, id: generateId(), createdAt: new Date().toISOString() };
-  await saveStock(memberId, [record, ...items]);
-  return record;
+  return addSynced(memberId, 'stock', STOCK_KEY(memberId), record);
 }
 
 export async function adjustStock(memberId: string, id: string, delta: number): Promise<MedicationStockItem[]> {
-  const items = await loadStock(memberId);
-  const next = items.map((s) =>
-    s.id === id ? { ...s, quantityRemaining: Math.max(0, s.quantityRemaining + delta) } : s,
-  );
-  await saveStock(memberId, next);
-  return next;
+  const items = await loadCached<MedicationStockItem>(STOCK_KEY(memberId));
+  const current = items.find((s) => s.id === id);
+  if (!current) return items;
+  return updateSynced<MedicationStockItem>(memberId, 'stock', STOCK_KEY(memberId), id, {
+    quantityRemaining: Math.max(0, current.quantityRemaining + delta),
+  });
 }
 
 export async function deleteStockItem(memberId: string, id: string): Promise<MedicationStockItem[]> {
-  const items = await loadStock(memberId);
-  const next = items.filter((s) => s.id !== id);
-  await saveStock(memberId, next);
-  return next;
+  return deleteSynced<MedicationStockItem>(memberId, 'stock', STOCK_KEY(memberId), id);
+}
+
+export async function updateStockItem(
+  memberId: string,
+  id: string,
+  patch: Partial<MedicationStockItem>,
+): Promise<MedicationStockItem[]> {
+  return updateSynced<MedicationStockItem>(memberId, 'stock', STOCK_KEY(memberId), id, patch);
 }
 
 export function daysOfStockLeft(item: MedicationStockItem): number | null {
@@ -220,40 +332,44 @@ export const ROUTINE_TYPE_LABELS: Record<RoutineType, { label: string; icon: str
 };
 
 export async function loadRoutines(memberId: string): Promise<RoutineItem[]> {
-  try {
-    const raw = await AsyncStorage.getItem(ROUTINE_KEY(memberId));
-    return raw ? (JSON.parse(raw) as RoutineItem[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<RoutineItem>(memberId, 'routines', ROUTINE_KEY(memberId));
 }
 
 export async function saveRoutines(memberId: string, items: RoutineItem[]): Promise<void> {
-  await AsyncStorage.setItem(ROUTINE_KEY(memberId), JSON.stringify(items));
+  await saveLocal(ROUTINE_KEY(memberId), items);
 }
 
 export async function addRoutine(
   memberId: string,
   data: Omit<RoutineItem, 'id' | 'createdAt' | 'enabled'>,
 ): Promise<RoutineItem> {
-  const items = await loadRoutines(memberId);
+  const items = await loadCached<RoutineItem>(ROUTINE_KEY(memberId));
   const record: RoutineItem = { ...data, id: generateId(), enabled: true, createdAt: new Date().toISOString() };
-  await saveRoutines(memberId, [...items, record]);
+  // Routines append rather than prepend — the list reads as a day's schedule,
+  // so a new entry belongs at the end.
+  await saveLocal(ROUTINE_KEY(memberId), [...items, record]);
+  await pushCreate(memberId, 'routines', record);
   return record;
 }
 
 export async function toggleRoutine(memberId: string, id: string): Promise<RoutineItem[]> {
-  const items = await loadRoutines(memberId);
-  const next = items.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r));
-  await saveRoutines(memberId, next);
-  return next;
+  const items = await loadCached<RoutineItem>(ROUTINE_KEY(memberId));
+  const current = items.find((r) => r.id === id);
+  return updateSynced<RoutineItem>(memberId, 'routines', ROUTINE_KEY(memberId), id, {
+    enabled: !current?.enabled,
+  });
 }
 
 export async function deleteRoutine(memberId: string, id: string): Promise<RoutineItem[]> {
-  const items = await loadRoutines(memberId);
-  const next = items.filter((r) => r.id !== id);
-  await saveRoutines(memberId, next);
-  return next;
+  return deleteSynced<RoutineItem>(memberId, 'routines', ROUTINE_KEY(memberId), id);
+}
+
+export async function updateRoutine(
+  memberId: string,
+  id: string,
+  patch: Partial<RoutineItem>,
+): Promise<RoutineItem[]> {
+  return updateSynced<RoutineItem>(memberId, 'routines', ROUTINE_KEY(memberId), id, patch);
 }
 
 // ---------------------------------------------------------------------------
@@ -273,40 +389,39 @@ export interface FamilyBill {
 const FAMILY_BILL_KEY = (memberId: string) => `@lifewise_family_bills_${memberId}`;
 
 export async function loadFamilyBills(memberId: string): Promise<FamilyBill[]> {
-  try {
-    const raw = await AsyncStorage.getItem(FAMILY_BILL_KEY(memberId));
-    return raw ? (JSON.parse(raw) as FamilyBill[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<FamilyBill>(memberId, 'bills', FAMILY_BILL_KEY(memberId));
 }
 
 export async function saveFamilyBills(memberId: string, items: FamilyBill[]): Promise<void> {
-  await AsyncStorage.setItem(FAMILY_BILL_KEY(memberId), JSON.stringify(items));
+  await saveLocal(FAMILY_BILL_KEY(memberId), items);
 }
 
 export async function addFamilyBill(
   memberId: string,
   data: Omit<FamilyBill, 'id' | 'createdAt' | 'isPaid'>,
 ): Promise<FamilyBill> {
-  const items = await loadFamilyBills(memberId);
   const record: FamilyBill = { ...data, id: generateId(), isPaid: false, createdAt: new Date().toISOString() };
-  await saveFamilyBills(memberId, [record, ...items]);
-  return record;
+  return addSynced(memberId, 'bills', FAMILY_BILL_KEY(memberId), record);
 }
 
 export async function toggleFamilyBillPaid(memberId: string, id: string): Promise<FamilyBill[]> {
-  const items = await loadFamilyBills(memberId);
-  const next = items.map((b) => (b.id === id ? { ...b, isPaid: !b.isPaid } : b));
-  await saveFamilyBills(memberId, next);
-  return next;
+  const items = await loadCached<FamilyBill>(FAMILY_BILL_KEY(memberId));
+  const current = items.find((b) => b.id === id);
+  return updateSynced<FamilyBill>(memberId, 'bills', FAMILY_BILL_KEY(memberId), id, {
+    isPaid: !current?.isPaid,
+  });
 }
 
 export async function deleteFamilyBill(memberId: string, id: string): Promise<FamilyBill[]> {
-  const items = await loadFamilyBills(memberId);
-  const next = items.filter((b) => b.id !== id);
-  await saveFamilyBills(memberId, next);
-  return next;
+  return deleteSynced<FamilyBill>(memberId, 'bills', FAMILY_BILL_KEY(memberId), id);
+}
+
+export async function updateFamilyBill(
+  memberId: string,
+  id: string,
+  patch: Partial<FamilyBill>,
+): Promise<FamilyBill[]> {
+  return updateSynced<FamilyBill>(memberId, 'bills', FAMILY_BILL_KEY(memberId), id, patch);
 }
 
 // ---------------------------------------------------------------------------
@@ -326,33 +441,31 @@ export interface FamilySubscription {
 const SUB_KEY = (memberId: string) => `@lifewise_family_subscriptions_${memberId}`;
 
 export async function loadSubscriptions(memberId: string): Promise<FamilySubscription[]> {
-  try {
-    const raw = await AsyncStorage.getItem(SUB_KEY(memberId));
-    return raw ? (JSON.parse(raw) as FamilySubscription[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<FamilySubscription>(memberId, 'subscriptions', SUB_KEY(memberId));
 }
 
 export async function saveSubscriptions(memberId: string, items: FamilySubscription[]): Promise<void> {
-  await AsyncStorage.setItem(SUB_KEY(memberId), JSON.stringify(items));
+  await saveLocal(SUB_KEY(memberId), items);
 }
 
 export async function addSubscription(
   memberId: string,
   data: Omit<FamilySubscription, 'id' | 'createdAt'>,
 ): Promise<FamilySubscription> {
-  const items = await loadSubscriptions(memberId);
   const record: FamilySubscription = { ...data, id: generateId(), createdAt: new Date().toISOString() };
-  await saveSubscriptions(memberId, [record, ...items]);
-  return record;
+  return addSynced(memberId, 'subscriptions', SUB_KEY(memberId), record);
 }
 
 export async function deleteSubscription(memberId: string, id: string): Promise<FamilySubscription[]> {
-  const items = await loadSubscriptions(memberId);
-  const next = items.filter((s) => s.id !== id);
-  await saveSubscriptions(memberId, next);
-  return next;
+  return deleteSynced<FamilySubscription>(memberId, 'subscriptions', SUB_KEY(memberId), id);
+}
+
+export async function updateSubscription(
+  memberId: string,
+  id: string,
+  patch: Partial<FamilySubscription>,
+): Promise<FamilySubscription[]> {
+  return updateSynced<FamilySubscription>(memberId, 'subscriptions', SUB_KEY(memberId), id, patch);
 }
 
 /** Days until renewal; negative means overdue. */
@@ -377,34 +490,33 @@ export interface FamilyExpense {
 const EXPENSE_KEY = (memberId: string) => `@lifewise_family_expenses_${memberId}`;
 
 export async function loadFamilyExpenses(memberId: string): Promise<FamilyExpense[]> {
-  try {
-    const raw = await AsyncStorage.getItem(EXPENSE_KEY(memberId));
-    return raw ? (JSON.parse(raw) as FamilyExpense[]) : [];
-  } catch {
-    return [];
-  }
+  const items = await loadSynced<FamilyExpense>(memberId, 'expenses', EXPENSE_KEY(memberId));
+  // Newest first — sorted on read since the server returns insertion order.
+  return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function saveFamilyExpenses(memberId: string, items: FamilyExpense[]): Promise<void> {
-  await AsyncStorage.setItem(EXPENSE_KEY(memberId), JSON.stringify(items));
+  await saveLocal(EXPENSE_KEY(memberId), items);
 }
 
 export async function addFamilyExpense(
   memberId: string,
   data: Omit<FamilyExpense, 'id' | 'createdAt'>,
 ): Promise<FamilyExpense> {
-  const items = await loadFamilyExpenses(memberId);
   const record: FamilyExpense = { ...data, id: generateId(), createdAt: new Date().toISOString() };
-  const next = [record, ...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  await saveFamilyExpenses(memberId, next);
-  return record;
+  return addSynced(memberId, 'expenses', EXPENSE_KEY(memberId), record);
 }
 
 export async function deleteFamilyExpense(memberId: string, id: string): Promise<FamilyExpense[]> {
-  const items = await loadFamilyExpenses(memberId);
-  const next = items.filter((e) => e.id !== id);
-  await saveFamilyExpenses(memberId, next);
-  return next;
+  return deleteSynced<FamilyExpense>(memberId, 'expenses', EXPENSE_KEY(memberId), id);
+}
+
+export async function updateFamilyExpense(
+  memberId: string,
+  id: string,
+  patch: Partial<FamilyExpense>,
+): Promise<FamilyExpense[]> {
+  return updateSynced<FamilyExpense>(memberId, 'expenses', EXPENSE_KEY(memberId), id, patch);
 }
 
 export function totalThisMonth(expenses: FamilyExpense[]): number {
@@ -432,40 +544,39 @@ export interface FamilyTask {
 const TASK_KEY = (memberId: string) => `@lifewise_family_tasks_${memberId}`;
 
 export async function loadFamilyTasks(memberId: string): Promise<FamilyTask[]> {
-  try {
-    const raw = await AsyncStorage.getItem(TASK_KEY(memberId));
-    return raw ? (JSON.parse(raw) as FamilyTask[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<FamilyTask>(memberId, 'tasks', TASK_KEY(memberId));
 }
 
 export async function saveFamilyTasks(memberId: string, items: FamilyTask[]): Promise<void> {
-  await AsyncStorage.setItem(TASK_KEY(memberId), JSON.stringify(items));
+  await saveLocal(TASK_KEY(memberId), items);
 }
 
 export async function addFamilyTask(
   memberId: string,
   data: Omit<FamilyTask, 'id' | 'createdAt' | 'completed'>,
 ): Promise<FamilyTask> {
-  const items = await loadFamilyTasks(memberId);
   const record: FamilyTask = { ...data, id: generateId(), completed: false, createdAt: new Date().toISOString() };
-  await saveFamilyTasks(memberId, [record, ...items]);
-  return record;
+  return addSynced(memberId, 'tasks', TASK_KEY(memberId), record);
 }
 
 export async function toggleFamilyTask(memberId: string, id: string): Promise<FamilyTask[]> {
-  const items = await loadFamilyTasks(memberId);
-  const next = items.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
-  await saveFamilyTasks(memberId, next);
-  return next;
+  const items = await loadCached<FamilyTask>(TASK_KEY(memberId));
+  const current = items.find((t) => t.id === id);
+  return updateSynced<FamilyTask>(memberId, 'tasks', TASK_KEY(memberId), id, {
+    completed: !current?.completed,
+  });
 }
 
 export async function deleteFamilyTask(memberId: string, id: string): Promise<FamilyTask[]> {
-  const items = await loadFamilyTasks(memberId);
-  const next = items.filter((t) => t.id !== id);
-  await saveFamilyTasks(memberId, next);
-  return next;
+  return deleteSynced<FamilyTask>(memberId, 'tasks', TASK_KEY(memberId), id);
+}
+
+export async function updateFamilyTask(
+  memberId: string,
+  id: string,
+  patch: Partial<FamilyTask>,
+): Promise<FamilyTask[]> {
+  return updateSynced<FamilyTask>(memberId, 'tasks', TASK_KEY(memberId), id, patch);
 }
 
 // ---------------------------------------------------------------------------
@@ -492,33 +603,31 @@ export const DOCUMENT_TYPE_LABELS: Record<FamilyDocument['type'], { label: strin
 };
 
 export async function loadFamilyDocuments(memberId: string): Promise<FamilyDocument[]> {
-  try {
-    const raw = await AsyncStorage.getItem(DOC_KEY(memberId));
-    return raw ? (JSON.parse(raw) as FamilyDocument[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<FamilyDocument>(memberId, 'documents', DOC_KEY(memberId));
 }
 
 export async function saveFamilyDocuments(memberId: string, items: FamilyDocument[]): Promise<void> {
-  await AsyncStorage.setItem(DOC_KEY(memberId), JSON.stringify(items));
+  await saveLocal(DOC_KEY(memberId), items);
 }
 
 export async function addFamilyDocument(
   memberId: string,
   data: Omit<FamilyDocument, 'id' | 'createdAt'>,
 ): Promise<FamilyDocument> {
-  const items = await loadFamilyDocuments(memberId);
   const record: FamilyDocument = { ...data, id: generateId(), createdAt: new Date().toISOString() };
-  await saveFamilyDocuments(memberId, [record, ...items]);
-  return record;
+  return addSynced(memberId, 'documents', DOC_KEY(memberId), record);
 }
 
 export async function deleteFamilyDocument(memberId: string, id: string): Promise<FamilyDocument[]> {
-  const items = await loadFamilyDocuments(memberId);
-  const next = items.filter((d) => d.id !== id);
-  await saveFamilyDocuments(memberId, next);
-  return next;
+  return deleteSynced<FamilyDocument>(memberId, 'documents', DOC_KEY(memberId), id);
+}
+
+export async function updateFamilyDocument(
+  memberId: string,
+  id: string,
+  patch: Partial<FamilyDocument>,
+): Promise<FamilyDocument[]> {
+  return updateSynced<FamilyDocument>(memberId, 'documents', DOC_KEY(memberId), id, patch);
 }
 
 // ---------------------------------------------------------------------------
@@ -540,47 +649,51 @@ export interface CheckinItem {
 const CHECKIN_KEY = (memberId: string) => `@lifewise_family_checkins_${memberId}`;
 
 export async function loadCheckins(memberId: string): Promise<CheckinItem[]> {
-  try {
-    const raw = await AsyncStorage.getItem(CHECKIN_KEY(memberId));
-    return raw ? (JSON.parse(raw) as CheckinItem[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<CheckinItem>(memberId, 'checkins', CHECKIN_KEY(memberId));
 }
 
 export async function saveCheckins(memberId: string, items: CheckinItem[]): Promise<void> {
-  await AsyncStorage.setItem(CHECKIN_KEY(memberId), JSON.stringify(items));
+  await saveLocal(CHECKIN_KEY(memberId), items);
 }
 
 export async function addCheckin(
   memberId: string,
   data: Omit<CheckinItem, 'id' | 'createdAt' | 'enabled' | 'lastDoneAt'>,
 ): Promise<CheckinItem> {
-  const items = await loadCheckins(memberId);
+  const items = await loadCached<CheckinItem>(CHECKIN_KEY(memberId));
   const record: CheckinItem = { ...data, id: generateId(), enabled: true, lastDoneAt: null, createdAt: new Date().toISOString() };
-  await saveCheckins(memberId, [...items, record]);
+  // Appended, like routines — the list reads as a daily schedule.
+  await saveLocal(CHECKIN_KEY(memberId), [...items, record]);
+  await pushCreate(memberId, 'checkins', record);
   return record;
 }
 
 export async function markCheckinDone(memberId: string, id: string): Promise<CheckinItem[]> {
-  const items = await loadCheckins(memberId);
-  const next = items.map((c) => (c.id === id ? { ...c, lastDoneAt: new Date().toISOString() } : c));
-  await saveCheckins(memberId, next);
-  return next;
+  // Shared state: a caregiver marking the check-in done must clear it for the
+  // owner too, so this syncs rather than staying on one device.
+  return updateSynced<CheckinItem>(memberId, 'checkins', CHECKIN_KEY(memberId), id, {
+    lastDoneAt: new Date().toISOString(),
+  });
 }
 
 export async function toggleCheckin(memberId: string, id: string): Promise<CheckinItem[]> {
-  const items = await loadCheckins(memberId);
-  const next = items.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c));
-  await saveCheckins(memberId, next);
-  return next;
+  const items = await loadCached<CheckinItem>(CHECKIN_KEY(memberId));
+  const current = items.find((c) => c.id === id);
+  return updateSynced<CheckinItem>(memberId, 'checkins', CHECKIN_KEY(memberId), id, {
+    enabled: !current?.enabled,
+  });
 }
 
 export async function deleteCheckin(memberId: string, id: string): Promise<CheckinItem[]> {
-  const items = await loadCheckins(memberId);
-  const next = items.filter((c) => c.id !== id);
-  await saveCheckins(memberId, next);
-  return next;
+  return deleteSynced<CheckinItem>(memberId, 'checkins', CHECKIN_KEY(memberId), id);
+}
+
+export async function updateCheckin(
+  memberId: string,
+  id: string,
+  patch: Partial<CheckinItem>,
+): Promise<CheckinItem[]> {
+  return updateSynced<CheckinItem>(memberId, 'checkins', CHECKIN_KEY(memberId), id, patch);
 }
 
 // ---------------------------------------------------------------------------
@@ -608,40 +721,39 @@ export const TRAVEL_TYPE_LABELS: Record<TravelType, { label: string; icon: strin
 };
 
 export async function loadTravelItems(memberId: string): Promise<TravelItem[]> {
-  try {
-    const raw = await AsyncStorage.getItem(TRAVEL_KEY(memberId));
-    return raw ? (JSON.parse(raw) as TravelItem[]) : [];
-  } catch {
-    return [];
-  }
+  return loadSynced<TravelItem>(memberId, 'travel', TRAVEL_KEY(memberId));
 }
 
 export async function saveTravelItems(memberId: string, items: TravelItem[]): Promise<void> {
-  await AsyncStorage.setItem(TRAVEL_KEY(memberId), JSON.stringify(items));
+  await saveLocal(TRAVEL_KEY(memberId), items);
 }
 
 export async function addTravelItem(
   memberId: string,
   data: Omit<TravelItem, 'id' | 'createdAt' | 'completed'>,
 ): Promise<TravelItem> {
-  const items = await loadTravelItems(memberId);
   const record: TravelItem = { ...data, id: generateId(), completed: false, createdAt: new Date().toISOString() };
-  await saveTravelItems(memberId, [record, ...items]);
-  return record;
+  return addSynced(memberId, 'travel', TRAVEL_KEY(memberId), record);
 }
 
 export async function toggleTravelItem(memberId: string, id: string): Promise<TravelItem[]> {
-  const items = await loadTravelItems(memberId);
-  const next = items.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
-  await saveTravelItems(memberId, next);
-  return next;
+  const items = await loadCached<TravelItem>(TRAVEL_KEY(memberId));
+  const current = items.find((t) => t.id === id);
+  return updateSynced<TravelItem>(memberId, 'travel', TRAVEL_KEY(memberId), id, {
+    completed: !current?.completed,
+  });
 }
 
 export async function deleteTravelItem(memberId: string, id: string): Promise<TravelItem[]> {
-  const items = await loadTravelItems(memberId);
-  const next = items.filter((t) => t.id !== id);
-  await saveTravelItems(memberId, next);
-  return next;
+  return deleteSynced<TravelItem>(memberId, 'travel', TRAVEL_KEY(memberId), id);
+}
+
+export async function updateTravelItem(
+  memberId: string,
+  id: string,
+  patch: Partial<TravelItem>,
+): Promise<TravelItem[]> {
+  return updateSynced<TravelItem>(memberId, 'travel', TRAVEL_KEY(memberId), id, patch);
 }
 
 // ---------------------------------------------------------------------------

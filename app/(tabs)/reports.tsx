@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,7 +23,15 @@ import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 import { apiRequest } from '@/lib/query-client';
 import { getReminderIntentFromBill } from '@/lib/reminder-intent';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFamilyReminders } from '@/lib/use-family-reminders';
+import {
+  DATE_FILTER_CHIPS,
+  MONTHS,
+  formatMonthsLabel,
+  resolveDateRange,
+  type DateFilterKey,
+} from '@/lib/date-range-filter';
+import DatePickerModal from '@/components/DatePickerModal';
 import {
   CATEGORIES,
   getCategoryBreakdown,
@@ -34,28 +41,7 @@ import CategoryIcon from '@/components/CategoryIcon';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomModal from '@/components/CustomModal';
 import { useSeniorMode } from '@/lib/senior-context';
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/**
- * Condenses a month selection into a short label. Spelling out every month
- * ("Jan, Feb, Mar, Jul 2026") wraps the header over multiple lines, and it also
- * overstates precision: the report queries the whole first→last span, so a
- * gappy selection is already reported as a range.
- */
-function formatMonthsLabel(months: number[], year: number): string {
-  if (months.length === 0) return `${year}`;
-  if (months.length === 1) return `${MONTHS[months[0]]} ${year}`;
-
-  const first = months[0];
-  const last = months[months.length - 1];
-  const isContiguous = last - first + 1 === months.length;
-
-  // Two adjacent months read better spelled out than as a range.
-  if (isContiguous && months.length === 2) return `${MONTHS[first]}, ${MONTHS[last]} ${year}`;
-
-  return `${MONTHS[first]} – ${MONTHS[last]} ${year}`;
-}
+import Money from '@/components/Money';
 
 function CategoryBar({ category, total, percentage, maxPercentage, colors, isDark, formatAmount, isSeniorMode }: { category: CategoryType; total: number; percentage: number; maxPercentage: number; colors: ThemeColors; isDark: boolean; formatAmount: (n: number) => string; isSeniorMode: boolean }) {
   const safeCat = (category as string || 'others').toLowerCase() as CategoryType;
@@ -82,7 +68,7 @@ function CategoryBar({ category, total, percentage, maxPercentage, colors, isDar
             style={[styles.catBarFill, { width: `${barWidth}%` as any }]}
           />
         </View>
-        <Text style={[styles.catBarAmount, { color: colors.text }, isSeniorMode && { fontSize: 15 }]}>{formatAmount(total)}</Text>
+        <Money style={[styles.catBarAmount, { color: colors.text }, isSeniorMode && { fontSize: 15 }]}>{formatAmount(total)}</Money>
       </View>
     </View>
   );
@@ -93,7 +79,16 @@ export default function ReportsScreen() {
   const tabBarInset = useTabBarContentInset();
   const { colors, isDark } = useTheme();
   const { formatAmount } = useCurrency();
-  const { transactions, bills, isLoading, monthlyBudget, lifeScore, getReports } = useExpenses();
+  const { transactions, bills: ownBills, isLoading, monthlyBudget, lifeScore, getReports } = useExpenses();
+
+  // Family Hub reminders count toward the report the same as the user's own —
+  // an appointment kept or a family bill paid is real activity, and leaving it
+  // out made the stat tiles read 0 for users who track everything in Family Hub.
+  const { familyReminders } = useFamilyReminders();
+  const bills = useMemo(
+    () => [...ownBills, ...familyReminders],
+    [ownBills, familyReminders],
+  );
   const { isSeniorMode } = useSeniorMode();
   const { checkFlag } = useSubscription();
   const { presentPaywall } = usePaywall();
@@ -101,7 +96,7 @@ export default function ReportsScreen() {
   const [isReportsLoading, setIsReportsLoading] = useState(false);
   const { token } = useAuth();
   const now = new Date();
-  type FilterKey = 'today' | 'week' | 'month' | 'threeMonths' | 'sixMonths' | 'multiMonth' | 'year' | 'custom';
+  type FilterKey = DateFilterKey;
   const [filterKey, setFilterKey] = useState<FilterKey>('today');
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonths, setSelectedMonths] = useState<number[]>(() => [now.getMonth()]);
@@ -186,155 +181,20 @@ export default function ReportsScreen() {
 
   const sortedSelectedMonths = useMemo(() => [...selectedMonths].sort((a, b) => a - b), [selectedMonths]);
 
-  const rangeInfo = useMemo(() => {
-    const nowDay = startOfDay(now);
+  // Range maths lives in `lib/date-range-filter.ts` so the Reminders screen can
+  // use the exact same definitions — see that file for why.
+  const rangeInfo = useMemo(
+    () =>
+      resolveDateRange({
+        filterKey,
+        customStart,
+        customEnd,
+        selectedYear,
+        selectedMonths: sortedSelectedMonths,
+      }),
+    [filterKey, customStart, customEnd, selectedYear, sortedSelectedMonths],
+  );
 
-    if (filterKey === 'today') {
-      const prevDay = new Date(nowDay.getTime() - DAY_MS);
-      return {
-        label: 'Today',
-        prevLabel: 'Yesterday',
-        prevShortLabel: 'yesterday',
-        currStart: nowDay,
-        currEnd: endOfDay(nowDay),
-        prevStart: startOfDay(prevDay),
-        prevEnd: endOfDay(prevDay),
-      };
-    }
-
-    if (filterKey === 'week') {
-      // Last 7 days including today.
-      const currStartDay = new Date(nowDay.getTime() - 6 * DAY_MS);
-      const currStart = startOfDay(currStartDay);
-      const currEnd = endOfDay(nowDay);
-      const days = 7;
-      const prevStart = startOfDay(new Date(currStart.getTime() - days * DAY_MS));
-      const prevEnd = endOfDay(new Date(currEnd.getTime() - days * DAY_MS));
-      return {
-        label: 'Last 7 days',
-        prevLabel: 'Previous 7 days',
-        prevShortLabel: 'prev 7 days',
-        currStart,
-        currEnd,
-        prevStart,
-        prevEnd,
-      };
-    }
-
-    if (filterKey === 'threeMonths') {
-      // Rolling 3 months ending today.
-      const currStartDay = new Date(nowDay);
-      currStartDay.setMonth(currStartDay.getMonth() - 3);
-      const currStart = startOfDay(currStartDay);
-      const currEnd = endOfDay(nowDay);
-      const days = Math.max(1, Math.round((currEnd.getTime() - currStart.getTime()) / DAY_MS) + 1);
-      const prevStart = startOfDay(new Date(currStart.getTime() - days * DAY_MS));
-      const prevEnd = endOfDay(new Date(currEnd.getTime() - days * DAY_MS));
-      return {
-        label: 'Last 3 months',
-        prevLabel: 'Previous 3 months',
-        prevShortLabel: 'prev 3 months',
-        currStart,
-        currEnd,
-        prevStart,
-        prevEnd,
-      };
-    }
-
-    if (filterKey === 'sixMonths') {
-      // Rolling 6 months ending today.
-      const currStartDay = new Date(nowDay);
-      currStartDay.setMonth(currStartDay.getMonth() - 6);
-      const currStart = startOfDay(currStartDay);
-      const currEnd = endOfDay(nowDay);
-      const days = Math.max(1, Math.round((currEnd.getTime() - currStart.getTime()) / DAY_MS) + 1);
-      const prevStart = startOfDay(new Date(currStart.getTime() - days * DAY_MS));
-      const prevEnd = endOfDay(new Date(currEnd.getTime() - days * DAY_MS));
-      return {
-        label: 'Last 6 months',
-        prevLabel: 'Previous 6 months',
-        prevShortLabel: 'prev 6 months',
-        currStart,
-        currEnd,
-        prevStart,
-        prevEnd,
-      };
-    }
-
-    if (filterKey === 'custom') {
-      const currStart = startOfDay(customStart);
-      const currEnd = endOfDay(customEnd);
-      const days = Math.max(1, Math.round((currEnd.getTime() - currStart.getTime()) / DAY_MS) + 1);
-      const prevStart = new Date(currStart.getTime() - days * DAY_MS);
-      const prevEnd = new Date(currEnd.getTime() - days * DAY_MS);
-      return {
-        label: `${currStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${currEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
-        prevLabel: `${prevStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${prevEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
-        prevShortLabel: 'prev period',
-        currStart,
-        currEnd,
-        prevStart,
-        prevEnd,
-      };
-    }
-
-    if (filterKey === 'month') {
-      const m = selectedMonth;
-      const currStart = new Date(selectedYear, m, 1);
-      const currEnd = new Date(selectedYear, m + 1, 0);
-
-      const prevDate = new Date(selectedYear, m, 1);
-      prevDate.setMonth(prevDate.getMonth() - 1);
-      const prevStart = new Date(prevDate.getFullYear(), prevDate.getMonth(), 1);
-      const prevEnd = new Date(prevDate.getFullYear(), prevDate.getMonth() + 1, 0);
-
-      return {
-        label: `${MONTHS[m]} ${selectedYear}`,
-        prevLabel: `${MONTHS[prevDate.getMonth()]} ${prevDate.getFullYear()}`,
-        prevShortLabel: `${MONTHS[prevDate.getMonth()]} ${prevDate.getFullYear()}`,
-        currStart,
-        currEnd,
-        prevStart,
-        prevEnd,
-      };
-    }
-
-    if (filterKey === 'multiMonth') {
-      const months = sortedSelectedMonths.length ? sortedSelectedMonths : [now.getMonth()];
-      const minM = months[0];
-      const maxM = months[months.length - 1];
-      const currStart = new Date(selectedYear, minM, 1);
-      const currEnd = new Date(selectedYear, maxM + 1, 0);
-
-      const prevYear = selectedYear - 1;
-      const prevStart = new Date(prevYear, minM, 1);
-      const prevEnd = new Date(prevYear, maxM + 1, 0);
-
-      return {
-        label: formatMonthsLabel(months, selectedYear),
-        prevLabel: formatMonthsLabel(months, prevYear),
-        prevShortLabel: `${prevYear}`,
-        currStart,
-        currEnd,
-        prevStart,
-        prevEnd,
-      };
-    }
-
-    // year
-    const currStart = new Date(selectedYear, 0, 1);
-    const currEnd = new Date(selectedYear, 11, 31);
-    const prevYear = selectedYear - 1;
-    return {
-      label: `${selectedYear}`,
-      prevLabel: `${prevYear}`,
-      prevShortLabel: `${prevYear}`,
-      currStart,
-      currEnd,
-      prevStart: new Date(prevYear, 0, 1),
-      prevEnd: new Date(prevYear, 11, 31),
-    };
-  }, [filterKey, customStart, customEnd, selectedYear, selectedMonth, sortedSelectedMonths]);
 
   useEffect(() => {
     (async () => {
@@ -348,19 +208,15 @@ export default function ReportsScreen() {
 
   const currPredicate = useMemo(() => {
     return (d: Date) => {
-      if (
-        filterKey === 'today' ||
-        filterKey === 'week' ||
-        filterKey === 'custom' ||
-        filterKey === 'month' ||
-        filterKey === 'threeMonths' ||
-        filterKey === 'sixMonths' ||
-        filterKey === 'year'
-      ) {
-        return d.getTime() >= rangeInfo.currStart.getTime() && d.getTime() <= rangeInfo.currEnd.getTime();
+      // multiMonth is the only key whose selection is not a contiguous span —
+      // a gappy month picks (Mar + Jul) must match those months specifically,
+      // not everything between them. Every other key, including 'all', is a
+      // plain start/end range, so testing for multiMonth is what keeps new
+      // keys working without being added to a whitelist.
+      if (filterKey === 'multiMonth') {
+        return d.getFullYear() === selectedYear && sortedSelectedMonths.includes(d.getMonth());
       }
-      // multiMonth
-      return d.getFullYear() === selectedYear && sortedSelectedMonths.includes(d.getMonth());
+      return d.getTime() >= rangeInfo.currStart.getTime() && d.getTime() <= rangeInfo.currEnd.getTime();
     };
   }, [filterKey, rangeInfo, selectedYear, sortedSelectedMonths]);
 
@@ -645,16 +501,7 @@ export default function ReportsScreen() {
     };
   }, [filterKey, reportTxs, currPredicate, rangeInfo, DAY_MS, daysInPeriod]);
 
-  const filterChips: Array<{ key: FilterKey; label: string; icon: string }> = [
-    { key: 'today', label: 'Today', icon: 'calendar' },
-    { key: 'week', label: 'Week', icon: 'calendar' },
-    { key: 'month', label: 'Month', icon: 'calendar' },
-    { key: 'threeMonths', label: '3M', icon: 'calendar' },
-    { key: 'sixMonths', label: '6M', icon: 'calendar' },
-    { key: 'year', label: 'Year', icon: 'wallet' },
-    { key: 'multiMonth', label: 'Multi-Month', icon: 'grid' },
-    { key: 'custom', label: 'Custom', icon: 'apps' },
-  ];
+  const filterChips = DATE_FILTER_CHIPS;
 
   const handleSelectFilterChip = (key: FilterKey) => {
     setShowCustomStartPicker(false);
@@ -938,78 +785,40 @@ export default function ReportsScreen() {
           </View>
 
           {/* Custom Date Start Picker */}
-          <CustomModal visible={showCustomStartPicker} onClose={() => setShowCustomStartPicker(false)} showCloseButton={false}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Select Start Date</Text>
-            <View style={{ paddingVertical: 16 }}>
-              <DateTimePicker
-                value={draftCustomStart}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(_, d) => {
-                  if (!d) return;
-                  const next = new Date(d);
-                  next.setHours(0, 0, 0, 0);
-                  setDraftCustomStart((prev) => (prev.getTime() === next.getTime() ? prev : next));
-                }}
-              />
-            </View>
-            <View style={styles.modalActionsRow}>
-              <Pressable onPress={() => setShowCustomStartPicker(false)} style={styles.modalTextBtn}>
-                <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  const fixedStart = new Date(draftCustomStart);
-                  fixedStart.setHours(0, 0, 0, 0);
-                  setCustomStart(fixedStart);
-                  if (fixedStart.getTime() > customEnd.getTime()) {
-                    setCustomEnd(endOfDay(fixedStart));
-                  }
-                  setShowCustomStartPicker(false);
-                }}
-                style={[styles.modalPrimaryBtn, { backgroundColor: colors.accentDim }]}
-              >
-                <Text style={[styles.modalPrimaryBtnLabel, { color: colors.accent }]}>Done</Text>
-              </Pressable>
-            </View>
-          </CustomModal>
+          <DatePickerModal
+            visible={showCustomStartPicker}
+            onClose={() => setShowCustomStartPicker(false)}
+            title="Select Start Date"
+            value={draftCustomStart}
+            onConfirm={(d) => {
+              const fixedStart = new Date(d);
+              fixedStart.setHours(0, 0, 0, 0);
+              setDraftCustomStart(fixedStart);
+              setCustomStart(fixedStart);
+              // Keep the range valid: a start after the current end would
+              // otherwise produce an empty report with no explanation.
+              if (fixedStart.getTime() > customEnd.getTime()) {
+                setCustomEnd(endOfDay(fixedStart));
+              }
+            }}
+          />
 
           {/* Custom Date End Picker */}
-          <CustomModal visible={showCustomEndPicker} onClose={() => setShowCustomEndPicker(false)} showCloseButton={false}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Select End Date</Text>
-            <View style={{ paddingVertical: 16 }}>
-              <DateTimePicker
-                value={draftCustomEnd}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(_, d) => {
-                  if (!d) return;
-                  const next = new Date(d);
-                  next.setHours(23, 59, 59, 999);
-                  setDraftCustomEnd((prev) => (prev.getTime() === next.getTime() ? prev : next));
-                }}
-              />
-            </View>
-            <View style={styles.modalActionsRow}>
-              <Pressable onPress={() => setShowCustomEndPicker(false)} style={styles.modalTextBtn}>
-                <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  const fixedEnd = new Date(draftCustomEnd);
-                  fixedEnd.setHours(23, 59, 59, 999);
-                  setCustomEnd(fixedEnd);
-                  if (customStart.getTime() > fixedEnd.getTime()) {
-                    setCustomStart(startOfDay(fixedEnd));
-                  }
-                  setShowCustomEndPicker(false);
-                }}
-                style={[styles.modalPrimaryBtn, { backgroundColor: colors.accentDim }]}
-              >
-                <Text style={[styles.modalPrimaryBtnLabel, { color: colors.accent }]}>Done</Text>
-              </Pressable>
-            </View>
-          </CustomModal>
+          <DatePickerModal
+            visible={showCustomEndPicker}
+            onClose={() => setShowCustomEndPicker(false)}
+            title="Select End Date"
+            value={draftCustomEnd}
+            onConfirm={(d) => {
+              const fixedEnd = new Date(d);
+              fixedEnd.setHours(23, 59, 59, 999);
+              setDraftCustomEnd(fixedEnd);
+              setCustomEnd(fixedEnd);
+              if (customStart.getTime() > fixedEnd.getTime()) {
+                setCustomStart(startOfDay(fixedEnd));
+              }
+            }}
+          />
 
         </Animated.View>
 
@@ -1146,31 +955,13 @@ export default function ReportsScreen() {
           </Pressable>
         </CustomModal>
 
-        <CustomModal visible={showYearPicker} onClose={() => setShowYearPicker(false)} showCloseButton={false}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Pick year</Text>
-          <View style={{ paddingVertical: 16 }}>
-            <DateTimePicker
-              value={new Date(selectedYear, 0, 1)}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(_, d) => {
-                if (!d) return;
-                setSelectedYear(d.getFullYear());
-              }}
-            />
-          </View>
-          <View style={styles.modalActionsRow}>
-            <Pressable onPress={() => setShowYearPicker(false)} style={styles.modalTextBtn}>
-              <Text style={[styles.modalTextBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setShowYearPicker(false)}
-              style={[styles.modalPrimaryBtn, { backgroundColor: colors.accentDim }]}
-            >
-              <Text style={[styles.modalPrimaryBtnLabel, { color: colors.accent }]}>Done</Text>
-            </Pressable>
-          </View>
-        </CustomModal>
+        <DatePickerModal
+          visible={showYearPicker}
+          onClose={() => setShowYearPicker(false)}
+          title="Pick year"
+          value={new Date(selectedYear, 0, 1)}
+          onConfirm={(d) => setSelectedYear(d.getFullYear())}
+        />
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(200).duration(500) : undefined}>
           <LinearGradient
@@ -1182,7 +973,7 @@ export default function ReportsScreen() {
             <View style={styles.summaryTop }>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>Total Spending</Text>
-                <Text style={[styles.summaryAmount, { color: colors.text }]}>{formatAmount(totalSpent)}</Text>
+                <Money style={[styles.summaryAmount, { color: colors.text }]}>{formatAmount(totalSpent)}</Money>
                 <Text style={[styles.deltaText, { color: colors.textTertiary, lineHeight: 18 }]}>
                   Spent {comparison.spentDelta >= 0 ? '+' : '-'}
                   {formatAmount(Math.abs(comparison.spentDelta))} vs {rangeInfo.prevLabel}{'\n'}
@@ -1402,7 +1193,7 @@ export default function ReportsScreen() {
                       <Text style={[styles.merchantName, { color: colors.text }]} numberOfLines={1}>{merchant}</Text>
                       <Text style={[styles.merchantCount, { color: colors.textTertiary }]}>{data.count} transactions</Text>
                     </View>
-                    <Text style={[styles.merchantAmount, { color: colors.text }]}>{formatAmount(data.total)}</Text>
+                    <Money style={[styles.merchantAmount, { color: colors.text }]}>{formatAmount(data.total)}</Money>
                   </View>
                   {idx < merchantTotals.length - 1 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
                 </React.Fragment>
@@ -1482,7 +1273,7 @@ const styles = StyleSheet.create({
   monthChipText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 13,
-    borderRadius: 20,
+    borderRadius: 16,
   },
   summaryCard: {
     borderRadius: 24,
@@ -1505,7 +1296,6 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    textTransform: 'uppercase' as const,
     letterSpacing: 1.2,
     marginBottom: 6,
   },
@@ -1540,7 +1330,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: 8,
     marginTop: 0,
-    textTransform: 'uppercase',
     textAlign: 'center',
     paddingHorizontal: 2,
   },
@@ -1596,13 +1385,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   dataCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 18,
     borderWidth: 1,
   },
   trendCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
     marginBottom: 18,
@@ -1931,7 +1720,6 @@ const styles = StyleSheet.create({
   filterSectionLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 4,
     marginBottom: 10,

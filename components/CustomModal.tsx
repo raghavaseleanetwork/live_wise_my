@@ -78,7 +78,11 @@ export default function CustomModal({
                     borderColor: colors.border,
                     height: height as any,
                     maxHeight: SCREEN_HEIGHT * (fullScreen ? 1 : 0.85),
-                    width: fullScreen ? '100%' : Math.min(Dimensions.get('window').width * 0.9, 400),
+                    // 94% rather than 90%: the card's own side gutter was
+                    // reduced, so a narrower sheet would have re-added the
+                    // inset it was meant to remove. Still capped at 440 so it
+                    // doesn't stretch edge-to-edge on a tablet.
+                    width: fullScreen ? '100%' : Math.min(Dimensions.get('window').width * 0.94, 440),
                   },
                   fullScreen && styles.fullScreenSheet,
                 ]}
@@ -126,7 +130,7 @@ const styles = StyleSheet.create({
   modalCard: {
     borderRadius: 32,
     borderWidth: 1,
-    paddingBottom: 24,
+    paddingBottom: 16,
     overflow: 'hidden',
   },
   fullScreenSheet: {
@@ -138,10 +142,10 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     position: 'absolute',
-    top: 24,
+    top: 16,
     // Matches `content`'s horizontal padding so the button lines up with the
     // modal's text gutter instead of sitting closer to the edge than the title.
-    right: 24,
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -150,7 +154,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   content: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
 });

@@ -74,6 +74,9 @@ export default function DailyRoutineScreen() {
                 <Pressable onPress={async () => { await toggleRoutine(String(memberId), item.id); load(); }} hitSlop={10}>
                   <Ionicons name={item.enabled ? 'toggle' : 'toggle-outline'} size={32} color={item.enabled ? colors.accent : colors.textTertiary} />
                 </Pressable>
+                <Pressable onPress={() => router.push({ pathname: '/family-routine/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                  <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
+                </Pressable>
                 <Pressable onPress={async () => { await deleteRoutine(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
                 </Pressable>
@@ -97,7 +100,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 10 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
   iconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },

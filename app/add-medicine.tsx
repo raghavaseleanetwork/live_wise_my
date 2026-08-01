@@ -19,6 +19,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
+import { toLocalDateString } from '@/lib/data';
 
 type MedAppearance = 'capsule' | 'tablet' | 'round' | 'liquid';
 type MedInstruction = 'before_meal' | 'after_meal' | 'any';
@@ -40,18 +41,23 @@ export default function AddMedicineScreen() {
   // Form State
   const [medName, setMedName] = useState('');
   const [medDosage, setMedDosage] = useState('');
-  const [medAppearance, setMedAppearance] = useState<MedAppearance>('tablet');
+  // Nothing preselected — the user picks the form the medicine comes in.
+  const [medAppearance, setMedAppearance] = useState<MedAppearance | null>(null);
   const [medColor, setMedColor] = useState('#10B981');
   const [medInstruction, setMedInstruction] = useState<MedInstruction>('any');
-  const [slotMorning, setSlotMorning] = useState(true);
+  const [slotMorning, setSlotMorning] = useState(false);
   const [slotNoon, setSlotNoon] = useState(false);
   const [slotEvening, setSlotEvening] = useState(false);
   const [slotMorningTime, setSlotMorningTime] = useState('09:00 AM');
   const [slotNoonTime, setSlotNoonTime] = useState('01:00 PM');
   const [slotEveningTime, setSlotEveningTime] = useState('08:00 PM');
-  const [medScheduleType, setMedScheduleType] = useState<MedScheduleType>('continuous');
+  // Nothing preselected — "continuous" vs "custom" is a real choice, and the
+  // custom date fields only appear once the user makes it.
+  const [medScheduleType, setMedScheduleType] = useState<MedScheduleType | null>(null);
   
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // Local, not UTC: after 18:30 IST a UTC-derived "today" is already tomorrow,
+  // so the default start date would jump a day ahead each evening.
+  const todayIso = toLocalDateString(new Date());
   const [medStartDate, setMedStartDate] = useState(todayIso);
   const [medEndDate, setMedEndDate] = useState('');
   const [error, setError] = useState('');
@@ -63,6 +69,20 @@ export default function AddMedicineScreen() {
   const handleSave = async () => {
     if (!medName.trim()) {
       setError('Please enter medicine name');
+      return;
+    }
+    if (!medAppearance) {
+      setError('Please select what this medicine looks like');
+      return;
+    }
+    // No slot is preselected, so an unanswered schedule has to be caught here —
+    // saving with an empty `slots` would create a medicine that never reminds.
+    if (!slotMorning && !slotNoon && !slotEvening) {
+      setError('Select at least one time to take this medicine');
+      return;
+    }
+    if (!medScheduleType) {
+      setError('Please select how long to take this medicine');
       return;
     }
     if (!token || !memberId) return;
@@ -178,7 +198,7 @@ export default function AddMedicineScreen() {
             </View>
 
             {/* Appearance & Color */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>APPEARANCE</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Appearance</Text>
             <View style={styles.appearanceGrid}>
               {[
                 { key: 'capsule', label: 'Capsule', icon: 'ellipse-outline' },
@@ -229,7 +249,7 @@ export default function AddMedicineScreen() {
             </View>
 
             {/* Timing Selection */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>TIMING & SLOTS</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Timing & slots</Text>
             <View style={styles.slotContainer}>
               {[
                 { key: 'morning', label: 'Morning', time: slotMorningTime, active: slotMorning, set: setSlotMorning },
@@ -263,7 +283,7 @@ export default function AddMedicineScreen() {
             </View>
 
             {/* Instructions */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>INSTRUCTIONS</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Instructions</Text>
             <View style={styles.instructionRow}>
               {[
                 { key: 'before_meal', label: 'Before Meal' },
@@ -291,7 +311,7 @@ export default function AddMedicineScreen() {
             </View>
 
             {/* Duration */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DURATION</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Duration</Text>
             <View style={styles.durationCard}>
               <Pressable
                 onPress={() => setMedScheduleType('continuous')}
@@ -440,7 +460,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   card: {
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
     marginBottom: 20,
@@ -451,7 +471,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
@@ -475,7 +494,7 @@ const styles = StyleSheet.create({
   appearanceCard: {
     width: '48%',
     height: 80,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -588,7 +607,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 64,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   saveGradient: {

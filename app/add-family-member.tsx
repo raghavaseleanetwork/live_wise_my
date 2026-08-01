@@ -21,8 +21,9 @@ import { Avatar } from '../components/Avatar';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest, getApiUrl } from '@/lib/query-client';
+import { toLocalDateString } from '@/lib/data';
 import FeatureSelector from '@/components/FeatureSelector';
-import { FamilyFeatureKey, DEFAULT_FEATURES, saveMemberFeatures } from '@/lib/family-features';
+import { FamilyFeatureKey, saveMemberFeatures } from '@/lib/family-features';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 
@@ -56,7 +57,9 @@ export default function AddFamilyMemberScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState(new Date(2000, 0, 1));
-  const [selectedFeatures, setSelectedFeatures] = useState<FamilyFeatureKey[]>([...DEFAULT_FEATURES]);
+  // Starts empty: the user picks what to manage, and `handleSave` already
+  // rejects an empty selection rather than silently defaulting one on.
+  const [selectedFeatures, setSelectedFeatures] = useState<FamilyFeatureKey[]>([]);
   const [showCaregiverHint, setShowCaregiverHint] = useState(false);
 
   const toggleFeature = (key: FamilyFeatureKey) => {
@@ -275,7 +278,7 @@ export default function AddFamilyMemberScreen() {
             ) : null}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              RELATIONSHIP <Text style={{ color: colors.danger }}>*</Text>
+              Relationship <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <View style={styles.relGrid}>
               {RELATIONSHIPS.map((rel) => {
@@ -305,7 +308,7 @@ export default function AddFamilyMemberScreen() {
             {relationship === 'other' && (
               <Animated.View entering={FadeInDown}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                  SPECIFY RELATIONSHIP <Text style={{ color: colors.danger }}>*</Text>
+                  Specify relationship <Text style={{ color: colors.danger }}>*</Text>
                 </Text>
                 <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}>
                   <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
@@ -329,7 +332,7 @@ export default function AddFamilyMemberScreen() {
               </Animated.View>
             )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DATE OF BIRTH</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Date of birth</Text>
             <Pressable
               onPress={() => setShowDatePicker(true)}
               style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}
@@ -351,14 +354,14 @@ export default function AddFamilyMemberScreen() {
                   setShowDatePicker(false);
                   if (date) {
                     setDobDate(date);
-                    setDateOfBirth(date.toISOString().split('T')[0]);
+                    setDateOfBirth(toLocalDateString(date));
                   }
                 }}
               />
             )}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              SELECT WHAT YOU WANT TO MANAGE <Text style={{ color: colors.danger }}>*</Text>
+              Select what you want to manage <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
               Choose one or more. Only what you pick will appear on {name.trim() || 'this member'}'s dashboard.
@@ -501,7 +504,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 20,
   },
   errorText: {
@@ -515,7 +518,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 8,
     letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   sectionHint: {
     fontFamily: 'Inter_400Regular',
@@ -526,16 +528,19 @@ const styles = StyleSheet.create({
   relGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    rowGap: 14,
-    columnGap: 12,
-    justifyContent: 'space-between',
+    rowGap: 10,
+    columnGap: 10,
     marginBottom: 12,
   },
   relCard: {
-    width: '30%',
-    borderRadius: 20,
+    // Three per row with the 10px columnGap between them. `space-between` is
+    // deliberately not used: with cards narrower than a third of the row it
+    // spreads the leftover width between columns and overrides the gap.
+    flexBasis: '31%',
+    flexGrow: 1,
+    borderRadius: 16,
     borderWidth: 1.5,
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 8,
     alignItems: 'center',
     gap: 8,
@@ -553,7 +558,7 @@ const styles = StyleSheet.create({
   infoCard: {
     marginTop: 24,
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
@@ -574,7 +579,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 62,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   saveGradient: {
@@ -592,7 +597,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,

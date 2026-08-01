@@ -13,8 +13,11 @@ import {
   PlanId,
   PaywallTriggerKey,
   PAYWALL_TRIGGERS,
+  PLAN_META,
 } from '@/constants/plans';
 import { useSubscription } from '@/lib/subscription-context';
+import { useAlert } from '@/lib/alert-context';
+import { LIMITS_DISABLED } from '@/lib/entitlements';
 import PaywallSheet from '@/components/PaywallSheet';
 import PaywallScreen from '@/components/PaywallScreen';
 
@@ -38,8 +41,16 @@ interface PaywallContextValue {
 const PaywallContext = createContext<PaywallContextValue | null>(null);
 
 export function PaywallProvider({ children }: { children: ReactNode }) {
-  const { currentPlan, canStartTrial, isTrialActive, trialDaysLeft, startTrial, purchasePlan } =
-    useSubscription();
+  const {
+    currentPlan,
+    canStartTrial,
+    isTrialProvidingPlan,
+    trialDaysLeft,
+    startTrial,
+    purchasePlan,
+    isTestMode,
+  } = useSubscription();
+  const { showAlert } = useAlert();
 
   const [triggerKey, setTriggerKey] = useState<PaywallTriggerKey | null>(null);
   const [mode, setMode] = useState<'soft' | 'hard' | null>(null);
@@ -50,6 +61,11 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
 
   const presentPaywall = useCallback(
     (key: PaywallTriggerKey) => {
+      // Final backstop for the LIMITS_DISABLED demo switch. The engine already
+      // returns `allowed: true` everywhere, but a screen that calls
+      // presentPaywall() directly — e.g. off a server 403 — would bypass it.
+      if (LIMITS_DISABLED) return;
+
       const t = PAYWALL_TRIGGERS[key];
       setTriggerKey(key);
       setSelectedPlan(t.recommendedPlan);
@@ -74,16 +90,44 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
 
   const handleUpgrade = useCallback(
     async (plan: PlanId) => {
-      // No payment gateway yet: start the trial if eligible, else set the plan
-      // locally. This is the seam the store purchase will replace later.
+      // TEST MODE: confirm, then grant directly. Checked first so a tester can
+      // unlock the exact tier the paywall is asking for, rather than being
+      // diverted into the one-time trial.
+      if (isTestMode) {
+        const meta = PLAN_META[plan];
+        showAlert({
+          title: `Activate ${meta.name}?`,
+          message: `This is a TEST activation — no payment will be taken and no real subscription is created. ${meta.name} features will be unlocked on this device.`,
+          type: 'warning',
+          buttons: [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: `Activate ${meta.name}`,
+              onPress: async () => {
+                await purchasePlan(plan);
+                close();
+              },
+            },
+          ],
+        });
+        return;
+      }
+
+      // Trial first when eligible (no payment), otherwise run the real store
+      // purchase through RevenueCat.
       if (canStartTrial) {
         await startTrial();
-      } else {
-        await purchasePlan(plan);
+        close();
+        return;
       }
-      close();
+
+      const result = await purchasePlan(plan);
+
+      // Keep the paywall open if the purchase did not go through, so the user
+      // isn't dropped back into a blocked action with no explanation.
+      if (result.success) close();
     },
-    [canStartTrial, startTrial, purchasePlan, close],
+    [isTestMode, showAlert, canStartTrial, startTrial, purchasePlan, close],
   );
 
   const handleSeeAllPlans = useCallback(() => {
@@ -115,7 +159,7 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
         currentPlan={currentPlan}
         canStartTrial={canStartTrial}
         trialDaysLeft={trialDaysLeft}
-        isTrialActive={isTrialActive}
+        isTrialActive={isTrialProvidingPlan}
         onUpgrade={handleUpgrade}
         onClose={close}
       />

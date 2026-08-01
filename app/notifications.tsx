@@ -6,6 +6,8 @@ import { router } from 'expo-router';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
+import { useFamilyReminders } from '@/lib/use-family-reminders';
+import { familyReminderLabel, type FamilyReminder } from '@/lib/family-reminders';
 
 type NotificationItem = {
   id: string;
@@ -16,6 +18,86 @@ type NotificationItem = {
   createdAt: string;
   meta?: Record<string, unknown>;
 };
+
+/**
+ * Marks a row as coming from Family Hub so the list can badge it.
+ *
+ * Carried on `meta` rather than overloading `type`, because `type` drives the
+ * server's own semantics ('reminder' vs anything else) and a server-sent family
+ * row will eventually arrive as `type: 'reminder'` too. A dedicated flag lets
+ * both the locally derived rows and future server rows be labelled the same way
+ * without either side reinterpreting `type`.
+ */
+const FAMILY_SOURCE = 'family-hub';
+
+/** True for rows that should show the "Family Hub" chip. */
+function isFamilyRow(item: NotificationItem): boolean {
+  const meta = item.meta as Record<string, unknown> | undefined;
+  return meta?.source === FAMILY_SOURCE;
+}
+
+/**
+ * How far ahead a family reminder shows up in this list.
+ *
+ * The Reminders tab lists everything scheduled; a notification list is about
+ * what needs attention *now*, so anything further out than this is noise.
+ */
+const FAMILY_LOOKAHEAD_DAYS = 7;
+
+/** Whole days from today to `date`, ignoring clock time. Negative = overdue. */
+function daysUntil(date: Date): number {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(0, 0, 0, 0);
+  return Math.round((end.getTime() - start.getTime()) / 86400000);
+}
+
+/**
+ * Projects a Family Hub reminder into a notification row.
+ *
+ * These are **derived**, not stored: Family Hub records live on-device
+ * (AsyncStorage) while `/api/notifications` only knows about server-side bills
+ * and medicines, so the bell would otherwise never mention family items at all.
+ * See `backend-team/FAMILY-HUB-NOTIFICATIONS-backend-requirements.md` — once the
+ * server owns these, this projection is deleted and the rows arrive as real
+ * notifications.
+ */
+function familyReminderToNotification(reminder: FamilyReminder): NotificationItem | null {
+  const due = new Date(reminder.dueDate);
+  if (Number.isNaN(due.getTime())) return null;
+
+  const days = daysUntil(due);
+  if (days > FAMILY_LOOKAHEAD_DAYS) return null;
+
+  const kindLabel = familyReminderLabel(reminder.sourceKind);
+  const when =
+    days < 0
+      ? `overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`
+      : days === 0
+        ? 'due today'
+        : days === 1
+          ? 'due tomorrow'
+          : `due in ${days} days`;
+
+  const amount = reminder.amount > 0 ? `₹${reminder.amount.toLocaleString('en-IN')} · ` : '';
+
+  return {
+    id: reminder.id,
+    type: 'reminder',
+    title: `${reminder.memberName} · ${reminder.name}`,
+    body: `${amount}${kindLabel} ${when}.`,
+    // Derived rows have no read state to persist — marking one read server-side
+    // would 404, so they always render as unread and are excluded from the
+    // mark-read calls below.
+    read: false,
+    createdAt: due.toISOString(),
+    meta: {
+      source: FAMILY_SOURCE,
+      route: `/family-reminder/${encodeURIComponent(reminder.id)}`,
+    },
+  };
+}
 
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
@@ -37,8 +119,25 @@ export default function NotificationsScreen() {
 
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { familyReminders } = useFamilyReminders();
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
+
+  // Server notifications plus the Family Hub rows the server cannot see yet,
+  // newest/soonest first. Family rows are derived on every render rather than
+  // stored, so they stay in step with edits made in Family Hub.
+  const visibleItems = React.useMemo(() => {
+    const familyItems = familyReminders
+      .map(familyReminderToNotification)
+      .filter((n): n is NotificationItem => n !== null);
+
+    return [...items, ...familyItems].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [items, familyReminders]);
+
+  // Only server rows have a persisted read state; family rows are projections.
+  const hasUnreadServerItems = items.some((n) => !n.read);
 
   useEffect(() => {
     const run = async () => {
@@ -66,15 +165,15 @@ export default function NotificationsScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.screenTitle, { color: colors.text }]}>Notifications</Text>
-        <Pressable 
+        <Pressable
           onPress={async () => {
-            if (items.some(n => !n.read)) {
+            if (hasUnreadServerItems) {
               await apiRequest('POST', '/api/notifications/mark-read-all', {}, token);
               setItems(items.map(n => ({ ...n, read: true })));
             }
           }}
-          disabled={!items.some(n => !n.read)}
-          style={({ pressed }) => [{ opacity: pressed || !items.some(n => !n.read) ? 0.6 : 1 }]}
+          disabled={!hasUnreadServerItems}
+          style={({ pressed }) => [{ opacity: pressed || !hasUnreadServerItems ? 0.6 : 1 }]}
         >
           <Text style={[styles.markAllText, { color: colors.accent }]}>Mark all read</Text>
         </Pressable>
@@ -82,14 +181,16 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Loading notifications…</Text>
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No notifications yet.</Text>
       ) : (
         <FlatList
-          data={items}
+          data={visibleItems}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const family = isFamilyRow(item);
+            return (
             <Pressable
               onPress={() => {
                 const meta = item.meta;
@@ -132,12 +233,28 @@ export default function NotificationsScreen() {
                 ]}
               >
                 <Ionicons
-                  name={item.type === 'reminder' ? 'notifications' : 'information-circle'}
+                  name={
+                    family
+                      ? 'people'
+                      : item.type === 'reminder'
+                        ? 'notifications'
+                        : 'information-circle'
+                  }
                   size={18}
                   color={item.read ? colors.accent : '#FFFFFF'}
                 />
               </View>
               <View style={styles.itemContent}>
+                {/* Family Hub items are merged into this one list so there is a
+                    single place to look for notifications. The chip is what
+                    keeps them distinguishable after that merge. */}
+                {family && (
+                  <View style={[styles.sourceChip, { backgroundColor: colors.accentDim }]}>
+                    <Text style={[styles.sourceChipText, { color: colors.accent }]}>
+                      Family Hub
+                    </Text>
+                  </View>
+                )}
                 <Text
                   style={[
                     styles.itemTitle,
@@ -172,7 +289,8 @@ export default function NotificationsScreen() {
                 <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
               </Pressable>
             </Pressable>
-          )}
+            );
+          }}
         />
       )}
     </View>
@@ -221,6 +339,18 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
+  },
+  sourceChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginBottom: 2,
+  },
+  sourceChipText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
+    letterSpacing: 0.3,
   },
   itemBody: {
     fontFamily: 'Inter_400Regular',

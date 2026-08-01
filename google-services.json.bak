@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "152932967230",
+    "project_id": "lifewise-6e740",
+    "storage_bucket": "lifewise-6e740.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:152932967230:android:b14eb33d93c33a1a91c26f",
+        "android_client_info": {
+          "package_name": "com.lifewise"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCicQKBF-3C2u0L4C_ZonQa3JYRVMFQWEc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

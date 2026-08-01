@@ -8,7 +8,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useSegments, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Platform, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 // expo-image, not RN Image: shares the cache warmed by `preloadBrandAssets()`
 // so the splash mark is already decoded when this paints.
 import { Image } from "expo-image";
@@ -23,8 +23,12 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
 import { ExpenseProvider } from "@/lib/expense-context";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import {
+  flushFamilyRecordQueue,
+  setFamilyRecordsAuthToken,
+} from "@/lib/family-records-sync";
 import { ThemeProvider, useTheme } from "@/lib/theme-context";
-import { CurrencyProvider } from "@/lib/currency-context";
+import { CurrencyProvider, useCurrency } from "@/lib/currency-context";
 import { SubscriptionProvider, useSubscription } from "@/lib/subscription-context";
 import { PaywallProvider } from "@/lib/paywall-context";
 import { StatusBar } from "expo-status-bar";
@@ -38,6 +42,7 @@ import { emitCaregiverSync } from "@/lib/caregiver-sync";
 import { registerSmsSyncTask } from "@/lib/sms-sync-task";
 import { SeniorProvider } from "@/lib/senior-context";
 import { AlertProvider } from "@/lib/alert-context";
+import { makeFamilyReminderId } from "@/lib/family-reminders";
 import CustomAlert from "@/components/CustomAlert";
 
 import PremiumLoader, { BRAND_LOGO, preloadBrandAssets } from "@/components/PremiumLoader";
@@ -129,6 +134,7 @@ const splashStyles = StyleSheet.create({
 function AuthGate() {
   const { user, token, isLoading, hasOnboarded, isAuthenticated } = useAuth();
   const { colors } = useTheme();
+  const { backfillRateHistory } = useCurrency();
   const {
     isLoading: subLoading,
     canStartTrial,
@@ -137,6 +143,25 @@ function AuthGate() {
   const segments = useSegments();
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true);
+
+  // Pull the server's rate history once, so amounts from before this install
+  // convert at their own date's rate rather than today's. Needs a token, and
+  // `CurrencyProvider` sits outside `AuthProvider`, so it is triggered here
+  // where both are in scope. No-ops after the first successful run.
+  useEffect(() => {
+    if (!token) return;
+    void backfillRateHistory(token);
+  }, [token, backfillRateHistory]);
+
+  // Family Hub records sync through plain functions rather than a React hook,
+  // so the token is published to that layer here. Without it every record write
+  // stays device-local — which is exactly the bug where a caregiver never saw
+  // the owner's appointments. Flushing on (re)connect retries anything that was
+  // queued while offline.
+  useEffect(() => {
+    setFamilyRecordsAuthToken(token ?? null);
+    if (token) void flushFamilyRecordQueue();
+  }, [token]);
 
   // Auto-activate the one-time 7-day Family trial on the first authenticated
   // run (doc §5.3: every new user gets it on install, no card required). Also
@@ -200,12 +225,67 @@ function AuthGate() {
     (async () => {
       const nextSub = await addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data as any;
+
+        // Most specific match first, then a generic `data.route` fallback.
+        //
+        // The fallback matters: it lets the backend add a new notification kind
+        // and have taps land correctly WITHOUT shipping a new client build —
+        // it just has to include `route`. Without it every new push type opens
+        // the app to wherever it happened to be, which is what medicine pushes
+        // (`type: 'medication'`) did before this block existed.
         if (data?.type === "reminder" && data?.billId) {
           router.push({
             pathname: "/bill-details/[billId]",
             params: { billId: String(data.billId) },
           } as any);
+          return;
         }
+
+        // Family reminders open their own detail screen — the same destination
+        // as tapping the row in the Reminders tab, so a notification and a tap
+        // never land somewhere different. The composite id is rebuilt from the
+        // payload's identity triple, since the push carries the parts rather
+        // than the assembled id.
+        if (data?.type === "family-reminder" && data?.memberId && data?.sourceKind && data?.sourceId) {
+          router.push({
+            pathname: "/family-reminder/[reminderId]",
+            params: {
+              reminderId: makeFamilyReminderId(
+                String(data.memberId),
+                data.sourceKind,
+                String(data.sourceId),
+              ),
+            },
+          } as any);
+          return;
+        }
+
+        // Medicine doses. The server has always sent these with
+        // `type: 'medication'`, but nothing here handled them, so tapping did
+        // nothing at all.
+        if (data?.type === "medication" && data?.memberId && data?.medId) {
+          router.push({
+            pathname: "/medicine-details/[memberId]/[medId]",
+            params: { memberId: String(data.memberId), medId: String(data.medId) },
+          } as any);
+          return;
+        }
+
+        // Caregiver invites — a caregiver's own phone, not the member's.
+        if (data?.type === "caregiver-invite") {
+          router.push("/caregiver-invites" as any);
+          return;
+        }
+
+        // Generic fallback for any payload that names its own destination.
+        if (typeof data?.route === "string" && data.route.startsWith("/")) {
+          router.push(data.route as any);
+          return;
+        }
+
+        // Nothing routable — open the notification list rather than leaving the
+        // user on whatever screen was last open, which reads as a dead tap.
+        router.push("/notifications" as any);
       });
 
       // If the component unmounted before the async attach completed, remove immediately.

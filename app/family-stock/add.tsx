@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,11 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { useTheme } from '@/lib/theme-context';
-import { addStockItem } from '@/lib/family-records';
+import { addStockItem, loadStock, updateStockItem } from '@/lib/family-records';
 
 export default function AddStockItemScreen() {
   const router = useRouter();
-  const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
+  const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
 
@@ -20,6 +20,24 @@ export default function AddStockItemScreen() {
   const [dailyUsage, setDailyUsage] = useState('1');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const isEditing = !!editId;
+
+  // Seed the form from the record being edited.
+  useEffect(() => {
+    if (!editId || !memberId) return;
+    let cancelled = false;
+    (async () => {
+      const items = await loadStock(String(memberId));
+      const found = items.find((x) => x.id === String(editId));
+      if (!found || cancelled) return;
+      setMedicineName(found.medicineName);
+      setQuantity(String(found.quantityRemaining));
+      setThreshold(String(found.lowStockThreshold));
+      setDailyUsage(String(found.dailyUsage));
+    })();
+    return () => { cancelled = true; };
+  }, [editId, memberId]);
 
   const handleSave = async () => {
     if (!medicineName.trim()) {
@@ -33,12 +51,17 @@ export default function AddStockItemScreen() {
     }
     if (!memberId || saving) return;
     setSaving(true);
-    await addStockItem(String(memberId), {
+    const data = {
       medicineName: medicineName.trim(),
       quantityRemaining: qty,
       lowStockThreshold: parseInt(threshold, 10) || 5,
       dailyUsage: parseInt(dailyUsage, 10) || 1,
-    });
+    };
+    if (isEditing) {
+      await updateStockItem(String(memberId), String(editId), data);
+    } else {
+      await addStockItem(String(memberId), data);
+    }
     router.back();
   };
 
@@ -51,7 +74,7 @@ export default function AddStockItemScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Track Medicine Stock</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Medicine Stock' : 'Track Medicine Stock'}</Text>
           <View style={styles.backBtn} />
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
@@ -106,7 +129,7 @@ export default function AddStockItemScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>Save</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -123,7 +146,7 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
   primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   formRow: { flexDirection: 'row', gap: 12 },
 });

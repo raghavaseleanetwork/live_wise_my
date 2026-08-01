@@ -23,7 +23,9 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "READ_SMS",
-        "RECEIVE_SMS"
+        "RECEIVE_SMS",
+        "SCHEDULE_EXACT_ALARM",
+        "POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#1E1B4B",
@@ -34,6 +36,7 @@
       "favicon": "./logo.png"
     },
     "plugins": [
+      "expo-dev-client",
       [
         "expo-notifications",
         {
@@ -50,7 +53,8 @@
       "expo-font",
       "expo-web-browser",
       "./app.plugin.js",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

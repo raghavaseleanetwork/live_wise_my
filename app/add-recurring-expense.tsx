@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,8 +13,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { useAlert } from '@/lib/alert-context';
+import { useCurrency } from '@/lib/currency-context';
 import { CATEGORIES, CategoryType } from '@/lib/data';
 import { saveRecurringExpense } from '@/lib/recurring-expenses';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 /**
  * New recurring expense template — Method 6 in the product doc.
@@ -41,17 +42,23 @@ export default function AddRecurringExpenseScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const { showAlert } = useAlert();
+  const { convertForStorage } = useCurrency();
 
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [day, setDay] = useState('1');
-  const [category, setCategory] = useState<CategoryType>('bills');
+  // Nothing preselected — the user chooses the category.
+  const [category, setCategory] = useState<CategoryType | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
     if (isSaving) return;
     const amountValue = Number(amount);
     const dayValue = Number(day);
+    if (!category) {
+      showAlert({ title: 'Category needed', message: 'Pick a category for this expense.', type: 'warning' });
+      return;
+    }
     if (!name.trim()) {
       showAlert({ title: 'Name needed', message: 'Give this expense a name.', type: 'warning' });
       return;
@@ -68,7 +75,8 @@ export default function AddRecurringExpenseScreen() {
     setIsSaving(true);
     const created = await saveRecurringExpense(token, {
       name: name.trim(),
-      amount: amountValue,
+      // Typed in the user's display currency; stored in INR like every amount.
+      amount: convertForStorage(amountValue),
       category,
       dayOfMonth: dayValue,
       memberId: null,
@@ -85,7 +93,7 @@ export default function AddRecurringExpenseScreen() {
     }
 
     router.back();
-  }, [isSaving, name, amount, day, category, showAlert, token, router]);
+  }, [isSaving, name, amount, day, category, showAlert, token, router, convertForStorage]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
@@ -175,7 +183,7 @@ export default function AddRecurringExpenseScreen() {
           style={[styles.saveBtn, { backgroundColor: colors.accent, opacity: isSaving ? 0.6 : 1 }]}
         >
           {isSaving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <LoadingIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.saveText}>Save</Text>
           )}
@@ -206,7 +214,6 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: '700',
-    textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
     marginTop: 14,
@@ -219,7 +226,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 11,
     paddingVertical: 7,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
   },
   chipText: { fontSize: 12, fontWeight: '600' },

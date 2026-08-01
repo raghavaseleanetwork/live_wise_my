@@ -23,6 +23,7 @@ import { useAlert } from '@/lib/alert-context';
 import { useSubscription } from '@/lib/subscription-context';
 import CustomModal from '@/components/CustomModal';
 import PlanBadge from '@/components/PlanBadge';
+import Money from '@/components/Money';
 
 function SettingRow({
   icon,
@@ -60,13 +61,13 @@ function SettingRow({
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const { colors, mode, toggleTheme, isDark } = useTheme();
-  const { currentCurrency, setCurrency, formatAmount } = useCurrency();
+  const { currentCurrency, setCurrency, formatAmount, convertForDisplay, convertForStorage } = useCurrency();
   const { monthlyBudget, setMonthlyBudget } = useExpenses();
   const { isSeniorMode, setSeniorMode } = useSeniorMode();
   const { showAlert } = useAlert();
-  const { currentPlan, isTrialActive } = useSubscription();
+  const { currentPlan, isTrialProvidingPlan } = useSubscription();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget || ''));
@@ -190,20 +191,20 @@ export default function SettingsScreen() {
             label="Monthly Budget"
             colors={colors}
             onPress={() => {
-              setBudgetInput(String(monthlyBudget || ''));
+              setBudgetInput(monthlyBudget ? String(Math.round(convertForDisplay(monthlyBudget))) : '');
               setShowBudgetModal(true);
             }}
             rightElement={
               <Pressable
                 onPress={() => {
-                  setBudgetInput(String(monthlyBudget || ''));
+                  setBudgetInput(monthlyBudget ? String(Math.round(convertForDisplay(monthlyBudget))) : '');
                   setShowBudgetModal(true);
                 }}
                 style={styles.currencyBadge}
               >
-                <Text style={[styles.currencyBadgeText, { color: colors.accent }]}>
+                <Money style={[styles.currencyBadgeText, { color: colors.accent }]}>
                   {formatAmount(monthlyBudget || 0)}
-                </Text>
+                </Money>
                 <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </Pressable>
             }
@@ -219,7 +220,7 @@ export default function SettingsScreen() {
             colors={colors}
             rightElement={
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <PlanBadge plan={currentPlan} trial={isTrialActive} size="sm" />
+                <PlanBadge plan={currentPlan} trial={isTrialProvidingPlan} size="sm" />
                 <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
               </View>
             }
@@ -246,7 +247,15 @@ export default function SettingsScreen() {
         {CURRENCIES.map(curr => (
           <Pressable
             key={curr.code}
-            onPress={() => { setCurrency(curr.code); setShowCurrencyPicker(false); }}
+            onPress={() => {
+              setCurrency(curr.code);
+              // Mirror to the server so reminder EMAILS use this currency too —
+              // the backend has no other way to know what the user picked.
+              // Fire-and-forget: the in-app switch is local and must not wait
+              // on the network, and a failed sync only affects email rendering.
+              void updateProfile({ preferredCurrency: curr.code });
+              setShowCurrencyPicker(false);
+            }}
             style={[
               styles.currencyRow,
               { borderBottomColor: colors.border },
@@ -297,27 +306,33 @@ export default function SettingsScreen() {
           </Text>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }}>
+          {/*
+            Presets are INR (the storage currency), so both the label and the
+            value written into the box must be converted — otherwise a user on
+            USD sees "$116" on a button that fills the field with 10000.
+          */}
           {[10000, 25000, 50000].map((preset) => (
             <Pressable
               key={preset}
-              onPress={() => setBudgetInput(String(preset))}
+              onPress={() => setBudgetInput(String(Math.round(convertForDisplay(preset))))}
               style={[styles.budgetPreset, { borderColor: colors.border }]}
             >
-              <Text style={[styles.budgetPresetText, { color: colors.textSecondary }]}>
+              <Money style={[styles.budgetPresetText, { color: colors.textSecondary }]}>
                 {formatAmount(preset)}
-              </Text>
+              </Money>
             </Pressable>
           ))}
         </View>
         <Pressable
           onPress={async () => {
-            const value = parseInt(budgetInput.replace(/[^0-9]/g, ''), 10);
-            if (Number.isNaN(value) || value <= 0) {
-              setBudgetInput(String(monthlyBudget || 0));
+            const typed = parseInt(budgetInput.replace(/[^0-9]/g, ''), 10);
+            if (Number.isNaN(typed) || typed <= 0) {
+              setBudgetInput(String(Math.round(convertForDisplay(monthlyBudget || 0))));
               setShowBudgetModal(false);
               return;
             }
-            await setMonthlyBudget(value);
+            // The field is in the user's currency; the budget is stored in INR.
+            await setMonthlyBudget(Math.round(convertForStorage(typed)));
             setShowBudgetModal(false);
           }}
           style={[styles.cancelBtn, { borderColor: colors.border, marginTop: 20, backgroundColor: colors.accent }]}
@@ -352,7 +367,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     marginBottom: 28,
     gap: 16,
@@ -382,12 +397,11 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
     marginBottom: 10,
   },
   settingsGroup: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: 24,

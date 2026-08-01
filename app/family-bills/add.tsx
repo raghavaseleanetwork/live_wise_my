@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useTheme } from '@/lib/theme-context';
-import { FamilyBill, addFamilyBill } from '@/lib/family-records';
+import { useCurrency } from '@/lib/currency-context';
+import { FamilyBill, addFamilyBill, loadFamilyBills, updateFamilyBill } from '@/lib/family-records';
 
 const CATEGORY_LABELS: Record<FamilyBill['category'], { label: string; icon: string }> = {
   electricity: { label: 'Electricity', icon: 'flash' },
@@ -16,21 +17,53 @@ const CATEGORY_LABELS: Record<FamilyBill['category'], { label: string; icon: str
   other: { label: 'Other', icon: 'receipt' },
 };
 
+/** Example bill name per category, so the hint matches the selected chip. */
+const CATEGORY_PLACEHOLDERS: Record<FamilyBill['category'], string> = {
+  electricity: 'e.g. Electricity Board',
+  medical: 'e.g. Apollo Pharmacy',
+  insurance: 'e.g. LIC Premium',
+  other: 'e.g. Bill name',
+};
+
 export default function AddFamilyBillScreen() {
   const router = useRouter();
-  const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
+  const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { convertForStorage, convertForDisplay, symbol } = useCurrency();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<FamilyBill['category']>('electricity');
+  // Nothing preselected on a new bill; editing seeds it from the record below.
+  const [category, setCategory] = useState<FamilyBill['category'] | null>(null);
   const [dueDate, setDueDate] = useState(new Date());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const isEditing = !!editId;
+
+  // Seed the form from the record being edited.
+  useEffect(() => {
+    if (!editId || !memberId) return;
+    let cancelled = false;
+    (async () => {
+      const items = await loadFamilyBills(String(memberId));
+      const found = items.find((x) => x.id === String(editId));
+      if (!found || cancelled) return;
+      setName(found.name);
+      setAmount(String(Math.round(convertForDisplay(found.amount) * 100) / 100));
+      setCategory(found.category);
+      setDueDate(new Date(found.dueDate));
+    })();
+    return () => { cancelled = true; };
+  }, [editId, memberId]);
+
   const handleSave = async () => {
+    if (!category) {
+      setError('Please select a category');
+      return;
+    }
     if (!name.trim()) {
       setError('Please enter a bill name');
       return;
@@ -42,12 +75,18 @@ export default function AddFamilyBillScreen() {
     }
     if (!memberId || saving) return;
     setSaving(true);
-    await addFamilyBill(String(memberId), {
+    const data = {
       name: name.trim(),
-      amount: amt,
+      // Typed in the user's display currency; stored in INR like every amount.
+      amount: convertForStorage(amt),
       category,
       dueDate: dueDate.toISOString(),
-    });
+    };
+    if (isEditing) {
+      await updateFamilyBill(String(memberId), String(editId), data);
+    } else {
+      await addFamilyBill(String(memberId), data);
+    }
     router.back();
   };
 
@@ -60,7 +99,7 @@ export default function AddFamilyBillScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>New Bill</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Bill' : 'New Bill'}</Text>
           <View style={styles.backBtn} />
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
@@ -69,7 +108,14 @@ export default function AddFamilyBillScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <View style={styles.typeRow}>
+        {/* One scrolling row rather than a wrapping grid, so the chips keep
+            their natural width and no short second row is left half-empty. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.typeScroll}
+          contentContainerStyle={styles.typeRow}
+        >
           {(Object.keys(CATEGORY_LABELS) as FamilyBill['category'][]).map((c) => (
             <Pressable
               key={c}
@@ -80,14 +126,14 @@ export default function AddFamilyBillScreen() {
               <Text style={[styles.typeChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{CATEGORY_LABELS[c].label}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Bill Name</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={name}
           onChangeText={setName}
-          placeholder="e.g. Electricity Board"
+          placeholder={category ? CATEGORY_PLACEHOLDERS[category] : 'e.g. Bill name'}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
@@ -96,7 +142,7 @@ export default function AddFamilyBillScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
             <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
-              <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>₹</Text>
+              <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>{symbol}</Text>
               <TextInput
                 style={[styles.amountInput, { color: colors.text }]}
                 value={amount}
@@ -116,7 +162,7 @@ export default function AddFamilyBillScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>Save Bill</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save Bill'}</Text>
         </Pressable>
       </ScrollView>
 
@@ -143,10 +189,13 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
   primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  // Negative margins cancel the form's 20px padding so the rail runs edge to
+  // edge; the matching content padding keeps the first and last chip clear.
+  typeScroll: { marginHorizontal: -20, marginBottom: 6 },
+  typeRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   formRow: { flexDirection: 'row', gap: 12 },
   amountWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, gap: 4 },

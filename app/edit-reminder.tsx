@@ -51,7 +51,7 @@ export default function EditReminderScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { bills, addReminder, editReminder, reminderSettings } = useExpenses();
-  const { formatAmount } = useCurrency();
+  const { formatAmount, convertForDisplay, convertForStorage, symbol } = useCurrency();
   const { checkLimit } = useSubscription();
   const { presentPaywall } = usePaywall();
 
@@ -61,8 +61,9 @@ export default function EditReminderScreen() {
   // Form State
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<CategoryType>('bills');
-  const [repeatType, setRepeatType] = useState<RepeatType>('monthly');
+  // Nothing preselected on a new reminder; editing seeds both from the record.
+  const [category, setCategory] = useState<CategoryType | null>(null);
+  const [repeatType, setRepeatType] = useState<RepeatType | null>(null);
   const [dueDate, setDueDate] = useState<Date>(new Date());
   const [selectedIcon, setSelectedIcon] = useState('flash');
   const [error, setError] = useState('');
@@ -75,17 +76,27 @@ export default function EditReminderScreen() {
   useEffect(() => {
     if (existingBill) {
       setName(existingBill.name);
-      setAmount(existingBill.amount.toString());
+      // Stored in INR; the field shows the user's currency, so convert on the
+      // way in as well as out or an edit silently restates the amount.
+      setAmount(String(Math.round(convertForDisplay(existingBill.amount) * 100) / 100));
       setCategory(existingBill.category);
       setRepeatType(existingBill.repeatType);
       setDueDate(new Date(existingBill.dueDate));
       setSelectedIcon(existingBill.icon);
     }
-  }, [existingBill]);
+  }, [existingBill, convertForDisplay]);
 
   const handleSave = async () => {
     if (!name.trim()) {
       setError('Please enter a name');
+      return;
+    }
+    if (!category) {
+      setError('Please select a category');
+      return;
+    }
+    if (!repeatType) {
+      setError('Please select how often this repeats');
       return;
     }
 
@@ -104,7 +115,7 @@ export default function EditReminderScreen() {
 
     const billData: any = {
       name: name.trim(),
-      amount: amt,
+      amount: convertForStorage(amt),
       category,
       repeatType,
       dueDate: dueDate.toISOString(),
@@ -124,7 +135,7 @@ export default function EditReminderScreen() {
     router.back();
   };
 
-  const headerHeight = 120 + insets.top;
+  const headerHeight = 132 + insets.top;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -153,7 +164,7 @@ export default function EditReminderScreen() {
                 placeholder="Name of Reminder"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 autoFocus={!existingBill}
-                textAlign="left"
+                textAlign="center"
                 textAlignVertical="center"
                 multiline={false}
                 numberOfLines={1}
@@ -179,7 +190,7 @@ export default function EditReminderScreen() {
                 <View style={styles.field}>
                   <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
                   <View style={styles.amountInputContainer}>
-                    <Text style={[styles.currencySymbol, { color: colors.text }]}>₹</Text>
+                    <Text style={[styles.currencySymbol, { color: colors.text }]}>{symbol}</Text>
                     <TextInput
                       style={[styles.amountInput, { color: colors.text }]}
                       value={amount}
@@ -234,7 +245,7 @@ export default function EditReminderScreen() {
             )}
 
             {/* Repeat Selection */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>RECURRENCE</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Recurrence</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.repeatScroll}>
               {REPEAT_OPTIONS.map(opt => (
                 <Pressable
@@ -259,7 +270,7 @@ export default function EditReminderScreen() {
             </ScrollView>
 
             {/* Category Grid */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>CATEGORY</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Category</Text>
             <View style={styles.categoryGrid}>
               {CATEGORY_OPTIONS.map(opt => {
                 const isSelected = category === opt.key;
@@ -355,7 +366,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginTop: 12,
+    marginBottom: 20,
   },
   backBtn: {
     width: 40,
@@ -365,17 +377,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
+    flex: 1,
+    textAlign: 'center',
     fontFamily: 'Inter_700Bold',
     fontSize: 20,
   },
   headerNameBlock: {
     marginTop: 8,
+    alignItems: 'center',
   },
   nameInput: {
     fontFamily: 'Inter_700Bold',
     fontSize: 24,
     paddingVertical: 10,
-    textAlign: 'left',
+    textAlign: 'center',
     writingDirection: 'ltr',
     width: '100%',
     minWidth: 200,
@@ -384,6 +399,7 @@ const styles = StyleSheet.create({
     height: 3,
     width: 60,
     borderRadius: 2,
+    alignSelf: 'center',
   },
   form: {
     paddingTop: 20,
@@ -436,7 +452,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
     marginBottom: 6,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   amountInputContainer: {
@@ -517,14 +532,14 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: '31%',
     aspectRatio: 1,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     padding: 10,
   },
   categoryLabel: {
-    marginTop: 8,
     fontSize: 11,
     fontFamily: 'Inter_500Medium',
     textAlign: 'center',
@@ -539,7 +554,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 64,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   saveGradient: {

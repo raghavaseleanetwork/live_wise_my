@@ -1,5 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Pressable,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +21,7 @@ import {
   loadCaregivers,
   removeCaregiver,
 } from '@/lib/family-caregivers';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function FamilyCaregiversScreen() {
   const router = useRouter();
@@ -99,7 +106,7 @@ export default function FamilyCaregiversScreen() {
 
         {loading ? (
           <View style={styles.centerBox}>
-            <ActivityIndicator color={colors.accent} />
+            <LoadingIndicator color={colors.accent} />
           </View>
         ) : loadError ? (
           <View style={[styles.noticeBox, { backgroundColor: colors.warningDim, borderColor: colors.warning }]}>
@@ -128,7 +135,7 @@ export default function FamilyCaregiversScreen() {
                     <Text style={[styles.cardTitle, { color: colors.text }]}>{c.name}</Text>
                     {c.role === 'owner' && (
                       <View style={[styles.ownerBadge, { backgroundColor: colors.accentDim }]}>
-                        <Text style={[styles.ownerBadgeText, { color: colors.accent }]}>OWNER</Text>
+                        <Text style={[styles.ownerBadgeText, { color: colors.accent }]}>Owner</Text>
                       </View>
                     )}
                   </View>
@@ -164,12 +171,12 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: 4, textAlign: 'center' },
   introText: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, marginBottom: 20 },
   centerBox: { paddingVertical: 40, alignItems: 'center' },
-  noticeBox: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, alignItems: 'flex-start' },
+  noticeBox: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, alignItems: 'flex-start' },
   noticeText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 19 },
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -31,10 +30,11 @@ import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 import { triggerForLimit } from '@/lib/entitlements';
 import { type LimitKey } from '@/constants/plans';
-import PremiumLoader from '@/components/PremiumLoader';
+import PremiumLoader, { LoadingIndicator } from '@/components/PremiumLoader';
 import { scheduleLocalNotification } from '@/lib/notifications';
 import { useCurrency } from '@/lib/currency-context';
 import CustomModal from '@/components/CustomModal';
+import Money from '@/components/Money';
 
 type ScanStep = 'guide' | 'preview' | 'processing';
 
@@ -658,7 +658,7 @@ export default function ScanBillScreen() {
               <View style={styles.modernSummaryGrid}>
                 <View style={styles.modernGridItem}>
                   <Text style={styles.modernGridLabel}>Amount due</Text>
-                  <Text style={[styles.modernGridValue, { color: colors.text }]}>{formatAmount(editingData?.amount || 0)}</Text>
+                  <Money style={[styles.modernGridValue, { color: colors.text }]}>{formatAmount(editingData?.amount || 0)}</Money>
                 </View>
                 <View style={[styles.modernGridItem, { alignItems: 'flex-end' }]}>
                   <Text style={styles.modernGridLabel}>Due date</Text>
@@ -742,7 +742,7 @@ export default function ScanBillScreen() {
             <View style={styles.confirmGradient}>
               {/* Spinner tracks whichever action THIS button runs, not a fixed one. */}
               {(isExpenseMode ? isSavingExpense : isSavingReminder) ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <LoadingIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
                   <Ionicons
@@ -767,7 +767,7 @@ export default function ScanBillScreen() {
             style={[styles.expenseAltBtn, { borderTopColor: colors.border }, isBusy && { opacity: 0.6 }]}
           >
             {(isExpenseMode ? isSavingReminder : isSavingExpense) ? (
-              <ActivityIndicator size="small" color={colors.accent} />
+              <LoadingIndicator size="small" color={colors.accent} />
             ) : (
               <>
                 <Ionicons
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
   topInfoBlur: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 1,
@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
   fallbackIconWrap: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -1064,7 +1064,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   modernSummaryCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
   },

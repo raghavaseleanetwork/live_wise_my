@@ -12,7 +12,12 @@
           "package_name": "com.lifewise"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "152932967230-k3cofknaqa0iompfilk3q69novnpg169.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCicQKBF-3C2u0L4C_ZonQa3JYRVMFQWEc"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "152932967230-k3cofknaqa0iompfilk3q69novnpg169.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

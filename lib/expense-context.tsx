@@ -88,6 +88,43 @@ interface ExpenseContextValue {
 
 const ExpenseContext = createContext<ExpenseContextValue | null>(null);
 
+/**
+ * Creation time encoded in a Mongo ObjectId, or null for any other id shape.
+ *
+ * `Bill` has no `createdAt` field and the server does not send one, so the id
+ * is the only recency signal available. A 24-char hex ObjectId carries a
+ * 4-byte unix timestamp in its first 8 characters.
+ *
+ * Family Hub projections (`fam:...`) and any client-generated id return null
+ * and are treated as equal, leaving their relative order untouched.
+ */
+function creationTimeFromId(id: string): number | null {
+  if (!/^[0-9a-f]{24}$/i.test(id)) return null;
+  const seconds = parseInt(id.slice(0, 8), 16);
+  return Number.isFinite(seconds) ? seconds * 1000 : null;
+}
+
+/**
+ * Newest-created first, preserving the server's relative order for anything
+ * without a decodable timestamp.
+ *
+ * Note this orders by *creation*, not due date — the Reminders screen applies
+ * its own due-date sort on top. This only decides which reminder wins when two
+ * are otherwise equal, and guarantees a freshly added one is never buried.
+ */
+export function sortBillsNewestFirst(items: Bill[]): Bill[] {
+  return items
+    .map((bill, index) => ({ bill, index }))
+    .sort((a, b) => {
+      const at = creationTimeFromId(a.bill.id);
+      const bt = creationTimeFromId(b.bill.id);
+      // Undecodable ids keep their incoming order rather than jumping to an end.
+      if (at === null || bt === null) return a.index - b.index;
+      return bt - at;
+    })
+    .map((entry) => entry.bill);
+}
+
 async function fetchWithAuth(token: string | null, path: string, options?: RequestInit): Promise<Response> {
   const baseUrl = getApiUrl();
   const url = new URL(path, baseUrl).toString();
@@ -149,7 +186,13 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         );
       }
       else setTransactions([]);
-      if (billsRes.ok) setBills(await billsRes.json());
+      if (billsRes.ok) {
+        // Newest first, like transactions above. The server returns insertion
+        // order, so without this a refresh puts the most recently added
+        // reminder back at the bottom of the list.
+        const data = (await billsRes.json()) as Bill[];
+        setBills(Array.isArray(data) ? sortBillsNewestFirst(data) : []);
+      }
       else setBills([]);
       if (leaksRes.ok) setLeaks(await leaksRes.json());
       else setLeaks([]);
@@ -352,7 +395,10 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       });
       if (res.ok) {
         const created = await res.json();
-        setBills((prev) => [...prev, created]);
+        // Prepend, not append: a just-created reminder belongs at the head of
+        // the list. Appending buried it at the bottom, which read as "my
+        // reminder wasn't saved".
+        setBills((prev) => [created, ...prev]);
         return created as Bill;
       }
     } catch {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,13 +7,27 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useTheme } from '@/lib/theme-context';
-import { addAppointment } from '@/lib/family-records';
+import { addAppointment, loadAppointments, updateAppointment } from '@/lib/family-records';
 
+/**
+ * Add *and* edit an appointment.
+ *
+ * One screen for both, keyed on an optional `editId` param: the fields, the
+ * validation and the date picker are identical, and a separate edit screen
+ * would be this file with two lines changed — a copy that silently drifts the
+ * first time a field is added to one and not the other.
+ */
 export default function AddAppointmentScreen() {
   const router = useRouter();
-  const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
+  const { memberId, memberName, editId } = useLocalSearchParams<{
+    memberId: string;
+    memberName?: string;
+    editId?: string;
+  }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+
+  const isEditing = !!editId;
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [doctorName, setDoctorName] = useState('');
@@ -24,6 +38,23 @@ export default function AddAppointmentScreen() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Seed the form from the record being edited.
+  useEffect(() => {
+    if (!editId || !memberId) return;
+    let cancelled = false;
+    (async () => {
+      const items = await loadAppointments(String(memberId));
+      const found = items.find((a) => a.id === String(editId));
+      if (!found || cancelled) return;
+      setDoctorName(found.doctorName);
+      setSpecialty(found.specialty ?? '');
+      setLocation(found.location ?? '');
+      setIsFollowUp(found.isFollowUp);
+      setApptDate(new Date(found.date));
+    })();
+    return () => { cancelled = true; };
+  }, [editId, memberId]);
+
   const handleSave = async () => {
     if (!doctorName.trim()) {
       setError('Please enter the doctor\'s name');
@@ -31,14 +62,22 @@ export default function AddAppointmentScreen() {
     }
     if (!memberId || saving) return;
     setSaving(true);
-    await addAppointment(String(memberId), {
+
+    const data = {
       doctorName: doctorName.trim(),
       specialty: specialty.trim(),
       location: location.trim(),
-      notes: '',
       isFollowUp,
       date: apptDate.toISOString(),
-    });
+    };
+
+    if (isEditing) {
+      // `notes` is deliberately absent from the patch — this form does not
+      // expose it, and including it would wipe any note set elsewhere.
+      await updateAppointment(String(memberId), String(editId), data);
+    } else {
+      await addAppointment(String(memberId), { ...data, notes: '' });
+    }
     router.back();
   };
 
@@ -51,7 +90,9 @@ export default function AddAppointmentScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>New Appointment</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {isEditing ? 'Edit Appointment' : 'New Appointment'}
+          </Text>
           <View style={styles.backBtn} />
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
@@ -100,7 +141,7 @@ export default function AddAppointmentScreen() {
         </Pressable>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>Save Appointment</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save Appointment'}</Text>
         </Pressable>
       </ScrollView>
 
@@ -130,7 +171,7 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
   primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   followUpRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   followUpText: { fontFamily: 'Inter_500Medium', fontSize: 14 },

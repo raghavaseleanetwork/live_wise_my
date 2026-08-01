@@ -6,7 +6,6 @@ import {
   TextInput,
   Pressable,
   Platform,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,13 +14,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
+import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function VerifyOtpScreen() {
   const insets = useSafeAreaInsets();
   const { verifyOtp, resendOtp, user } = useAuth();
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ phone?: string }>();
-  const phone = params.phone || user?.phone || '';
+  const params = useLocalSearchParams<{ email?: string }>();
+  // Verification is by email — the code is sent to the address the account was
+  // created with. Falls back to the signed-in user's email for the case where
+  // this screen is reached outside the signup flow.
+  const email = params.email || user?.email || '';
   const [otp, setOtp] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
@@ -32,16 +35,16 @@ export default function VerifyOtpScreen() {
 
   const handleVerify = async () => {
     if (!otp.trim() || otp.length !== 6) {
-      setError('Enter the 6-digit code sent to your phone');
+      setError('Enter the 6-digit code sent to your email');
       return;
     }
-    if (!phone) {
-      setError('Phone number missing');
+    if (!email) {
+      setError('Email address missing');
       return;
     }
     setError('');
     setIsSubmitting(true);
-    const result = await verifyOtp(phone, otp.trim());
+    const result = await verifyOtp(email, otp.trim());
     setIsSubmitting(false);
     if (result.success) {
       router.replace('/(tabs)');
@@ -51,10 +54,10 @@ export default function VerifyOtpScreen() {
   };
 
   const handleResend = async () => {
-    if (!phone) return;
+    if (!email) return;
     setResending(true);
     setError('');
-    const result = await resendOtp(phone);
+    const result = await resendOtp(email);
     setResending(false);
     if (result.success) {
       setOtp('');
@@ -63,10 +66,10 @@ export default function VerifyOtpScreen() {
     }
   };
 
-  if (!phone) {
+  if (!email) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
-        <Text style={[styles.errorText, { color: colors.danger }]}>Phone number missing. Please sign up again.</Text>
+        <Text style={[styles.errorText, { color: colors.danger }]}>Email address missing. Please sign up again.</Text>
         <Pressable onPress={() => router.back()}>
           <Text style={{ color: colors.accent }}>Go back</Text>
         </Pressable>
@@ -83,11 +86,11 @@ export default function VerifyOtpScreen() {
       >
         <View style={styles.headerSection}>
           <View style={[styles.logoCircle, { backgroundColor: colors.accentDim }]}>
-            <Ionicons name="phone-portrait" size={32} color={colors.accent} />
+            <Ionicons name="mail-open-outline" size={32} color={colors.accent} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Verify your phone</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Verify your email</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            We sent a 6-digit code to {phone}. Enter it below.
+            We sent a 6-digit code to {email}. Enter it below.
           </Text>
         </View>
 
@@ -125,7 +128,7 @@ export default function VerifyOtpScreen() {
               style={[styles.submitBtn, (isSubmitting || otp.length !== 6) && styles.submitBtnDisabled]}
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <LoadingIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.submitBtnText}>Verify & continue</Text>
               )}
@@ -170,7 +173,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
     marginBottom: 8,
   },

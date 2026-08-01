@@ -6,7 +6,6 @@ import {
   TextInput,
   Pressable,
   Platform,
-  ActivityIndicator,
   ScrollView,
   Image,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { Link, router } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import Animated, { FadeInDown, ZoomIn, FadeInLeft } from 'react-native-reanimated';
+import PremiumLoader from '@/components/PremiumLoader';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -27,6 +27,10 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Separate from `isSubmitting` so the spinner shows on the pressed button.
+  // Backend token verification runs after the Google sheet closes, so without
+  // this the screen looks frozen. Mirrors `app/(auth)/login.tsx`.
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showPasswordHints, setShowPasswordHints] = useState(false);
 
@@ -62,14 +66,39 @@ export default function RegisterScreen() {
     setIsSubmitting(false);
     if (!result.success) {
       setError(result.error || 'Registration failed');
+      return;
+    }
+    // The account exists but no session was created — the user is not signed in
+    // until the emailed code is verified.
+    if (result.otpRequired) {
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { email: result.email ?? trimmedEmail },
+      });
     }
   };
 
   const handleGoogleSignup = async () => {
+    if (isGoogleSubmitting) return;
     setError('');
-    const res = await loginWithGoogle();
+    setIsGoogleSubmitting(true);
+    let res;
+    try {
+      res = await loginWithGoogle();
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
     if (!res.success) {
       setError(res.error || 'Google sign-up failed');
+      return;
+    }
+    // Google accounts verify by OTP too — signing in with Google proves the
+    // Google account, not that this user should have a LifeWise session.
+    if (res.otpRequired && res.email) {
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { email: res.email },
+      });
     }
   };
 
@@ -183,7 +212,7 @@ export default function RegisterScreen() {
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(350).duration(600) : undefined}>
             <Pressable
               onPress={handleRegister}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isGoogleSubmitting}
               style={styles.submitBtnWrap}
               testID="register-submit"
             >
@@ -194,7 +223,7 @@ export default function RegisterScreen() {
                 style={styles.submitBtn}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <PremiumLoader size={28} compact />
                 ) : (
                   <Text style={styles.submitBtnText}>Create Account</Text>
                 )}
@@ -213,10 +242,30 @@ export default function RegisterScreen() {
           <View style={styles.socialRow}>
             <Pressable
               onPress={handleGoogleSignup}
-              style={[styles.googleBtn, { backgroundColor: '#FFFFFF', borderColor: colors.border }]}
+              disabled={isGoogleSubmitting || isSubmitting}
+              style={[
+                styles.googleBtn,
+                {
+                  backgroundColor: '#FFFFFF',
+                  borderColor: colors.border,
+                  opacity: isGoogleSubmitting || isSubmitting ? 0.7 : 1,
+                },
+              ]}
+              testID="register-google"
             >
-              <Ionicons name="logo-google" size={24} color="#4285F4" />
-              <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+              {isGoogleSubmitting ? (
+                <>
+                  <PremiumLoader size={24} compact />
+                  <Text style={[styles.googleBtnText, { color: colors.textSecondary }]}>
+                    Verifying…
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={24} color="#4285F4" />
+                  <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+                </>
+              )}
             </Pressable>
           </View>
         </Animated.View>
@@ -302,7 +351,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
     marginBottom: 8,
   },
@@ -326,7 +374,9 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   submitBtn: {
-    paddingVertical: 18,
+    // Fixed height — see the matching note in (auth)/login.tsx. The spinner that
+    // replaces the label must not resize the button.
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 14,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { useTheme } from '@/lib/theme-context';
-import { FamilyExpense, addFamilyExpense } from '@/lib/family-records';
+import { useCurrency } from '@/lib/currency-context';
+import { FamilyExpense, addFamilyExpense, loadFamilyExpenses, updateFamilyExpense } from '@/lib/family-records';
 
 const CATEGORY_LABELS: Record<FamilyExpense['category'], { label: string; icon: string; color: string }> = {
   food: { label: 'Food', icon: 'fast-food', color: '#F97316' },
@@ -18,17 +19,40 @@ const CATEGORY_LABELS: Record<FamilyExpense['category'], { label: string; icon: 
 
 export default function AddFamilyExpenseScreen() {
   const router = useRouter();
-  const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
+  const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { convertForStorage, convertForDisplay, symbol } = useCurrency();
 
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<FamilyExpense['category']>('food');
+  // Nothing preselected on a new expense; editing seeds it from the record.
+  const [category, setCategory] = useState<FamilyExpense['category'] | null>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const isEditing = !!editId;
+
+  // Seed the form from the record being edited.
+  useEffect(() => {
+    if (!editId || !memberId) return;
+    let cancelled = false;
+    (async () => {
+      const items = await loadFamilyExpenses(String(memberId));
+      const found = items.find((x) => x.id === String(editId));
+      if (!found || cancelled) return;
+      setDescription(found.description);
+      setAmount(String(Math.round(convertForDisplay(found.amount) * 100) / 100));
+      setCategory(found.category);
+    })();
+    return () => { cancelled = true; };
+  }, [editId, memberId]);
+
   const handleSave = async () => {
+    if (!category) {
+      setError('Please select a category');
+      return;
+    }
     if (!description.trim()) {
       setError('Please enter what this expense was for');
       return;
@@ -40,12 +64,18 @@ export default function AddFamilyExpenseScreen() {
     }
     if (!memberId || saving) return;
     setSaving(true);
-    await addFamilyExpense(String(memberId), {
+    const data = {
       description: description.trim(),
-      amount: amt,
+      // Typed in the user's display currency; stored in INR like every amount.
+      amount: convertForStorage(amt),
       category,
       date: new Date().toISOString(),
-    });
+    };
+    if (isEditing) {
+      await updateFamilyExpense(String(memberId), String(editId), data);
+    } else {
+      await addFamilyExpense(String(memberId), data);
+    }
     router.back();
   };
 
@@ -58,7 +88,7 @@ export default function AddFamilyExpenseScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Log Expense</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Expense' : 'Log Expense'}</Text>
           <View style={styles.backBtn} />
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
@@ -67,7 +97,12 @@ export default function AddFamilyExpenseScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <View style={styles.typeGrid}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.typeScroll}
+          contentContainerStyle={styles.typeGrid}
+        >
           {(Object.keys(CATEGORY_LABELS) as FamilyExpense['category'][]).map((c) => (
             <Pressable
               key={c}
@@ -78,7 +113,7 @@ export default function AddFamilyExpenseScreen() {
               <Text style={[styles.typeChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{CATEGORY_LABELS[c].label}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Description</Text>
         <TextInput
@@ -92,7 +127,7 @@ export default function AddFamilyExpenseScreen() {
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
         <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
-          <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>₹</Text>
+          <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>{symbol}</Text>
           <TextInput
             style={[styles.amountInput, { color: colors.text }]}
             value={amount}
@@ -104,7 +139,7 @@ export default function AddFamilyExpenseScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>Save</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -121,10 +156,13 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
   primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  // Horizontal rail; negative margin cancels the form's 20px padding so it
+  // runs edge to edge, with matching content padding on the inside.
+  typeScroll: { marginHorizontal: -20, marginBottom: 6 },
+  typeGrid: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   amountWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, gap: 4 },
   amountPrefix: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },

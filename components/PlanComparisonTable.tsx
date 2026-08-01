@@ -212,7 +212,6 @@ const styles = StyleSheet.create({
   groupTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginTop: 16,
     marginBottom: 6,

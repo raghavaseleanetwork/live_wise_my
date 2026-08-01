@@ -473,3 +473,24 @@ export function formatLimit(value: number): string {
 export function formatPlanPrice(amount: number): string {
   return amount === 0 ? 'Free' : `₹${amount.toLocaleString('en-IN')}`;
 }
+
+/**
+ * Display price for a plan, preferring the store's localised string.
+ *
+ * Apple and Google own displayed pricing — the hardcoded INR values above are a
+ * fallback for the web build and for before offerings load. Showing a price that
+ * differs from what the store charges is a review rejection, so always route
+ * plan pricing through here rather than reading `priceMonthly` directly.
+ *
+ * `storePrices` comes from `useSubscription().storePrices`.
+ */
+export function resolvePlanPrice(
+  planId: PlanId,
+  interval: BillingInterval,
+  storePrices?: Record<string, string>,
+): string {
+  const meta = PLAN_META[planId];
+  const fallback = interval === 'year' ? meta.priceYearly : meta.priceMonthly;
+  if (fallback === 0) return 'Free';
+  return storePrices?.[`${planId}_${interval}`] ?? formatPlanPrice(fallback);
+}

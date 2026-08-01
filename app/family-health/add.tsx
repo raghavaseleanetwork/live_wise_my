@@ -16,7 +16,8 @@ export default function AddHealthLogScreen() {
   const { colors, isDark } = useTheme();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [logType, setLogType] = useState<HealthMetricType>('bp');
+  // Nothing preselected — the user picks which metric they are logging.
+  const [logType, setLogType] = useState<HealthMetricType | null>(null);
   const [value, setValue] = useState('');
   const [notes, setNotes] = useState('');
   const [logDate, setLogDate] = useState(new Date());
@@ -24,6 +25,10 @@ export default function AddHealthLogScreen() {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
+    if (!logType) {
+      setError('Please select what you are logging');
+      return;
+    }
     if (!value.trim()) {
       setError(`Please enter a ${HEALTH_METRIC_LABELS[logType].label.toLowerCase()} value`);
       return;
@@ -73,17 +78,28 @@ export default function AddHealthLogScreen() {
           ))}
         </View>
 
+        {/* Always rendered: hiding the screen's main input until a chip is
+            tapped leaves the form looking empty and broken. Before a metric is
+            picked it shows a neutral label and prompt instead. */}
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-          {logType === 'bp' ? 'Reading (e.g. 120/80)' : `Value (${HEALTH_METRIC_LABELS[logType].unit})`}
+          {!logType
+            ? 'Value'
+            : logType === 'bp'
+              ? 'Reading (e.g. 120/80)'
+              : `Value (${HEALTH_METRIC_LABELS[logType].unit})`}
         </Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={value}
           onChangeText={setValue}
-          placeholder={logType === 'bp' ? '120/80' : logType === 'sugar' ? '98' : '72'}
+          placeholder={
+            !logType ? 'Select what you are logging above' : logType === 'bp' ? '120/80' : logType === 'sugar' ? '98' : '72'
+          }
           placeholderTextColor={colors.textTertiary}
-          keyboardType={logType === 'bp' ? 'default' : 'numeric'}
-          autoFocus
+          // The numeric keyboard is wrong for BP ("120/80"), so it can only be
+          // chosen once the metric is known.
+          keyboardType={logType && logType !== 'bp' ? 'numeric' : 'default'}
+          editable={!!logType}
         />
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date</Text>
@@ -135,6 +151,6 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
   typeChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
 });
