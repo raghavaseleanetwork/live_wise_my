@@ -1022,16 +1022,34 @@ export default function HomeScreen() {
 
   const nowDay = new Date();
   nowDay.setHours(0, 0, 0, 0);
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
   const upcomingBills = bills
     .filter((b) => !b.isPaid && !['paid', 'snoozed', 'cancelled'].includes(b.status))
     .filter((b) => !dismissedReminderIds.includes(b.id)) // Persistent dismissal
     .filter((b) => {
       const due = new Date(b.dueDate);
       due.setHours(0, 0, 0, 0);
-      // Only show if due date is today or in the past
-      return due.getTime() <= nowDay.getTime();
+      // Overdue, due today, or due within the next 7 days.
+      return due.getTime() <= nowDay.getTime() + SEVEN_DAYS_MS;
     })
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 5);
+
+  /**
+   * 🟢 3+ days away · 🟠 due in 1-2 days · 🔴 due today or overdue.
+   * Whole-day difference, so "3+ days" starts at exactly 3 days out.
+   */
+  const upcomingBillStatusColor = useCallback(
+    (dueDateStr: string) => {
+      const due = new Date(dueDateStr);
+      due.setHours(0, 0, 0, 0);
+      const daysUntil = Math.round((due.getTime() - nowDay.getTime()) / (24 * 60 * 60 * 1000));
+      if (daysUntil <= 0) return colors.danger;
+      if (daysUntil <= 2) return colors.warning;
+      return colors.accentMint || colors.text;
+    },
+    [colors, nowDay],
+  );
 
   const showComingSoon = useCallback(() => {
     showAlert({
@@ -1124,7 +1142,7 @@ export default function HomeScreen() {
 
           {upcomingBills.length > 0 && (
             <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(120).duration(450) : undefined}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Upcoming Reminders</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Upcoming</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.remindersScroll}>
                 {upcomingBills.map((bill) => {
                   const dueDate = new Date(bill.dueDate);
@@ -1142,6 +1160,7 @@ export default function HomeScreen() {
                         : showRepeat
                           ? repeatLabel
                           : '';
+                  const statusColor = upcomingBillStatusColor(bill.dueDate);
 
                   return (
                     <Pressable
@@ -1149,16 +1168,23 @@ export default function HomeScreen() {
                       onPress={() => router.push(`/bill-details/${bill.id}`)}
                       style={[styles.reminderPill, { backgroundColor: colors.card, borderColor: colors.border }]}
                     >
-                      <View style={[styles.reminderPillIcon, { backgroundColor: colors.warningDim }]}>
-                        <Ionicons name={bill.icon as any} size={18} color={colors.warning} />
+                      <View style={[styles.reminderPillIcon, { backgroundColor: statusColor + '1F' }]}>
+                        <Ionicons name={bill.icon as any} size={18} color={statusColor} />
                       </View>
                       <View style={styles.reminderPillInfo}>
                         <Text style={[styles.reminderPillName, { color: colors.text }]} numberOfLines={1}>
                           {bill.name}
                         </Text>
-                        {!!dueOrRepeatText ? (
-                          <Text style={[styles.reminderPillDue, { color: colors.textTertiary }]}>{dueOrRepeatText}</Text>
-                        ) : null}
+                        <View style={styles.reminderPillMetaRow}>
+                          {!!dueOrRepeatText && (
+                            <Text style={[styles.reminderPillDue, { color: statusColor }]} numberOfLines={1}>
+                              {dueOrRepeatText}
+                            </Text>
+                          )}
+                          <Text style={[styles.reminderPillMember, { color: colors.textTertiary }]} numberOfLines={1}>
+                            {dueOrRepeatText ? ' • ' : ''}You
+                          </Text>
+                        </View>
                       </View>
                       <Money style={[styles.reminderPillAmount, { color: colors.accent, opacity: showAmount ? 1 : 0 }]}>
                         {formatAmount(bill.amount)}
@@ -1358,7 +1384,7 @@ export default function HomeScreen() {
 
         {upcomingBills.length > 0 && (
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(120).duration(500) : undefined}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Upcoming Reminders</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Upcoming</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.remindersScroll}>
               {upcomingBills.map((bill) => {
                 const dueDate = new Date(bill.dueDate);
@@ -1376,22 +1402,28 @@ export default function HomeScreen() {
                       : showRepeat
                         ? repeatLabel
                         : '';
+                const statusColor = upcomingBillStatusColor(bill.dueDate);
                 return (
                   <Pressable
                     key={bill.id}
                     onPress={() => router.push(`/bill-details/${bill.id}`)}
                     style={[styles.reminderPill, { backgroundColor: colors.card, borderColor: colors.border }]}
                   >
-                    <View style={[styles.reminderPillIcon, { backgroundColor: colors.warningDim }]}>
-                      <Ionicons name={bill.icon as any} size={18} color={colors.warning} />
+                    <View style={[styles.reminderPillIcon, { backgroundColor: statusColor + '1F' }]}>
+                      <Ionicons name={bill.icon as any} size={18} color={statusColor} />
                     </View>
                     <View style={styles.reminderPillInfo}>
                       <Text style={[styles.reminderPillName, { color: colors.text }]} numberOfLines={1}>{bill.name}</Text>
-                      {!!dueOrRepeatText ? (
-                        <Text style={[styles.reminderPillDue, { color: colors.textTertiary }]}>
-                          {dueOrRepeatText}
+                      <View style={styles.reminderPillMetaRow}>
+                        {!!dueOrRepeatText && (
+                          <Text style={[styles.reminderPillDue, { color: statusColor }]} numberOfLines={1}>
+                            {dueOrRepeatText}
+                          </Text>
+                        )}
+                        <Text style={[styles.reminderPillMember, { color: colors.textTertiary }]} numberOfLines={1}>
+                          {dueOrRepeatText ? ' • ' : ''}You
                         </Text>
-                      ) : null}
+                      </View>
                     </View>
                     {showAmount && (
                       <Money style={[styles.reminderPillAmount, { color: colors.accent }]}>
@@ -1865,7 +1897,9 @@ const styles = StyleSheet.create({
   reminderPillIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   reminderPillInfo: { flex: 1, gap: 2 },
   reminderPillName: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  reminderPillDue: { fontFamily: 'Inter_400Regular', fontSize: 11 },
+  reminderPillDue: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  reminderPillMetaRow: { flexDirection: 'row', alignItems: 'center' },
+  reminderPillMember: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   reminderPillAmount: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   insightsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   // `minWidth: 0` is what lets a flex child shrink below its content's natural
