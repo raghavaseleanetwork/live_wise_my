@@ -130,16 +130,15 @@ export default function ImportStatementScreen() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  /** Debits only — a statement's credits are income, not expenses. */
-  const debitRows = useMemo(() => rows.filter((r) => r.isDebit), [rows]);
-  const creditCount = rows.length - debitRows.length;
+  const debitCount = useMemo(() => rows.filter((r) => r.isDebit).length, [rows]);
+  const creditCount = rows.length - debitCount;
 
   const selectedRows = useMemo(
-    () => debitRows.filter((r) => selected.has(r.id)),
-    [debitRows, selected],
+    () => rows.filter((r) => selected.has(r.id)),
+    [rows, selected],
   );
   const selectedTotal = useMemo(
-    () => selectedRows.reduce((sum, r) => sum + r.amount, 0),
+    () => selectedRows.reduce((sum, r) => sum + (r.isDebit ? r.amount : -r.amount), 0),
     [selectedRows],
   );
 
@@ -256,8 +255,10 @@ export default function ImportStatementScreen() {
         setRows(importRows);
         setSkippedCount(meta?.rowsSkipped || 0);
         setSourceBank(meta?.bank || '');
-        // Pre-select every debit — the doc's flow is "uncheck what you don't want".
-        setSelected(new Set(importRows.filter((r) => r.isDebit).map((r) => r.id)));
+        // Pre-select every row (debit and credit) — the doc's flow is "uncheck
+        // what you don't want". Credits used to be dropped before this point,
+        // so income (salary, refunds) could never be imported.
+        setSelected(new Set(importRows.map((r) => r.id)));
         setStage('review');
       } catch (err) {
         setIsParsing(false);
@@ -317,10 +318,10 @@ export default function ImportStatementScreen() {
     });
   }, []);
 
-  const allSelected = selected.size === debitRows.length && debitRows.length > 0;
+  const allSelected = selected.size === rows.length && rows.length > 0;
   const toggleAll = useCallback(() => {
-    setSelected(allSelected ? new Set() : new Set(debitRows.map((r) => r.id)));
-  }, [allSelected, debitRows]);
+    setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
+  }, [allSelected, rows]);
 
   const applyCategory = useCallback((rowId: string, category: CategoryType) => {
     setRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, category } : r)));
@@ -339,6 +340,7 @@ export default function ImportStatementScreen() {
         date: r.date,
         description: r.description,
         source: 'import' as const,
+        isDebit: r.isDebit,
         // Server-generated in the preview call — reusing it (rather than
         // recomputing) is what lets a re-import of the same statement resolve
         // to the exact same key the server already indexed.
@@ -441,8 +443,8 @@ export default function ImportStatementScreen() {
         </Text>
         <Text style={[styles.summaryLine, { color: colors.textSecondary }]}>
           {sourceBank ? `${sourceBank} · ` : ''}
-          {debitRows.length} expense{debitRows.length === 1 ? '' : 's'} found
-          {creditCount > 0 ? ` · ${creditCount} credit${creditCount === 1 ? '' : 's'} ignored` : ''}
+          {debitCount} expense{debitCount === 1 ? '' : 's'}
+          {creditCount > 0 ? ` · ${creditCount} credit${creditCount === 1 ? '' : 's'}` : ''} found
           {skippedCount > 0 ? ` · ${skippedCount} row${skippedCount === 1 ? '' : 's'} unreadable` : ''}
         </Text>
       </View>
@@ -463,7 +465,7 @@ export default function ImportStatementScreen() {
         </Text>
       </View>
 
-      {debitRows.map((row) => {
+      {rows.map((row) => {
         const isOn = selected.has(row.id);
         const meta = CATEGORIES[row.category];
         return (
@@ -508,7 +510,14 @@ export default function ImportStatementScreen() {
               </Text>
             </Pressable>
 
-            <Money style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(row.amount)}</Money>
+            <Money
+              style={[
+                styles.rowAmount,
+                { color: row.isDebit ? colors.text : (colors.accentMint || colors.text) },
+              ]}
+            >
+              {row.isDebit ? '' : '+'}{formatAmount(row.amount)}
+            </Money>
           </Pressable>
         );
       })}

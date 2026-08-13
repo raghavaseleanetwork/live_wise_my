@@ -42,6 +42,8 @@ export interface ExpenseDraft {
   receiptUrl?: string;
   source?: ExpenseSource;
   upiId?: string;
+  /** Money out (expense) vs money in (income). Defaults to true — unset for every existing caller, so behaviour is unchanged unless a caller opts in. */
+  isDebit?: boolean;
   /**
    * Content hash identifying this row across repeated imports. Sent so the
    * server can upsert instead of inserting — see EXPENSE_ENTRY_BACKEND_TODO.md §2.
@@ -558,7 +560,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     category: draft.category || 'others',
     date: draft.date || new Date().toISOString(),
     upiId: draft.upiId || '',
-    isDebit: true,
+    isDebit: draft.isDebit ?? true,
     description: draft.description || '',
     memberId: draft.memberId ?? null,
     paymentMode: draft.paymentMode || 'upi',

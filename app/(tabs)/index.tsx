@@ -1436,7 +1436,7 @@ export default function HomeScreen() {
                 icon="swap-horizontal"
                 iconColor={colors.accentBlue}
                 bgColor={colors.accentBlueDim}
-                title="Total"
+                title="Transactions"
                 value={String(thisMonthTxsCount)}
                 subtitle="this month"
                 colors={colors}

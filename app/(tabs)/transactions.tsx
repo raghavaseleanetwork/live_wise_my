@@ -87,10 +87,12 @@ const TransactionItem = React.memo(({ item, colors, isDark, formatAmountOn, isSe
         </Text>
       </View>
       <View style={styles.txRight}>
-        <Text style={[styles.txAmount, { color: colors.danger }, isSeniorMode && { fontSize: 19 }]}>
+        <Text style={[styles.txAmount, { color: item.isDebit ? colors.danger : (colors.accentMint || colors.text) }, isSeniorMode && { fontSize: 19 }]}>
           {/* Converted at the rate on the transaction's own date, so a past
-              expense is not restated when the rupee moves. */}
-          -{formatAmountOn(item.amount, item.date)}
+              expense is not restated when the rupee moves. Sign/colour follow
+              isDebit — this used to be hardcoded red/minus for every row,
+              including credits (salary, refunds). */}
+          {item.isDebit ? '-' : '+'}{formatAmountOn(item.amount, item.date)}
         </Text>
         <Text style={[styles.txTime, { color: colors.textTertiary }, isSeniorMode && { fontSize: 13 }]}>
           {formatTime(item.date)}
@@ -579,8 +581,8 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 32,
-    letterSpacing: -0.5,
+    fontSize: 24,
+    letterSpacing: -0.4,
   },
   searchBar: {
     flexDirection: 'row',

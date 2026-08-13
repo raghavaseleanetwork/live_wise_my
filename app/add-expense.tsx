@@ -91,6 +91,9 @@ export default function AddExpenseScreen() {
   const suggestion = useMemo(() => suggestionForNow(), []);
 
   const [amount, setAmount] = useState('');
+  // Expense (debit) is the default — matches every existing entry point's prior
+  // behaviour. Income only became selectable here; it did not exist before.
+  const [isDebit, setIsDebit] = useState(true);
   // Nothing preselected. The time-of-day suggestion still hints the note
   // placeholder ("e.g. Lunch"), but no longer picks a category for the user.
   const [category, setCategory] = useState<CategoryType | null>(null);
@@ -213,6 +216,7 @@ export default function AddExpenseScreen() {
       description: note.trim(),
       receiptUrl: receiptUri || undefined,
       source: 'manual',
+      isDebit,
     });
 
     if (!created) {
@@ -229,7 +233,7 @@ export default function AddExpenseScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
     showAlert({
-      title: 'Expense saved',
+      title: isDebit ? 'Expense saved' : 'Income saved',
       message: `${currentCurrency.symbol}${amountValue.toLocaleString('en-IN')} · ${
         CATEGORIES[category].label
       }${selectedMember ? ` · ${selectedMember.name}` : ''}`,
@@ -251,6 +255,7 @@ export default function AddExpenseScreen() {
     currentCurrency.symbol,
     convertForStorage,
     router,
+    isDebit,
   ]);
 
   const isToday = new Date().toDateString() === date.toDateString();
@@ -270,6 +275,38 @@ export default function AddExpenseScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Expense / Income */}
+        <View style={[styles.typeToggle, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+          <Pressable
+            onPress={() => {
+              tap();
+              setIsDebit(true);
+            }}
+            style={[
+              styles.typeOption,
+              isDebit && { backgroundColor: colors.danger + '22' },
+            ]}
+          >
+            <Text style={[styles.typeText, { color: isDebit ? colors.danger : colors.textSecondary }]}>
+              Expense
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              tap();
+              setIsDebit(false);
+            }}
+            style={[
+              styles.typeOption,
+              !isDebit && { backgroundColor: (colors.accentMint || colors.text) + '22' },
+            ]}
+          >
+            <Text style={[styles.typeText, { color: !isDebit ? (colors.accentMint || colors.text) : colors.textSecondary }]}>
+              Income
+            </Text>
+          </Pressable>
+        </View>
+
         {/* Amount */}
         <View style={[styles.amountBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
           <Text style={[styles.currency, { color: colors.textTertiary }]}>
@@ -637,6 +674,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 16,
   },
+  typeToggle: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 4,
+    marginBottom: 12,
+  },
+  typeOption: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 9,
+  },
+  typeText: { fontSize: 13, fontWeight: '700' },
   currency: { fontSize: 22, fontWeight: '600' },
   amountText: { fontSize: 40, fontWeight: '700', letterSpacing: -1 },
   sectionLabel: {
