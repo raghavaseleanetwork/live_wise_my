@@ -5,14 +5,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { addCheckin, loadCheckins, updateCheckin } from '@/lib/family-records';
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_LABEL_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 export default function AddCheckinScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
@@ -56,7 +58,7 @@ export default function AddCheckinScreen() {
 
   const handleSave = async () => {
     if (!label.trim()) {
-      setError('Please describe this check-in (e.g. "Daily call")');
+      setError(t('familyCheckin.errorDescribeCheckin'));
       return;
     }
     if (!memberId || saving) return;
@@ -80,45 +82,45 @@ export default function AddCheckinScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Check-in' : 'New Check-in'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyCheckin.editTitle') : t('familyCheckin.newTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCheckin.forMember', { memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Description</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.descriptionLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={label}
           onChangeText={setLabel}
-          placeholder="e.g. Daily evening call"
+          placeholder={t('familyCheckin.descriptionPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Time</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.timeLabel')}</Text>
         <Pressable onPress={() => setShowTimePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
           <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
         </Pressable>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Repeat on (leave blank for every day)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.repeatOnLabel')}</Text>
         <View style={styles.dayRow}>
-          {DAY_LABELS.map((d, idx) => (
+          {DAY_LABEL_KEYS.map((d, idx) => (
             <Pressable
               key={d}
               onPress={() => toggleDay(idx)}
               style={[styles.dayChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.includes(idx) && { backgroundColor: colors.accent, borderColor: colors.accent }]}
             >
-              <Text style={[styles.dayChipText, { color: selectedDays.includes(idx) ? '#FFF' : colors.textSecondary }]}>{d}</Text>
+              <Text style={[styles.dayChipText, { color: selectedDays.includes(idx) ? '#FFF' : colors.textSecondary }]}>{t(`familyCheckin.day.${d}`)}</Text>
             </Pressable>
           ))}
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyCheckin.saveChanges') : t('common.save')}</Text>
         </Pressable>
       </ScrollView>
 

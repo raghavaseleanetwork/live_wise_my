@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import {
@@ -21,6 +22,7 @@ export default function FamilyCustomScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [config, setConfig] = useState<CustomFeatureConfig | null>(null);
   const [items, setItems] = useState<CustomTrackerItem[]>([]);
@@ -73,7 +75,7 @@ export default function FamilyCustomScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{config?.name || 'Custom Feature'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{config?.name || t('familyCustom.defaultTitle')}</Text>
           <View style={styles.headerActions}>
             {config && (
               <Pressable onPress={() => openSetup(config)} hitSlop={12}>
@@ -85,15 +87,15 @@ export default function FamilyCustomScreen() {
             </Pressable>
           </View>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCustom.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name={(config?.icon || 'star') as any} size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Nothing tracked yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to log your first entry for {config?.name || 'this tracker'}.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyCustom.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyCustom.emptyDesc', { name: config?.name || t('familyCustom.thisTracker') })}</Text>
           </View>
         ) : (
           items.map((item) => (

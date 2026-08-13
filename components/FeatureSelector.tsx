@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { FAMILY_FEATURES, FamilyFeatureKey } from '@/lib/family-features';
 
@@ -15,6 +16,7 @@ interface FeatureSelectorProps {
  */
 export default function FeatureSelector({ selected, onToggle }: FeatureSelectorProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.grid}>
@@ -45,10 +47,10 @@ export default function FeatureSelector({ selected, onToggle }: FeatureSelectorP
               </View>
             </View>
             <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>
-              {feature.label}
+              {t(`familyFeatures.${feature.key}.label`)}
             </Text>
             <Text style={[styles.desc, { color: colors.textTertiary }]} numberOfLines={2}>
-              {feature.description}
+              {t(`familyFeatures.${feature.key}.description`)}
             </Text>
           </Pressable>
         );

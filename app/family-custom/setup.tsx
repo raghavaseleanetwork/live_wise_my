@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { CustomFeatureConfig, saveCustomConfig } from '@/lib/family-records';
@@ -20,6 +21,7 @@ export default function CustomTrackerSetupScreen() {
   }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [trackerName, setTrackerName] = useState(currentName ? String(currentName) : '');
   const [trackerIcon, setTrackerIcon] = useState(currentIcon ? String(currentIcon) : 'star');
@@ -28,7 +30,7 @@ export default function CustomTrackerSetupScreen() {
 
   const handleSave = async () => {
     if (!trackerName.trim()) {
-      setError('Please name your custom tracker');
+      setError(t('familyCustom.errorNameTracker'));
       return;
     }
     if (!memberId || saving) return;
@@ -47,29 +49,29 @@ export default function CustomTrackerSetupScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Name Your Tracker</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyCustom.setupTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCustom.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
-          Give it a name and pick an icon. You can change this later.
+          {t('familyCustom.setupHint')}
         </Text>
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Tracker Name</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCustom.trackerNameLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={trackerName}
           onChangeText={setTrackerName}
-          placeholder="e.g. Physiotherapy Sessions"
+          placeholder={t('familyCustom.trackerNamePlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Icon</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCustom.iconLabel')}</Text>
         <View style={styles.iconGrid}>
           {ICON_OPTIONS.map((icon) => (
             <Pressable
@@ -83,7 +85,7 @@ export default function CustomTrackerSetupScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>Save</Text>
+          <Text style={styles.primaryBtnLabel}>{t('common.save')}</Text>
         </Pressable>
       </ScrollView>
     </View>

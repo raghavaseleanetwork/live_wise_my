@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { addAppointment, loadAppointments, updateAppointment } from '@/lib/family-records';
@@ -26,6 +27,7 @@ export default function AddAppointmentScreen() {
   }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const isEditing = !!editId;
 
@@ -57,7 +59,7 @@ export default function AddAppointmentScreen() {
 
   const handleSave = async () => {
     if (!doctorName.trim()) {
-      setError('Please enter the doctor\'s name');
+      setError(t('familyAppointments.errorEnterDoctorName'));
       return;
     }
     if (!memberId || saving) return;
@@ -91,36 +93,36 @@ export default function AddAppointmentScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isEditing ? 'Edit Appointment' : 'New Appointment'}
+            {isEditing ? t('familyAppointments.editHeaderTitle') : t('familyAppointments.newHeaderTitle')}
           </Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyAppointments.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Doctor Name</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyAppointments.doctorNameLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={doctorName}
           onChangeText={setDoctorName}
-          placeholder="e.g. Dr. Sharma"
+          placeholder={t('familyAppointments.doctorNamePlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Specialty (optional)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyAppointments.specialtyLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={specialty}
           onChangeText={setSpecialty}
-          placeholder="e.g. Cardiologist"
+          placeholder={t('familyAppointments.specialtyPlaceholder')}
           placeholderTextColor={colors.textTertiary}
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date & Location</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyAppointments.dateLocationLabel')}</Text>
         <Pressable
           onPress={() => setShowDatePicker(true)}
           style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}
@@ -131,17 +133,17 @@ export default function AddAppointmentScreen() {
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg, marginTop: 10 }]}
           value={location}
           onChangeText={setLocation}
-          placeholder="Clinic / Hospital name"
+          placeholder={t('familyAppointments.locationPlaceholder')}
           placeholderTextColor={colors.textTertiary}
         />
 
         <Pressable onPress={() => setIsFollowUp(!isFollowUp)} style={styles.followUpRow}>
           <Ionicons name={isFollowUp ? 'checkbox' : 'square-outline'} size={22} color={isFollowUp ? colors.accent : colors.textTertiary} />
-          <Text style={[styles.followUpText, { color: colors.text }]}>This is a follow-up visit</Text>
+          <Text style={[styles.followUpText, { color: colors.text }]}>{t('familyAppointments.followUpCheckbox')}</Text>
         </Pressable>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save Appointment'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyAppointments.saveChanges') : t('familyAppointments.saveAppointment')}</Text>
         </Pressable>
       </ScrollView>
 

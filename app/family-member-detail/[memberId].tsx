@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
@@ -45,12 +46,12 @@ import { useCurrency } from '@/lib/currency-context';
 import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const RELATIONSHIPS = [
-  { key: 'self', label: 'Self', icon: 'person' },
-  { key: 'papa', label: 'Papa', icon: 'man' },
-  { key: 'mummy', label: 'Mummy', icon: 'woman' },
-  { key: 'partner', label: 'Partner', icon: 'heart' },
-  { key: 'child', label: 'Child', icon: 'happy' },
-  { key: 'other', label: 'Other', icon: 'people' },
+  { key: 'self', labelKey: 'family.relationshipSelf', icon: 'person' },
+  { key: 'papa', labelKey: 'family.relationshipPapa', icon: 'man' },
+  { key: 'mummy', labelKey: 'family.relationshipMummy', icon: 'woman' },
+  { key: 'partner', labelKey: 'family.relationshipPartner', icon: 'heart' },
+  { key: 'child', labelKey: 'family.relationshipChild', icon: 'happy' },
+  { key: 'other', labelKey: 'family.relationshipOther', icon: 'people' },
 ];
 
 type MedAppearance = 'capsule' | 'tablet' | 'round' | 'liquid';
@@ -110,6 +111,7 @@ export default function FamilyMemberDetailScreen() {
   const { memberId } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { token } = useAuth();
   const { formatAmount } = useCurrency();
   const [member, setMember] = useState<FamilyMember | null>(null);
@@ -229,9 +231,9 @@ export default function FamilyMemberDetailScreen() {
   if (!member) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 }]}>
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>Member not found</Text>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('family.memberNotFound')}</Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: colors.accent, fontFamily: 'Inter_600SemiBold' }}>Go back</Text>
+          <Text style={{ color: colors.accent, fontFamily: 'Inter_600SemiBold' }}>{t('family.goBack')}</Text>
         </Pressable>
       </View>
     );
@@ -256,7 +258,10 @@ export default function FamilyMemberDetailScreen() {
               <View>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>{member.name}</Text>
                 <Text style={[styles.headerRel, { color: colors.textSecondary }]}>
-                  {RELATIONSHIPS.find((r) => r.key === member.relationship)?.label || member.relationship}
+                  {(() => {
+                    const rel = RELATIONSHIPS.find((r) => r.key === member.relationship);
+                    return rel ? t(rel.labelKey) : member.relationship;
+                  })()}
                 </Text>
               </View>
             </View>
@@ -269,7 +274,7 @@ export default function FamilyMemberDetailScreen() {
             {member.featureKeys.length === 0 && (
               <View style={[styles.noMedsBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
                 <Text style={[styles.noItemsText, { color: colors.textTertiary }]}>
-                  No features selected. Tap edit to choose what to manage.
+                  {t('family.noFeaturesSelectedDetail')}
                 </Text>
               </View>
             )}
@@ -281,64 +286,64 @@ export default function FamilyMemberDetailScreen() {
               const def = FAMILY_FEATURE_MAP[key];
               if (!def) return null;
 
-              let subtitle = def.description;
+              let subtitle = t(`familyFeatures.${key}.description`);
               let route: { pathname: string; params: { memberId: string; memberName: string } } | null = null;
               let isWarning = false;
 
               if (key === 'appointments') {
                 const n = member.summaries.appointments.upcoming;
-                subtitle = n === 0 ? 'No upcoming appointments' : `${n} upcoming appointment${n === 1 ? '' : 's'}`;
+                subtitle = n === 0 ? t('family.noUpcomingAppointments') : t('family.upcomingAppointments', { count: n });
                 route = { pathname: '/family-appointments/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'health') {
                 const n = member.summaries.health.total;
-                subtitle = n === 0 ? 'No readings logged yet' : `${n} reading${n === 1 ? '' : 's'} logged`;
+                subtitle = n === 0 ? t('family.noReadingsLoggedYet') : t('family.readingsLogged', { count: n });
                 route = { pathname: '/family-health/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'stock') {
                 const { lowCount, total } = member.summaries.stock;
-                subtitle = total === 0 ? 'No stock tracked yet' : lowCount > 0 ? `${lowCount} medicine${lowCount === 1 ? '' : 's'} low on stock` : `${total} medicine${total === 1 ? '' : 's'} tracked`;
+                subtitle = total === 0 ? t('family.noStockTrackedYet') : lowCount > 0 ? t('family.medicinesLowStock', { count: lowCount }) : t('family.medicinesTracked', { count: total });
                 isWarning = lowCount > 0;
                 route = { pathname: '/family-stock/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'routine') {
                 const n = member.summaries.routine.total;
-                subtitle = n === 0 ? 'No routine set yet' : `${n} active reminder${n === 1 ? '' : 's'}`;
+                subtitle = n === 0 ? t('family.noRoutineSetYet') : t('family.activeReminders', { count: n });
                 route = { pathname: '/family-routine/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'bills') {
                 const n = member.summaries.bills.unpaid;
-                subtitle = n === 0 ? 'No bills due' : `${n} bill${n === 1 ? '' : 's'} due`;
+                subtitle = n === 0 ? t('family.noBillsDue') : t('family.billsDue', { count: n });
                 isWarning = n > 0;
                 route = { pathname: '/family-bills/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'subscriptions') {
                 const { total, monthlyTotal } = member.summaries.subscriptions;
-                subtitle = total === 0 ? 'No subscriptions tracked' : `${total} active · ~${formatAmount(monthlyTotal)}/mo`;
+                subtitle = total === 0 ? t('family.noSubscriptionsTracked') : t('family.subscriptionsActiveMonthly', { count: total, amount: formatAmount(monthlyTotal) });
                 route = { pathname: '/family-subscriptions/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'expenses') {
                 const n = member.summaries.expenses.monthTotal;
-                subtitle = n === 0 ? 'No expenses logged this month' : `${formatAmount(n)} spent this month`;
+                subtitle = n === 0 ? t('family.noExpensesThisMonth') : t('family.spentThisMonth', { amount: formatAmount(n) });
                 route = { pathname: '/family-expenses/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'tasks') {
                 const n = member.summaries.tasks.pending;
-                subtitle = n === 0 ? 'No pending tasks' : `${n} task${n === 1 ? '' : 's'} pending`;
+                subtitle = n === 0 ? t('family.noPendingTasks') : t('family.tasksPending', { count: n });
                 route = { pathname: '/family-tasks/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'insurance') {
                 const n = member.summaries.insurance.total;
-                subtitle = n === 0 ? 'No documents tracked yet' : `${n} document${n === 1 ? '' : 's'} tracked`;
+                subtitle = n === 0 ? t('family.noDocumentsTrackedYet') : t('family.documentsTracked', { count: n });
                 route = { pathname: '/family-documents/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'checkin') {
                 const n = member.summaries.checkin.total;
-                subtitle = n === 0 ? 'No check-ins set yet' : `${n} active check-in${n === 1 ? '' : 's'}`;
+                subtitle = n === 0 ? t('family.noCheckinsSetYet') : t('family.activeCheckins', { count: n });
                 route = { pathname: '/family-checkin/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'travel') {
                 const n = member.summaries.travel.upcoming;
-                subtitle = n === 0 ? 'No visits planned' : `${n} upcoming visit${n === 1 ? '' : 's'}`;
+                subtitle = n === 0 ? t('family.noVisitsPlanned') : t('family.upcomingVisits', { count: n });
                 route = { pathname: '/family-travel/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'emergency') {
                 const n = member.summaries.emergency.unacknowledged;
-                subtitle = n === 0 ? 'All clear' : `${n} unacknowledged alert${n === 1 ? '' : 's'}`;
+                subtitle = n === 0 ? t('family.allClear') : t('family.unacknowledgedAlerts', { count: n });
                 isWarning = n > 0;
                 route = { pathname: '/family-emergency/[memberId]', params: { memberId: member.id, memberName: member.name } };
               } else if (key === 'custom') {
                 const { name, total } = member.summaries.custom;
-                subtitle = !name ? 'Tap to set up your tracker' : total === 0 ? `${name} — nothing logged yet` : `${name} — ${total} entr${total === 1 ? 'y' : 'ies'}`;
+                subtitle = !name ? t('family.tapToSetUpTracker') : total === 0 ? t('family.customNothingLoggedYet', { name }) : t('family.customEntries', { name, count: total });
                 route = { pathname: '/family-custom/[memberId]', params: { memberId: member.id, memberName: member.name } };
               }
 
@@ -348,7 +353,7 @@ export default function FamilyMemberDetailScreen() {
                     <Ionicons name={def.icon as any} size={18} color={colors.accent} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.featureTitle, { color: colors.text }]}>{def.label}</Text>
+                    <Text style={[styles.featureTitle, { color: colors.text }]}>{t(`familyFeatures.${key}.label`)}</Text>
                     <Text style={[styles.featureSubtitle, { color: isWarning ? colors.warning : colors.textTertiary }]}>
                       {subtitle}
                     </Text>
@@ -357,7 +362,7 @@ export default function FamilyMemberDetailScreen() {
                     <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
                   ) : (
                     <View style={[styles.comingSoonBadge, { backgroundColor: colors.warningDim }]}>
-                      <Text style={[styles.comingSoonText, { color: colors.warning }]}>Soon</Text>
+                      <Text style={[styles.comingSoonText, { color: colors.warning }]}>{t('family.comingSoon')}</Text>
                     </View>
                   )}
                 </>

@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -35,12 +36,12 @@ import {
 import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const RELATIONSHIPS = [
-  { key: 'self', label: 'Self', icon: 'person' },
-  { key: 'spouse', label: 'Spouse', icon: 'heart' },
-  { key: 'child', label: 'Child', icon: 'happy' },
-  { key: 'parent', label: 'Parent', icon: 'people' },
-  { key: 'sibling', label: 'Sibling', icon: 'people-circle' },
-  { key: 'other', label: 'Other', icon: 'ellipsis-horizontal' },
+  { key: 'self', labelKey: 'familyMember.relationshipSelf', icon: 'person' },
+  { key: 'spouse', labelKey: 'familyMember.relationshipSpouse', icon: 'heart' },
+  { key: 'child', labelKey: 'familyMember.relationshipChild', icon: 'happy' },
+  { key: 'parent', labelKey: 'familyMember.relationshipParent', icon: 'people' },
+  { key: 'sibling', labelKey: 'familyMember.relationshipSibling', icon: 'people-circle' },
+  { key: 'other', labelKey: 'familyMember.relationshipOther', icon: 'ellipsis-horizontal' },
 ];
 
 export default function EditFamilyMemberScreen() {
@@ -48,6 +49,7 @@ export default function EditFamilyMemberScreen() {
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { token } = useAuth();
   const { checkLimit } = useSubscription();
   const { presentPaywall } = usePaywall();
@@ -143,14 +145,14 @@ export default function EditFamilyMemberScreen() {
             setSelectedFeatures(normalizeFeatures(member.features));
           }
         } else {
-          setError('Member not found');
+          setError(t('familyMember.errorMemberNotFound'));
         }
       } else {
-        setError('Failed to load member details');
+        setError(t('familyMember.errorLoadFailed'));
       }
     } catch (e) {
       console.error('Fetch member error:', e);
-      setError('An unexpected error occurred.');
+      setError(t('familyMember.errorUnexpected'));
     } finally {
       setIsLoading(false);
     }
@@ -170,7 +172,7 @@ export default function EditFamilyMemberScreen() {
       }
     } catch (e) {
       console.error('Pick image error:', e);
-      setError('Failed to pick image');
+      setError(t('familyMember.errorPickImage'));
     }
   };
 
@@ -203,7 +205,7 @@ export default function EditFamilyMemberScreen() {
       } else {
         const text = await res.text();
         console.error('[Upload] Server error:', res.status, text.slice(0, 200));
-        if (!res.ok) setError(`Upload failed (${res.status}). Avatar saved locally.`);
+        if (!res.ok) setError(t('familyMember.errorUploadFailed', { status: res.status }));
       }
     } catch (e) {
       console.error('[Upload] Exception:', e);
@@ -215,19 +217,19 @@ export default function EditFamilyMemberScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError('Please enter a name');
+      setError(t('familyMember.errorEnterName'));
       return;
     }
     if (!relationship) {
-      setError('Please select a relationship');
+      setError(t('familyMember.errorSelectRelationship'));
       return;
     }
     if (relationship === 'other' && !otherRelationship.trim()) {
-      setError('Please specify the relationship');
+      setError(t('familyMember.errorSpecifyRelationship'));
       return;
     }
     if (selectedFeatures.length === 0) {
-      setError('Select at least one feature to manage');
+      setError(t('familyMember.errorSelectFeature'));
       return;
     }
     if (!token || !id) return;
@@ -253,11 +255,11 @@ export default function EditFamilyMemberScreen() {
         await saveMemberFeatures(String(id), selectedFeatures);
         router.back();
       } else {
-        setError('Failed to update member. Please try again.');
+        setError(t('familyMember.errorUpdateFailed'));
       }
     } catch (e) {
       console.error('Update family member error:', e);
-      setError('An unexpected error occurred.');
+      setError(t('familyMember.errorUnexpected'));
     } finally {
       setIsSaving(false);
     }
@@ -292,7 +294,7 @@ export default function EditFamilyMemberScreen() {
               <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={15}>
                 <Ionicons name="chevron-back" size={24} color={colors.text} />
               </Pressable>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Member</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyMember.editTitle')}</Text>
             </View>
 
             <View style={styles.headerContent}>
@@ -312,13 +314,13 @@ export default function EditFamilyMemberScreen() {
 
               <View style={styles.headerNameBlock}>
                 <Text style={[styles.contextLabel, { color: colors.textSecondary }]}>
-                  Member Name <Text style={{ color: colors.danger }}>*</Text>
+                  {t('familyMember.memberName')} <Text style={{ color: colors.danger }}>*</Text>
                 </Text>
                 <TextInput
                   style={[styles.nameInput, { color: colors.text }]}
                   value={name}
                   onChangeText={setName}
-                  placeholder="Enter Name"
+                  placeholder={t('familyMember.namePlaceholderEdit')}
                   placeholderTextColor={colors.textTertiary}
                 />
                 <View style={[styles.nameUnderline, { backgroundColor: colors.accent }]} />
@@ -335,7 +337,7 @@ export default function EditFamilyMemberScreen() {
             ) : null}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              Relationship <Text style={{ color: colors.danger }}>*</Text>
+              {t('familyMember.relationship')} <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <View style={styles.relGrid}>
               {RELATIONSHIPS.map((rel) => {
@@ -351,7 +353,7 @@ export default function EditFamilyMemberScreen() {
                     ]}
                   >
                     <Ionicons name={rel.icon as any} size={20} color={isSelected ? colors.accent : colors.textTertiary} />
-                    <Text style={[styles.relLabel, { color: isSelected ? colors.accent : colors.textSecondary }]}>{rel.label}</Text>
+                    <Text style={[styles.relLabel, { color: isSelected ? colors.accent : colors.textSecondary }]}>{t(rel.labelKey)}</Text>
                     {isSelected && (
                       <View style={styles.checkWrap}>
                         <Ionicons name="checkmark-circle" size={14} color={colors.accent} />
@@ -365,7 +367,7 @@ export default function EditFamilyMemberScreen() {
             {relationship === 'other' && (
               <Animated.View entering={FadeInDown}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                  Specify relationship <Text style={{ color: colors.danger }}>*</Text>
+                  {t('familyMember.specifyRelationship')} <Text style={{ color: colors.danger }}>*</Text>
                 </Text>
                 <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}>
                   <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
@@ -373,7 +375,7 @@ export default function EditFamilyMemberScreen() {
                     style={{ flex: 1, color: colors.text, fontFamily: 'Inter_500Medium' }}
                     value={otherRelationship}
                     onChangeText={setOtherRelationship}
-                    placeholder="e.g. Grandparent, Friend"
+                    placeholder={t('familyMember.specifyRelationshipPlaceholder')}
                     placeholderTextColor={colors.textTertiary}
                   />
                 </View>
@@ -384,19 +386,19 @@ export default function EditFamilyMemberScreen() {
               <Animated.View entering={FadeInDown} style={[styles.infoCard, { backgroundColor: colors.accentDim + '30', borderColor: colors.accent + '30', marginTop: 0, marginBottom: 12 }]}>
                 <Ionicons name="shield-checkmark-outline" size={20} color={colors.accent} />
                 <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                  Since this is a parent, we've turned on <Text style={{ fontFamily: 'Inter_700Bold' }}>Emergency Alerts</Text> and <Text style={{ fontFamily: 'Inter_700Bold' }}>Call & Check-in</Text> below — you can turn them off if you don't need them.
+                  {t('familyMember.caregiverHintPrefix')} <Text style={{ fontFamily: 'Inter_700Bold' }}>{t('familyMember.caregiverHintFeature1')}</Text> {t('familyMember.caregiverHintMid')} <Text style={{ fontFamily: 'Inter_700Bold' }}>{t('familyMember.caregiverHintFeature2')}</Text> {t('familyMember.caregiverHintSuffix')}
                 </Text>
               </Animated.View>
             )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Date of birth</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('familyMember.dateOfBirth')}</Text>
             <Pressable
               onPress={() => setShowDatePicker(true)}
               style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}
             >
               <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
               <Text style={{ flex: 1, color: dateOfBirth ? colors.text : colors.textTertiary, fontFamily: 'Inter_500Medium' }}>
-                {dateOfBirth || "Select Birthday"}
+                {dateOfBirth || t('familyMember.selectBirthday')}
               </Text>
             </Pressable>
 
@@ -418,10 +420,10 @@ export default function EditFamilyMemberScreen() {
             )}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              Managed features <Text style={{ color: colors.danger }}>*</Text>
+              {t('familyMember.managedFeatures')} <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
-              Tap to turn features on or off for {name.trim() || 'this member'}.
+              {t('familyMember.toggleFeaturesHint', { name: name.trim() || t('familyMember.thisMember') })}
             </Text>
             <FeatureSelector selected={selectedFeatures} onToggle={toggleFeature} />
           </View>
@@ -445,7 +447,7 @@ export default function EditFamilyMemberScreen() {
               end={{ x: 1, y: 0 }}
             >
               <Ionicons name="checkmark-outline" size={24} color="#FFF" />
-              <Text style={styles.saveBtnText}>{isSaving ? 'Saving Changes...' : 'Save Changes'}</Text>
+              <Text style={styles.saveBtnText}>{isSaving ? t('familyMember.savingChanges') : t('familyMember.saveChanges')}</Text>
             </LinearGradient>
           </Pressable>
         </View>

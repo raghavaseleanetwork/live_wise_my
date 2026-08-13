@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useSubscription } from '@/lib/subscription-context';
@@ -23,6 +24,9 @@ export default function FamilyDocumentsScreen() {
   const { colors } = useTheme();
   const { checkLimit } = useSubscription();
   const { presentPaywall } = usePaywall();
+  const { t } = useTranslation();
+
+  const documentTypeLabel = (type: FamilyDocument['type']) => t(`familyDocuments.type.${type}`);
 
   const [items, setItems] = useState<FamilyDocument[]>([]);
 
@@ -53,20 +57,20 @@ export default function FamilyDocumentsScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Insurance & Documents</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyDocuments.headerTitle')}</Text>
           <Pressable onPress={handleOpenAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyDocuments.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="document-text-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No documents tracked yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to track policy renewals and important documents.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('family.noDocumentsTrackedYet')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyDocuments.emptyDesc')}</Text>
           </View>
         ) : (
           items.map((doc) => {
@@ -79,8 +83,8 @@ export default function FamilyDocumentsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{doc.title}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                    {def.label}
-                    {doc.reminderDate ? ` · Renews ${new Date(doc.reminderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                    {documentTypeLabel(doc.type)}
+                    {doc.reminderDate ? t('familyDocuments.renewsOn', { date: new Date(doc.reminderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) }) : ''}
                   </Text>
                   {!!doc.notes && <Text style={[styles.cardNotes, { color: colors.textSecondary }]}>{doc.notes}</Text>}
                 </View>

@@ -4,21 +4,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import { FamilyExpense, addFamilyExpense, loadFamilyExpenses, updateFamilyExpense } from '@/lib/family-records';
 
-const CATEGORY_LABELS: Record<FamilyExpense['category'], { label: string; icon: string; color: string }> = {
-  food: { label: 'Food', icon: 'fast-food', color: '#F97316' },
-  shopping: { label: 'Shopping', icon: 'cart', color: '#EC4899' },
-  transport: { label: 'Transport', icon: 'car', color: '#3B82F6' },
-  health: { label: 'Health', icon: 'medkit', color: '#10B981' },
-  other: { label: 'Other', icon: 'apps', color: '#6B7280' },
+const CATEGORY_META: Record<FamilyExpense['category'], { labelKey: string; icon: string; color: string }> = {
+  food: { labelKey: 'familyExpenses.categoryFood', icon: 'fast-food', color: '#F97316' },
+  shopping: { labelKey: 'familyExpenses.categoryShopping', icon: 'cart', color: '#EC4899' },
+  transport: { labelKey: 'familyExpenses.categoryTransport', icon: 'car', color: '#3B82F6' },
+  health: { labelKey: 'familyExpenses.categoryHealth', icon: 'medkit', color: '#10B981' },
+  other: { labelKey: 'familyExpenses.categoryOther', icon: 'apps', color: '#6B7280' },
 };
 
 export default function AddFamilyExpenseScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -50,16 +52,16 @@ export default function AddFamilyExpenseScreen() {
 
   const handleSave = async () => {
     if (!category) {
-      setError('Please select a category');
+      setError(t('familyExpenses.errorSelectCategory'));
       return;
     }
     if (!description.trim()) {
-      setError('Please enter what this expense was for');
+      setError(t('familyExpenses.errorEnterDescription'));
       return;
     }
     const amt = parseFloat(amount);
     if (!amount.trim() || Number.isNaN(amt) || amt <= 0) {
-      setError('Please enter a valid amount');
+      setError(t('familyExpenses.errorInvalidAmount'));
       return;
     }
     if (!memberId || saving) return;
@@ -88,10 +90,10 @@ export default function AddFamilyExpenseScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Expense' : 'Log Expense'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyExpenses.editExpense') : t('familyExpenses.logExpense')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyExpenses.forMember', { memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -103,29 +105,29 @@ export default function AddFamilyExpenseScreen() {
           style={styles.typeScroll}
           contentContainerStyle={styles.typeGrid}
         >
-          {(Object.keys(CATEGORY_LABELS) as FamilyExpense['category'][]).map((c) => (
+          {(Object.keys(CATEGORY_META) as FamilyExpense['category'][]).map((c) => (
             <Pressable
               key={c}
               onPress={() => setCategory(c)}
-              style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, category === c && { backgroundColor: CATEGORY_LABELS[c].color, borderColor: CATEGORY_LABELS[c].color }]}
+              style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, category === c && { backgroundColor: CATEGORY_META[c].color, borderColor: CATEGORY_META[c].color }]}
             >
-              <Ionicons name={CATEGORY_LABELS[c].icon as any} size={14} color={category === c ? '#FFF' : colors.textSecondary} />
-              <Text style={[styles.typeChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{CATEGORY_LABELS[c].label}</Text>
+              <Ionicons name={CATEGORY_META[c].icon as any} size={14} color={category === c ? '#FFF' : colors.textSecondary} />
+              <Text style={[styles.typeChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{t(CATEGORY_META[c].labelKey)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Description</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyExpenses.description')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={description}
           onChangeText={setDescription}
-          placeholder="e.g. Groceries"
+          placeholder={t('familyExpenses.descriptionPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyExpenses.amount')}</Text>
         <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
           <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>{symbol}</Text>
           <TextInput
@@ -139,7 +141,7 @@ export default function AddFamilyExpenseScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyExpenses.saveChanges') : t('common.save')}</Text>
         </Pressable>
       </ScrollView>
     </View>

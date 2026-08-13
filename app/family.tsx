@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
@@ -24,12 +25,12 @@ import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 
 const RELATIONSHIPS = [
-  { key: 'self', label: 'Self', icon: 'person' },
-  { key: 'papa', label: 'Papa', icon: 'man' },
-  { key: 'mummy', label: 'Mummy', icon: 'woman' },
-  { key: 'partner', label: 'Partner', icon: 'heart' },
-  { key: 'child', label: 'Child', icon: 'happy' },
-  { key: 'other', label: 'Other', icon: 'people' },
+  { key: 'self', labelKey: 'family.relationshipSelf', icon: 'person' },
+  { key: 'papa', labelKey: 'family.relationshipPapa', icon: 'man' },
+  { key: 'mummy', labelKey: 'family.relationshipMummy', icon: 'woman' },
+  { key: 'partner', labelKey: 'family.relationshipPartner', icon: 'heart' },
+  { key: 'child', labelKey: 'family.relationshipChild', icon: 'happy' },
+  { key: 'other', labelKey: 'family.relationshipOther', icon: 'people' },
 ];
 
 interface FamilyMember {
@@ -48,6 +49,7 @@ interface FamilyMember {
 export default function FamilyScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { token } = useAuth();
   const { checkLimit } = useSubscription();
   const { presentPaywall } = usePaywall();
@@ -174,9 +176,9 @@ export default function FamilyScreen() {
       >
         <View style={styles.headerRow}>
           <View style={styles.headerTitleWrap}>
-            <Text style={[styles.screenTitle, { color: colors.text }]}>Family Hub</Text>
+            <Text style={[styles.screenTitle, { color: colors.text }]}>{t('family.title')}</Text>
             <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
-              Manage medicines, health, bills & more
+              {t('family.subtitle')}
             </Text>
           </View>
           <View style={styles.headerActions}>
@@ -184,7 +186,7 @@ export default function FamilyScreen() {
               onPress={() => router.push('/caregiver-invites')}
               style={[styles.headerIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel="Caregiver invites"
+              accessibilityLabel={t('family.caregiverInvitesLabel')}
             >
               {/* Deliberately NOT a bell. This opens Caregiver Invites, not a
                   notification list — the bell made it read as a second
@@ -198,7 +200,7 @@ export default function FamilyScreen() {
                 </View>
               )}
             </Pressable>
-            <Pressable onPress={handleAddMember} accessibilityLabel="Add family member">
+            <Pressable onPress={handleAddMember} accessibilityLabel={t('family.addMemberLabel')}>
               <LinearGradient
                 colors={colors.buttonGradient as any}
                 start={{ x: 0, y: 0 }}
@@ -217,9 +219,9 @@ export default function FamilyScreen() {
               <View style={[styles.emptyIconWrap, { backgroundColor: colors.accentDim }]}>
                 <Ionicons name="people-outline" size={60} color={colors.accent} />
               </View>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Your hub is empty</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('family.emptyTitle')}</Text>
               <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                Add your loved ones and pick what to manage — medicines, health, bills, appointments and more, all in one place.
+                {t('family.emptyDesc')}
               </Text>
               <Pressable
                 onPress={handleAddMember}
@@ -231,7 +233,7 @@ export default function FamilyScreen() {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={styles.emptyActionText}>Add First Member</Text>
+                  <Text style={styles.emptyActionText}>{t('family.addFirstMember')}</Text>
                 </LinearGradient>
               </Pressable>
             </Animated.View>
@@ -256,12 +258,15 @@ export default function FamilyScreen() {
                           <Text style={[styles.memberName, { color: colors.text }]}>{member.name}</Text>
                           {member.isSharedWithMe && (
                             <View style={[styles.sharedBadge, { backgroundColor: colors.accentDim }]}>
-                              <Text style={[styles.sharedBadgeText, { color: colors.accent }]}>Shared</Text>
+                              <Text style={[styles.sharedBadgeText, { color: colors.accent }]}>{t('family.shared')}</Text>
                             </View>
                           )}
                         </View>
                         <Text style={[styles.memberRel, { color: colors.textTertiary }]}>
-                          {RELATIONSHIPS.find(r => r.key === member.relationship)?.label || member.relationship}
+                          {(() => {
+                            const rel = RELATIONSHIPS.find(r => r.key === member.relationship);
+                            return rel ? t(rel.labelKey) : member.relationship;
+                          })()}
                         </Text>
                       </View>
                     </View>
@@ -300,8 +305,8 @@ export default function FamilyScreen() {
                   <View style={[styles.summaryRow, { borderTopColor: colors.border }]}>
                     <Text style={[styles.summaryText, { color: colors.textTertiary }]}>
                       {member.featureKeys.length === 0
-                        ? 'No features selected yet'
-                        : `${member.featureKeys.length} feature${member.featureKeys.length === 1 ? '' : 's'} managed`}
+                        ? t('family.noFeaturesSelectedYet')
+                        : t('family.featuresManaged', { count: member.featureKeys.length })}
                     </Text>
                     <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
                   </View>

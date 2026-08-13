@@ -5,24 +5,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import { FamilyBill, addFamilyBill, loadFamilyBills, updateFamilyBill } from '@/lib/family-records';
 
-const CATEGORY_LABELS: Record<FamilyBill['category'], { label: string; icon: string }> = {
-  electricity: { label: 'Electricity', icon: 'flash' },
-  medical: { label: 'Medical', icon: 'medkit' },
-  insurance: { label: 'Insurance', icon: 'shield-checkmark' },
-  other: { label: 'Other', icon: 'receipt' },
+const CATEGORY_LABELS: Record<FamilyBill['category'], { labelKey: string; icon: string }> = {
+  electricity: { labelKey: 'familyBills.categoryElectricity', icon: 'flash' },
+  medical: { labelKey: 'familyBills.categoryMedical', icon: 'medkit' },
+  insurance: { labelKey: 'familyBills.categoryInsurance', icon: 'shield-checkmark' },
+  other: { labelKey: 'familyBills.categoryOther', icon: 'receipt' },
 };
 
 /** Example bill name per category, so the hint matches the selected chip. */
-const CATEGORY_PLACEHOLDERS: Record<FamilyBill['category'], string> = {
-  electricity: 'e.g. Electricity Board',
-  medical: 'e.g. Apollo Pharmacy',
-  insurance: 'e.g. LIC Premium',
-  other: 'e.g. Bill name',
+const CATEGORY_PLACEHOLDER_KEYS: Record<FamilyBill['category'], string> = {
+  electricity: 'familyBills.placeholderElectricity',
+  medical: 'familyBills.placeholderMedical',
+  insurance: 'familyBills.placeholderInsurance',
+  other: 'familyBills.placeholderOther',
 };
 
 export default function AddFamilyBillScreen() {
@@ -31,6 +32,7 @@ export default function AddFamilyBillScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { convertForStorage, convertForDisplay, symbol } = useCurrency();
+  const { t } = useTranslation();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [name, setName] = useState('');
@@ -61,16 +63,16 @@ export default function AddFamilyBillScreen() {
 
   const handleSave = async () => {
     if (!category) {
-      setError('Please select a category');
+      setError(t('familyBills.errorSelectCategory'));
       return;
     }
     if (!name.trim()) {
-      setError('Please enter a bill name');
+      setError(t('familyBills.errorEnterName'));
       return;
     }
     const amt = parseFloat(amount);
     if (!amount.trim() || Number.isNaN(amt) || amt <= 0) {
-      setError('Please enter a valid amount');
+      setError(t('familyBills.errorInvalidAmount'));
       return;
     }
     if (!memberId || saving) return;
@@ -99,10 +101,10 @@ export default function AddFamilyBillScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Bill' : 'New Bill'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyBills.editTitle') : t('familyBills.newTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyBills.forMember', { memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -123,24 +125,24 @@ export default function AddFamilyBillScreen() {
               style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, category === c && { backgroundColor: colors.accent, borderColor: colors.accent }]}
             >
               <Ionicons name={CATEGORY_LABELS[c].icon as any} size={14} color={category === c ? '#FFF' : colors.textSecondary} />
-              <Text style={[styles.typeChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{CATEGORY_LABELS[c].label}</Text>
+              <Text style={[styles.typeChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{t(CATEGORY_LABELS[c].labelKey)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Bill Name</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyBills.fieldBillName')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={name}
           onChangeText={setName}
-          placeholder={category ? CATEGORY_PLACEHOLDERS[category] : 'e.g. Bill name'}
+          placeholder={category ? t(CATEGORY_PLACEHOLDER_KEYS[category]) : t('familyBills.placeholderDefault')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
         <View style={styles.formRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyBills.fieldAmount')}</Text>
             <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
               <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>{symbol}</Text>
               <TextInput
@@ -154,7 +156,7 @@ export default function AddFamilyBillScreen() {
             </View>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Due Date</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyBills.fieldDueDate')}</Text>
             <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
               <Text style={{ color: colors.text }}>{dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
             </Pressable>
@@ -162,7 +164,7 @@ export default function AddFamilyBillScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save Bill'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyBills.saveChanges') : t('familyBills.saveBill')}</Text>
         </Pressable>
       </ScrollView>
 

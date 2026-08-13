@@ -5,16 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { FamilyDocument, DOCUMENT_TYPE_LABELS, addFamilyDocument, loadFamilyDocuments, updateFamilyDocument } from '@/lib/family-records';
 
 /** Example title per document type, so the hint matches the selected chip. */
-const TYPE_PLACEHOLDERS: Record<FamilyDocument['type'], string> = {
-  insurance: 'e.g. Health Insurance Policy',
-  id: 'e.g. Aadhaar Card',
-  medical: 'e.g. Blood Test Report',
-  other: 'e.g. Document title',
+const TYPE_PLACEHOLDER_KEYS: Record<FamilyDocument['type'], string> = {
+  insurance: 'familyDocuments.placeholder.insurance',
+  id: 'familyDocuments.placeholder.id',
+  medical: 'familyDocuments.placeholder.medical',
+  other: 'familyDocuments.placeholder.other',
 };
 
 export default function AddFamilyDocumentScreen() {
@@ -22,6 +23,9 @@ export default function AddFamilyDocumentScreen() {
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+
+  const documentTypeLabel = (type: FamilyDocument['type']) => t(`familyDocuments.type.${type}`);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [title, setTitle] = useState('');
@@ -54,11 +58,11 @@ export default function AddFamilyDocumentScreen() {
 
   const handleSave = async () => {
     if (!type) {
-      setError('Please select a document type');
+      setError(t('familyDocuments.errorSelectType'));
       return;
     }
     if (!title.trim()) {
-      setError('Please enter a document title');
+      setError(t('familyDocuments.errorEnterTitle'));
       return;
     }
     if (!memberId || saving) return;
@@ -86,10 +90,10 @@ export default function AddFamilyDocumentScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Document' : 'New Document'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyDocuments.editHeaderTitle') : t('familyDocuments.newHeaderTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyDocuments.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -101,31 +105,31 @@ export default function AddFamilyDocumentScreen() {
           style={styles.typeScroll}
           contentContainerStyle={styles.typeGrid}
         >
-          {(Object.keys(DOCUMENT_TYPE_LABELS) as FamilyDocument['type'][]).map((t) => (
+          {(Object.keys(DOCUMENT_TYPE_LABELS) as FamilyDocument['type'][]).map((docType) => (
             <Pressable
-              key={t}
-              onPress={() => setType(t)}
-              style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, type === t && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+              key={docType}
+              onPress={() => setType(docType)}
+              style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, type === docType && { backgroundColor: colors.accent, borderColor: colors.accent }]}
             >
-              <Ionicons name={DOCUMENT_TYPE_LABELS[t].icon as any} size={14} color={type === t ? '#FFF' : colors.textSecondary} />
-              <Text style={[styles.typeChipText, { color: type === t ? '#FFF' : colors.textSecondary }]}>{DOCUMENT_TYPE_LABELS[t].label}</Text>
+              <Ionicons name={DOCUMENT_TYPE_LABELS[docType].icon as any} size={14} color={type === docType ? '#FFF' : colors.textSecondary} />
+              <Text style={[styles.typeChipText, { color: type === docType ? '#FFF' : colors.textSecondary }]}>{documentTypeLabel(docType)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Title</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyDocuments.titleLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={title}
           onChangeText={setTitle}
-          placeholder={type ? TYPE_PLACEHOLDERS[type] : 'e.g. Document title'}
+          placeholder={type ? t(TYPE_PLACEHOLDER_KEYS[type]) : t('familyDocuments.placeholder.other')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
         <Pressable onPress={() => setHasReminder(!hasReminder)} style={styles.reminderRow}>
           <Ionicons name={hasReminder ? 'checkbox' : 'square-outline'} size={22} color={hasReminder ? colors.accent : colors.textTertiary} />
-          <Text style={[styles.reminderText, { color: colors.text }]}>Set a renewal reminder</Text>
+          <Text style={[styles.reminderText, { color: colors.text }]}>{t('familyDocuments.setReminderCheckbox')}</Text>
         </Pressable>
 
         {hasReminder && (
@@ -134,17 +138,17 @@ export default function AddFamilyDocumentScreen() {
           </Pressable>
         )}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Notes (optional)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyDocuments.notesLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={notes}
           onChangeText={setNotes}
-          placeholder="e.g. Policy number, provider"
+          placeholder={t('familyDocuments.notesPlaceholder')}
           placeholderTextColor={colors.textTertiary}
         />
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyDocuments.saveChanges') : t('common.save')}</Text>
         </Pressable>
       </ScrollView>
 

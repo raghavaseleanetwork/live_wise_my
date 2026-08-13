@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -16,11 +17,11 @@ import {
   deleteFamilyBill,
 } from '@/lib/family-records';
 
-const CATEGORY_LABELS: Record<FamilyBill['category'], { label: string; icon: string }> = {
-  electricity: { label: 'Electricity', icon: 'flash' },
-  medical: { label: 'Medical', icon: 'medkit' },
-  insurance: { label: 'Insurance', icon: 'shield-checkmark' },
-  other: { label: 'Other', icon: 'receipt' },
+const CATEGORY_LABELS: Record<FamilyBill['category'], { labelKey: string; icon: string }> = {
+  electricity: { labelKey: 'familyBills.categoryElectricity', icon: 'flash' },
+  medical: { labelKey: 'familyBills.categoryMedical', icon: 'medkit' },
+  insurance: { labelKey: 'familyBills.categoryInsurance', icon: 'shield-checkmark' },
+  other: { labelKey: 'familyBills.categoryOther', icon: 'receipt' },
 };
 
 export default function FamilyBillsScreen() {
@@ -29,6 +30,7 @@ export default function FamilyBillsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { formatAmount } = useCurrency();
+  const { t } = useTranslation();
 
   const [items, setItems] = useState<FamilyBill[]>([]);
 
@@ -54,28 +56,28 @@ export default function FamilyBillsScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Bill Management</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyBills.title')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyBills.forMember', { memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="receipt-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No bills yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to track electricity, medical, or insurance bills.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyBills.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyBills.emptyDesc')}</Text>
           </View>
         ) : (
           <>
             {unpaid.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Due</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyBills.sectionDue')}</Text>
                 {unpaid.map((bill) => (
-                  <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount}
+                  <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount} t={t}
                     onToggle={async () => { await toggleFamilyBillPaid(String(memberId), bill.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: bill.id } })}
                     onDelete={async () => { await deleteFamilyBill(String(memberId), bill.id); load(); }} />
@@ -84,9 +86,9 @@ export default function FamilyBillsScreen() {
             )}
             {paid.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>Paid</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyBills.sectionPaid')}</Text>
                 {paid.map((bill) => (
-                  <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount}
+                  <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount} t={t}
                     onToggle={async () => { await toggleFamilyBillPaid(String(memberId), bill.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: bill.id } })}
                     onDelete={async () => { await deleteFamilyBill(String(memberId), bill.id); load(); }} />
@@ -101,8 +103,8 @@ export default function FamilyBillsScreen() {
 }
 
 function BillCard({
-  bill, colors, formatAmount, onToggle, onEdit, onDelete,
-}: { bill: FamilyBill; colors: any; formatAmount: (n: number) => string; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
+  bill, colors, formatAmount, t, onToggle, onEdit, onDelete,
+}: { bill: FamilyBill; colors: any; formatAmount: (n: number) => string; t: (key: string, opts?: any) => string; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
   const def = CATEGORY_LABELS[bill.category];
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -115,7 +117,7 @@ function BillCard({
       <View style={{ flex: 1 }}>
         <Text style={[styles.cardTitle, { color: colors.text }, bill.isPaid && { textDecorationLine: 'line-through', opacity: 0.5 }]} numberOfLines={1}>{bill.name}</Text>
         <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-          Due {new Date(bill.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+          {t('familyBills.dueOn', { date: new Date(bill.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) })}
         </Text>
       </View>
       <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(bill.amount)}</Money>

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -16,16 +17,17 @@ import {
   totalThisMonth,
 } from '@/lib/family-records';
 
-const CATEGORY_LABELS: Record<FamilyExpense['category'], { label: string; icon: string; color: string }> = {
-  food: { label: 'Food', icon: 'fast-food', color: '#F97316' },
-  shopping: { label: 'Shopping', icon: 'cart', color: '#EC4899' },
-  transport: { label: 'Transport', icon: 'car', color: '#3B82F6' },
-  health: { label: 'Health', icon: 'medkit', color: '#10B981' },
-  other: { label: 'Other', icon: 'apps', color: '#6B7280' },
+const CATEGORY_META: Record<FamilyExpense['category'], { labelKey: string; icon: string; color: string }> = {
+  food: { labelKey: 'familyExpenses.categoryFood', icon: 'fast-food', color: '#F97316' },
+  shopping: { labelKey: 'familyExpenses.categoryShopping', icon: 'cart', color: '#EC4899' },
+  transport: { labelKey: 'familyExpenses.categoryTransport', icon: 'car', color: '#3B82F6' },
+  health: { labelKey: 'familyExpenses.categoryHealth', icon: 'medkit', color: '#10B981' },
+  other: { labelKey: 'familyExpenses.categoryOther', icon: 'apps', color: '#6B7280' },
 };
 
 export default function FamilyExpensesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -54,18 +56,18 @@ export default function FamilyExpensesScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Expense Tracking</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyExpenses.title')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyExpenses.forMember', { memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {items.length > 0 && (
           <View style={[styles.summaryBanner, { backgroundColor: colors.accentDim, borderColor: colors.accent + '30' }]}>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>This Month</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('familyExpenses.thisMonth')}</Text>
             <Money style={[styles.summaryAmount, { color: colors.accent }]}>{formatAmount(monthTotal)}</Money>
           </View>
         )}
@@ -73,12 +75,12 @@ export default function FamilyExpensesScreen() {
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="wallet-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No expenses logged yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to log personal spending.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyExpenses.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyExpenses.emptyDesc')}</Text>
           </View>
         ) : (
           items.map((exp) => {
-            const def = CATEGORY_LABELS[exp.category];
+            const def = CATEGORY_META[exp.category];
             return (
               <Animated.View key={exp.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={[styles.iconWrap, { backgroundColor: def.color + '20' }]}>
@@ -87,7 +89,7 @@ export default function FamilyExpensesScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{exp.description}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                    {def.label} · {new Date(exp.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    {t(def.labelKey)} · {new Date(exp.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                   </Text>
                 </View>
                 <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(exp.amount)}</Money>

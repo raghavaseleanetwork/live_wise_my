@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import {
@@ -15,10 +16,11 @@ import {
   deleteCheckin,
 } from '@/lib/family-records';
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_LABEL_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 export default function FamilyCheckinScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -52,20 +54,20 @@ export default function FamilyCheckinScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Call & Check-in</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyCheckin.title')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCheckin.forMember', { memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="call-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No check-ins set yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to add a call or check-in reminder.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('family.noCheckinsSetYet')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyCheckin.emptyDesc')}</Text>
           </View>
         ) : (
           items.map((item) => {
@@ -78,7 +80,7 @@ export default function FamilyCheckinScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }, !item.enabled && { opacity: 0.4 }]}>{item.label}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                    {item.time}{item.days.length > 0 ? ` · ${item.days.map((d) => DAY_LABELS[d]).join(', ')}` : ' · Every day'}
+                    {item.time}{item.days.length > 0 ? ` · ${item.days.map((d) => t(`familyCheckin.day.${DAY_LABEL_KEYS[d]}`)).join(', ')}` : ` · ${t('familyCheckin.everyDay')}`}
                   </Text>
                 </View>
                 <Pressable

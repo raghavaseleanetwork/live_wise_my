@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import {
@@ -25,6 +26,7 @@ export default function AppointmentsScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [items, setItems] = useState<Appointment[]>([]);
 
@@ -51,13 +53,13 @@ export default function AppointmentsScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Doctor Appointments</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyAppointments.headerTitle')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
         {memberName ? (
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyAppointments.forMember', { name: memberName })}</Text>
         ) : null}
       </LinearGradient>
 
@@ -65,19 +67,20 @@ export default function AppointmentsScreen() {
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No appointments yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to add a doctor appointment or follow-up.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyAppointments.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyAppointments.emptyDesc')}</Text>
           </View>
         ) : (
           <>
             {upcoming.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Upcoming</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyAppointments.upcoming')}</Text>
                 {upcoming.map((appt) => (
                   <AppointmentCard
                     key={appt.id}
                     appt={appt}
                     colors={colors}
+                    t={t}
                     onToggle={async () => { await toggleAppointmentDone(String(memberId), appt.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-appointments/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: appt.id } })}
                     onDelete={async () => { await deleteAppointment(String(memberId), appt.id); load(); }}
@@ -87,12 +90,13 @@ export default function AppointmentsScreen() {
             )}
             {past.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>Completed</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyAppointments.completed')}</Text>
                 {past.map((appt) => (
                   <AppointmentCard
                     key={appt.id}
                     appt={appt}
                     colors={colors}
+                    t={t}
                     onToggle={async () => { await toggleAppointmentDone(String(memberId), appt.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-appointments/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: appt.id } })}
                     onDelete={async () => { await deleteAppointment(String(memberId), appt.id); load(); }}
@@ -113,12 +117,14 @@ function AppointmentCard({
   onToggle,
   onEdit,
   onDelete,
+  t,
 }: {
   appt: Appointment;
   colors: any;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  t: (key: string, options?: any) => string;
 }) {
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -127,7 +133,7 @@ function AppointmentCard({
       </Pressable>
       <View style={{ flex: 1 }}>
         <Text style={[styles.cardTitle, { color: colors.text }, appt.completed && { textDecorationLine: 'line-through', opacity: 0.5 }]} numberOfLines={1}>
-          {appt.doctorName}{appt.isFollowUp ? ' · Follow-up' : ''}
+          {appt.doctorName}{appt.isFollowUp ? t('familyAppointments.followUpSuffix') : ''}
         </Text>
         {!!appt.specialty && <Text style={[styles.cardSub, { color: colors.textTertiary }]}>{appt.specialty}</Text>}
         <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
