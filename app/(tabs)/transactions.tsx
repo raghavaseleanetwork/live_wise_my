@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import DatePickerModal from '@/components/DatePickerModal';
 import CustomModal from '@/components/CustomModal';
 import { useTheme } from '@/lib/theme-context';
@@ -33,33 +34,37 @@ import { ThemeColors } from '@/constants/colors';
 import CategoryIcon from '@/components/CategoryIcon';
 import Money from '@/components/Money';
 
-const FILTER_OPTIONS: { key: string; label: string; icon?: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'food', label: 'Food', icon: 'fast-food' },
-  { key: 'shopping', label: 'Shopping', icon: 'cart' },
-  { key: 'transport', label: 'Transport', icon: 'car' },
-  { key: 'entertainment', label: 'Fun', icon: 'film' },
-  { key: 'bills', label: 'Bills', icon: 'flash' },
-  { key: 'health', label: 'Health', icon: 'medkit' },
-  { key: 'education', label: 'Edu', icon: 'book' },
-  { key: 'investment', label: 'Invest', icon: 'trending-up' },
-  { key: 'others', label: 'Others', icon: 'ellipsis-horizontal' },
+const FILTER_OPTIONS: { key: string; labelKey: string; icon?: string }[] = [
+  { key: 'all', labelKey: 'transactions.filterAll' },
+  { key: 'food', labelKey: 'transactions.filterFood', icon: 'fast-food' },
+  { key: 'shopping', labelKey: 'transactions.filterShopping', icon: 'cart' },
+  { key: 'transport', labelKey: 'transactions.filterTransport', icon: 'car' },
+  { key: 'entertainment', labelKey: 'transactions.filterFun', icon: 'film' },
+  { key: 'bills', labelKey: 'transactions.filterBills', icon: 'flash' },
+  { key: 'health', labelKey: 'transactions.filterHealth', icon: 'medkit' },
+  { key: 'education', labelKey: 'transactions.filterEdu', icon: 'book' },
+  { key: 'investment', labelKey: 'transactions.filterInvest', icon: 'trending-up' },
+  { key: 'others', labelKey: 'transactions.filterOthers', icon: 'ellipsis-horizontal' },
 ];
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_KEYS = [
+  'transactions.monthJan', 'transactions.monthFeb', 'transactions.monthMar', 'transactions.monthApr',
+  'transactions.monthMay', 'transactions.monthJun', 'transactions.monthJul', 'transactions.monthAug',
+  'transactions.monthSep', 'transactions.monthOct', 'transactions.monthNov', 'transactions.monthDec',
+];
 
 type TimeFilterKey = 'all' | 'today' | 'week' | 'month' | 'threeMonths' | 'sixMonths' | 'multiMonth' | 'year' | 'custom';
 
-const TIME_FILTER_CHIPS: Array<{ key: TimeFilterKey; label: string; icon: string }> = [
-  { key: 'all', label: 'All Time', icon: 'infinite' },
-  { key: 'today', label: 'Today', icon: 'calendar' },
-  { key: 'week', label: 'Week', icon: 'calendar' },
-  { key: 'month', label: 'Month', icon: 'calendar' },
-  { key: 'threeMonths', label: '3M', icon: 'calendar' },
-  { key: 'sixMonths', label: '6M', icon: 'calendar' },
-  { key: 'year', label: 'Year', icon: 'wallet' },
-  { key: 'multiMonth', label: 'Multi-Month', icon: 'grid' },
-  { key: 'custom', label: 'Custom', icon: 'apps' },
+const TIME_FILTER_CHIPS: Array<{ key: TimeFilterKey; labelKey: string; icon: string }> = [
+  { key: 'all', labelKey: 'transactions.timeAll', icon: 'infinite' },
+  { key: 'today', labelKey: 'transactions.timeToday', icon: 'calendar' },
+  { key: 'week', labelKey: 'transactions.timeWeek', icon: 'calendar' },
+  { key: 'month', labelKey: 'transactions.timeMonth', icon: 'calendar' },
+  { key: 'threeMonths', labelKey: 'transactions.time3M', icon: 'calendar' },
+  { key: 'sixMonths', labelKey: 'transactions.time6M', icon: 'calendar' },
+  { key: 'year', labelKey: 'transactions.timeYear', icon: 'wallet' },
+  { key: 'multiMonth', labelKey: 'transactions.timeMultiMonth', icon: 'grid' },
+  { key: 'custom', labelKey: 'transactions.timeCustom', icon: 'apps' },
 ];
 
 const TransactionItem = React.memo(({ item, colors, isDark, formatAmountOn, isSeniorMode }: { item: Transaction; colors: ThemeColors; isDark: boolean; formatAmountOn: (n: number, date: Date | string) => string; isSeniorMode: boolean }) => {
@@ -103,6 +108,7 @@ const TransactionItem = React.memo(({ item, colors, isDark, formatAmountOn, isSe
 });
 
 export default function TransactionsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarContentInset();
   const { colors, isDark } = useTheme();
@@ -148,34 +154,34 @@ export default function TransactionsScreen() {
   const range = useMemo(() => {
     const nowDay = startOfDay(now);
     if (timeFilter === 'all') {
-      return { label: 'All Time', start: null as Date | null, end: null as Date | null };
+      return { label: t('transactions.timeAll'), start: null as Date | null, end: null as Date | null };
     }
     if (timeFilter === 'today') {
-      return { label: 'Today', start: nowDay, end: endOfDay(nowDay) };
+      return { label: t('transactions.timeToday'), start: nowDay, end: endOfDay(nowDay) };
     }
     if (timeFilter === 'week') {
-      return { label: 'Last 7 days', start: startOfDay(new Date(nowDay.getTime() - 6 * DAY_MS)), end: endOfDay(nowDay) };
+      return { label: t('transactions.rangeLast7Days'), start: startOfDay(new Date(nowDay.getTime() - 6 * DAY_MS)), end: endOfDay(nowDay) };
     }
     if (timeFilter === 'threeMonths') {
       const s = new Date(nowDay); s.setMonth(s.getMonth() - 3);
-      return { label: 'Last 3 months', start: startOfDay(s), end: endOfDay(nowDay) };
+      return { label: t('transactions.rangeLast3Months'), start: startOfDay(s), end: endOfDay(nowDay) };
     }
     if (timeFilter === 'sixMonths') {
       const s = new Date(nowDay); s.setMonth(s.getMonth() - 6);
-      return { label: 'Last 6 months', start: startOfDay(s), end: endOfDay(nowDay) };
+      return { label: t('transactions.rangeLast6Months'), start: startOfDay(s), end: endOfDay(nowDay) };
     }
     if (timeFilter === 'custom') {
-      return { label: 'Custom', start: startOfDay(customStart), end: endOfDay(customEnd) };
+      return { label: t('transactions.timeCustom'), start: startOfDay(customStart), end: endOfDay(customEnd) };
     }
     if (timeFilter === 'year') {
-      return { label: `Year ${selectedYear}`, start: null as Date | null, end: null as Date | null };
+      return { label: t('transactions.rangeYear', { year: selectedYear }), start: null as Date | null, end: null as Date | null };
     }
     if (timeFilter === 'month') {
-      return { label: `${MONTHS[selectedMonth]} ${selectedYear}`, start: null as Date | null, end: null as Date | null };
+      return { label: `${t(MONTH_KEYS[selectedMonth])} ${selectedYear}`, start: null as Date | null, end: null as Date | null };
     }
     // multiMonth
-    return { label: `${sortedSelectedMonths.map((m) => MONTHS[m]).join(', ')} ${selectedYear}`, start: null as Date | null, end: null as Date | null };
-  }, [timeFilter, customStart, customEnd, selectedYear, selectedMonth, sortedSelectedMonths]);
+    return { label: `${sortedSelectedMonths.map((m) => t(MONTH_KEYS[m])).join(', ')} ${selectedYear}`, start: null as Date | null, end: null as Date | null };
+  }, [timeFilter, customStart, customEnd, selectedYear, selectedMonth, sortedSelectedMonths, t]);
 
   const matchesTime = useMemo(() => {
     return (dateStr: string) => {
@@ -263,7 +269,7 @@ export default function TransactionsScreen() {
             >
               <Ionicons name="chevron-back" size={22} color={colors.text} />
             </Pressable>
-            <Text style={[styles.screenTitle, { color: colors.text }]}>Activity</Text>
+            <Text style={[styles.screenTitle, { color: colors.text }]}>{t('transactions.title')}</Text>
             <Pressable
               onPress={() => {
                 setShowSearch((s) => {
@@ -284,7 +290,7 @@ export default function TransactionsScreen() {
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Search merchant, UPI or amount"
+                placeholder={t('transactions.searchPlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 style={[styles.searchInput, { color: colors.text }]}
                 autoFocus
@@ -309,7 +315,7 @@ export default function TransactionsScreen() {
           >
             <View style={styles.summaryLeft}>
               <Text style={[styles.summaryLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 15 }]}>
-                Total Spent
+                {t('transactions.totalSpent')}
               </Text>
               <Money style={[styles.summaryAmount, { color: colors.text }, isSeniorMode && { fontSize: 32 }]}>
                 {formatConverted(totalFiltered)}
@@ -318,7 +324,7 @@ export default function TransactionsScreen() {
             <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
             <View style={styles.summaryRight}>
               <Text style={[styles.summaryLabel, { color: colors.textTertiary }]}>
-                Transactions
+                {t('transactions.transactionsLabel')}
               </Text>
               <Text style={[styles.summaryCount, { color: colors.accent }]}>
                 {txCount}
@@ -335,7 +341,7 @@ export default function TransactionsScreen() {
             <Ionicons name="options-outline" size={18} color={colors.accent} />
             <Text style={[styles.filterButtonText, { color: colors.text }]} numberOfLines={1}>
               {range.label}
-              {activeFilter !== 'all' ? ` • ${FILTER_OPTIONS.find(o => o.key === activeFilter)?.label ?? ''}` : ''}
+              {activeFilter !== 'all' ? ` • ${FILTER_OPTIONS.find(o => o.key === activeFilter)?.labelKey ? t(FILTER_OPTIONS.find(o => o.key === activeFilter)!.labelKey) : ''}` : ''}
             </Text>
             <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
           </Pressable>
@@ -369,10 +375,10 @@ export default function TransactionsScreen() {
           <View style={styles.emptyContainer}>
             <Ionicons name={searchQuery ? 'search-outline' : 'receipt-outline'} size={48} color={colors.textTertiary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              {searchQuery ? `No results for "${searchQuery.trim()}"` : 'No transactions found'}
+              {searchQuery ? t('transactions.noResultsFor', { query: searchQuery.trim() }) : t('transactions.noTransactionsFound')}
             </Text>
             <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>
-              {searchQuery ? 'Try a different search term' : 'Try adjusting your filters'}
+              {searchQuery ? t('transactions.tryDifferentSearch') : t('transactions.tryAdjustingFilters')}
             </Text>
           </View>
         }
@@ -380,10 +386,10 @@ export default function TransactionsScreen() {
 
       {/* Combined filter popup: time range + category */}
       <CustomModal visible={showFilterModal} onClose={() => setShowFilterModal(false)}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Filter Activity</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('transactions.filterActivity')}</Text>
 
         <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
-          <Text style={[styles.filterSectionLabel, { color: colors.textTertiary }]}>Time range</Text>
+          <Text style={[styles.filterSectionLabel, { color: colors.textTertiary }]}>{t('transactions.timeRange')}</Text>
           <View style={styles.modalChipsWrap}>
             {TIME_FILTER_CHIPS.map((chip) => {
               const active = timeFilter === chip.key;
@@ -399,7 +405,7 @@ export default function TransactionsScreen() {
                 >
                   <Ionicons name={chip.icon as any} size={16} color={active ? colors.accent : colors.textTertiary} />
                   <Text style={[styles.timeChipText, { color: active ? colors.accent : colors.textSecondary }]}>
-                    {chip.label}
+                    {t(chip.labelKey)}
                   </Text>
                 </Pressable>
               );
@@ -417,7 +423,7 @@ export default function TransactionsScreen() {
                   setShowCustomStartPicker(true);
                 }}
               >
-                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>Start date</Text>
+                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>{t('transactions.startDate')}</Text>
                 <Text style={[styles.customChipValue, { color: colors.text }]}>
                   {customStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </Text>
@@ -431,7 +437,7 @@ export default function TransactionsScreen() {
                   setShowCustomEndPicker(true);
                 }}
               >
-                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>End date</Text>
+                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>{t('transactions.endDate')}</Text>
                 <Text style={[styles.customChipValue, { color: colors.text }]}>
                   {customEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </Text>
@@ -446,15 +452,15 @@ export default function TransactionsScreen() {
                 style={[styles.yearPill, { backgroundColor: colors.card, borderColor: colors.border }]}
               >
                 <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                <Text style={[styles.yearPillText, { color: colors.text }]}>Year: {selectedYear}</Text>
+                <Text style={[styles.yearPillText, { color: colors.text }]}>{t('transactions.yearLabel', { year: selectedYear })}</Text>
                 <Ionicons name="chevron-down" size={14} color={colors.textTertiary} />
               </Pressable>
               <View style={styles.monthGrid}>
-                {MONTHS.map((m, idx) => {
+                {MONTH_KEYS.map((mKey, idx) => {
                   const isSelected = selectedMonths.includes(idx);
                   return (
                     <Pressable
-                      key={m}
+                      key={mKey}
                       onPress={() => {
                         if (timeFilter === 'month') { setSelectedMonths([idx]); return; }
                         setSelectedMonths((prev) => {
@@ -472,7 +478,7 @@ export default function TransactionsScreen() {
                       ]}
                     >
                       <Text style={[styles.monthChipText, { color: isSelected ? colors.accent : colors.textTertiary }, isSelected && { fontFamily: 'Inter_600SemiBold' }]}>
-                        {m}
+                        {t(mKey)}
                       </Text>
                     </Pressable>
                   );
@@ -481,7 +487,7 @@ export default function TransactionsScreen() {
             </View>
           )}
 
-          <Text style={[styles.filterSectionLabel, { color: colors.textTertiary, marginTop: 20 }]}>Category</Text>
+          <Text style={[styles.filterSectionLabel, { color: colors.textTertiary, marginTop: 20 }]}>{t('transactions.category')}</Text>
           <View style={styles.modalChipsWrap}>
             {FILTER_OPTIONS.map((opt) => {
               const active = activeFilter === opt.key;
@@ -499,7 +505,7 @@ export default function TransactionsScreen() {
                     <Ionicons name={opt.icon as any} size={15} color={active ? colors.accent : colors.textTertiary} />
                   ) : null}
                   <Text style={[styles.timeChipText, { color: active ? colors.accent : colors.textSecondary }]}>
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </Text>
                 </Pressable>
               );
@@ -508,7 +514,7 @@ export default function TransactionsScreen() {
         </ScrollView>
 
         <Pressable onPress={() => setShowFilterModal(false)} style={[styles.filterDoneBtn, { backgroundColor: colors.accent }]}>
-          <Text style={styles.filterDoneBtnText}>Apply</Text>
+          <Text style={styles.filterDoneBtnText}>{t('transactions.apply')}</Text>
         </Pressable>
       </CustomModal>
 
@@ -516,7 +522,7 @@ export default function TransactionsScreen() {
       <DatePickerModal
         visible={showYearPicker}
         onClose={() => setShowYearPicker(false)}
-        title="Pick year"
+        title={t('transactions.pickYear')}
         value={new Date(selectedYear, 0, 1)}
         onConfirm={(d) => setSelectedYear(d.getFullYear())}
       />
@@ -525,7 +531,7 @@ export default function TransactionsScreen() {
       <DatePickerModal
         visible={showCustomStartPicker}
         onClose={() => setShowCustomStartPicker(false)}
-        title="Select start date"
+        title={t('transactions.selectStartDate')}
         value={draftCustomStart}
         onConfirm={(d) => {
           const fixedStart = new Date(d); fixedStart.setHours(0, 0, 0, 0);
@@ -539,7 +545,7 @@ export default function TransactionsScreen() {
       <DatePickerModal
         visible={showCustomEndPicker}
         onClose={() => setShowCustomEndPicker(false)}
-        title="Select end date"
+        title={t('transactions.selectEndDate')}
         value={draftCustomEnd}
         onConfirm={(d) => {
           const fixedEnd = new Date(d); fixedEnd.setHours(23, 59, 59, 999);

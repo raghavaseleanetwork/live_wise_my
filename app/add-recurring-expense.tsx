@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -43,6 +44,7 @@ export default function AddRecurringExpenseScreen() {
   const { token } = useAuth();
   const { showAlert } = useAlert();
   const { convertForStorage } = useCurrency();
+  const { t } = useTranslation();
 
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -56,19 +58,19 @@ export default function AddRecurringExpenseScreen() {
     const amountValue = Number(amount);
     const dayValue = Number(day);
     if (!category) {
-      showAlert({ title: 'Category needed', message: 'Pick a category for this expense.', type: 'warning' });
+      showAlert({ title: t('addRecurringExpense.categoryNeededTitle'), message: t('addRecurringExpense.categoryNeededMessage'), type: 'warning' });
       return;
     }
     if (!name.trim()) {
-      showAlert({ title: 'Name needed', message: 'Give this expense a name.', type: 'warning' });
+      showAlert({ title: t('addRecurringExpense.nameNeededTitle'), message: t('addRecurringExpense.nameNeededMessage'), type: 'warning' });
       return;
     }
     if (!Number.isFinite(amountValue) || amountValue <= 0) {
-      showAlert({ title: 'Amount needed', message: 'Enter a valid amount.', type: 'warning' });
+      showAlert({ title: t('addRecurringExpense.amountNeededTitle'), message: t('addRecurringExpense.amountNeededMessage'), type: 'warning' });
       return;
     }
     if (!Number.isFinite(dayValue) || dayValue < 1 || dayValue > 31) {
-      showAlert({ title: 'Check the date', message: 'Enter a day between 1 and 31.', type: 'warning' });
+      showAlert({ title: t('addRecurringExpense.checkDateTitle'), message: t('addRecurringExpense.checkDateMessage'), type: 'warning' });
       return;
     }
 
@@ -85,15 +87,15 @@ export default function AddRecurringExpenseScreen() {
     if (!created) {
       setIsSaving(false);
       showAlert({
-        title: 'Could not save',
-        message: 'The template was not saved. Please check your connection and try again.',
+        title: t('addRecurringExpense.couldNotSaveTitle'),
+        message: t('addRecurringExpense.couldNotSaveMessage'),
         type: 'error',
       });
       return;
     }
 
     router.back();
-  }, [isSaving, name, amount, day, category, showAlert, token, router, convertForStorage]);
+  }, [isSaving, name, amount, day, category, showAlert, token, router, convertForStorage, t]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
@@ -101,7 +103,7 @@ export default function AddRecurringExpenseScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.headerBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>New Recurring Expense</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('addRecurringExpense.title')}</Text>
         <View style={styles.headerBtn} />
       </View>
 
@@ -110,11 +112,11 @@ export default function AddRecurringExpenseScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Name</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('addRecurringExpense.name')}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="e.g. House Rent"
+          placeholder={t('addRecurringExpense.namePlaceholder')}
           placeholderTextColor={colors.textTertiary}
           style={[
             styles.input,
@@ -124,7 +126,7 @@ export default function AddRecurringExpenseScreen() {
           autoFocus
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('addRecurringExpense.amount')}</Text>
         <TextInput
           value={amount}
           onChangeText={setAmount}
@@ -137,7 +139,7 @@ export default function AddRecurringExpenseScreen() {
           ]}
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Day of month (1-31)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('addRecurringExpense.dayOfMonth')}</Text>
         <TextInput
           value={day}
           onChangeText={setDay}
@@ -151,7 +153,7 @@ export default function AddRecurringExpenseScreen() {
           maxLength={2}
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Category</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('addRecurringExpense.category')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {CHIP_CATEGORIES.map((cat) => {
             const meta = CATEGORIES[cat];
@@ -185,13 +187,12 @@ export default function AddRecurringExpenseScreen() {
           {isSaving ? (
             <LoadingIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveText}>Save</Text>
+            <Text style={styles.saveText}>{t('addRecurringExpense.save')}</Text>
           )}
         </Pressable>
 
         <Text style={[styles.note, { color: colors.textTertiary }]}>
-          Nothing is added automatically. Each month you'll be asked to confirm this expense with one
-          tap.
+          {t('addRecurringExpense.note')}
         </Text>
       </ScrollView>
     </View>

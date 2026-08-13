@@ -29,6 +29,10 @@ import {
 } from "@/lib/family-records-sync";
 import { ThemeProvider, useTheme } from "@/lib/theme-context";
 import { CurrencyProvider, useCurrency } from "@/lib/currency-context";
+import { LanguageProvider } from "@/lib/language-context";
+// Import order matters: this runs i18next's synchronous init as a side
+// effect. Must happen before any screen renders a `t()` call.
+import "@/lib/i18n";
 import { SubscriptionProvider, useSubscription } from "@/lib/subscription-context";
 import { PaywallProvider } from "@/lib/paywall-context";
 import { StatusBar } from "expo-status-bar";
@@ -440,21 +444,23 @@ export default function RootLayout() {
           <ThemeProvider>
             <ErrorBoundary>
               <CurrencyProvider>
-                <SeniorProvider>
-                  <AlertProvider>
-                    <AuthProvider>
-                      <SubscriptionProvider>
-                        <PaywallProvider>
-                          <ExpenseProvider>
-                            <AppLockProvider>
-                              <AuthGate />
-                            </AppLockProvider>
-                          </ExpenseProvider>
-                        </PaywallProvider>
-                      </SubscriptionProvider>
-                    </AuthProvider>
-                  </AlertProvider>
-                </SeniorProvider>
+                <LanguageProvider>
+                  <SeniorProvider>
+                    <AlertProvider>
+                      <AuthProvider>
+                        <SubscriptionProvider>
+                          <PaywallProvider>
+                            <ExpenseProvider>
+                              <AppLockProvider>
+                                <AuthGate />
+                              </AppLockProvider>
+                            </ExpenseProvider>
+                          </PaywallProvider>
+                        </SubscriptionProvider>
+                      </AuthProvider>
+                    </AlertProvider>
+                  </SeniorProvider>
+                </LanguageProvider>
               </CurrencyProvider>
             </ErrorBoundary>
           </ThemeProvider>

@@ -95,7 +95,7 @@ interface AuthContextValue {
    * is verified, regardless of how it was created.
    */
   loginWithGoogle: () => Promise<{ success: boolean; error?: string; otpRequired?: boolean; email?: string }>;
-  updateProfile: (fields: { name?: string; phone?: string | null; avatarUrl?: string | null; email?: string; dateOfBirth?: string | null; preferredCurrency?: string }) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (fields: { name?: string; phone?: string | null; avatarUrl?: string | null; email?: string; dateOfBirth?: string | null; preferredCurrency?: string; preferredLanguage?: string }) => Promise<{ success: boolean; error?: string }>;
   /** Verifies the emailed code and, on success, signs the user in. */
   verifyOtp: (email: string, code: string) => Promise<{ success: boolean; error?: string }>;
   resendOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -339,6 +339,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        * other way to know what they picked.
        */
       preferredCurrency?: string;
+      /**
+       * ISO 639-1 code (en/hi/gu/mr/ta/te/bn). Mirrors the local
+       * `@lifewise_language` preference so the server can localise reminder
+       * emails, push/in-app notifications and OTP SMS — same rationale as
+       * `preferredCurrency`. NOT YET CONSUMED SERVER-SIDE: see
+       * `backend-team/I18N-backend-requirements.md`. Sent anyway, same as
+       * `preferredCurrency` was before its consumer existed, so no client
+       * change is needed once the backend catches up.
+       */
+      preferredLanguage?: string;
     }) => {
       try {
         if (!token) {

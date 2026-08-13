@@ -28,6 +28,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 import Money from '@/components/Money';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { router, useFocusEffect } from 'expo-router';
@@ -64,6 +65,7 @@ import {
 const ASKED_SMS_PERMISSION_KEY = '@lifewise_asked_sms_permission';
 
 function SpendingScoreRing({ score, colors, isDark, onPress, isSeniorMode }: { score: number; colors: any; isDark: boolean; onPress?: () => void; isSeniorMode: boolean }) {
+  const { t } = useTranslation();
   const clampedScore = Math.min(100, Math.max(0, score));
   const scoreColor = clampedScore >= 70 ? colors.accentMint : clampedScore >= 40 ? colors.warning : colors.danger;
   const size = isSeniorMode ? 140 : 100;
@@ -76,7 +78,7 @@ function SpendingScoreRing({ score, colors, isDark, onPress, isSeniorMode }: { s
       <View style={[ringStyles.outerRing, { borderColor: scoreColor + '25', width: size, height: size, borderRadius: size / 2, borderWidth: ringWidth }]}>
         <View style={[ringStyles.innerRing, { borderColor: scoreColor + '60', width: innerSize, height: innerSize, borderRadius: innerSize / 2, borderWidth: innerRingWidth }]}>
           <Text style={[ringStyles.scoreValue, { color: colors.text }, isSeniorMode && { fontSize: 32 }]}>{clampedScore}</Text>
-          <Text style={[ringStyles.scoreLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 12 }]}>Score</Text>
+          <Text style={[ringStyles.scoreLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 12 }]}>{t('home.score')}</Text>
         </View>
       </View>
     </Pressable>
@@ -275,6 +277,7 @@ function MustSmsSyncBanner({
   smsSyncProgressTotal: number | null;
   lastSmsSyncCount: number | null;
 }) {
+  const { t } = useTranslation();
   const progressWidth = useSharedValue(0);
   
   useEffect(() => {
@@ -303,28 +306,28 @@ function MustSmsSyncBanner({
       : colors.accent;
 
   const statusText = isError
-    ? 'Sync Failed'
+    ? t('home.syncFailed')
     : isDone
       // "0 new transactions" is the normal result of a re-scan with nothing new,
       // but phrased as a failure it reads like the scan broke. Say what actually
       // happened instead.
       ? (lastSmsSyncCount ?? 0) > 0
-        ? `Added ${lastSmsSyncCount} new ${lastSmsSyncCount === 1 ? 'transaction' : 'transactions'}`
-        : 'You are up to date'
+        ? t('home.syncAddedTransactions', { count: lastSmsSyncCount ?? 0 })
+        : t('home.syncUpToDate')
       : smsSyncPhase === 'fetching'
-        ? 'Scanning SMS inbox...'
+        ? t('home.syncScanningInbox')
         : smsSyncPhase === 'parsing'
           // This count is the number of MESSAGES being read, not transactions
           // found — labelling it "found" implied every SMS was a transaction.
-          ? `Checking ${smsSyncProgressTotal ?? 0} messages...`
+          ? t('home.syncCheckingMessages', { count: smsSyncProgressTotal ?? 0 })
           : smsSyncPhase === 'uploading'
             // Only show the x/y counter once there is a real total. Before the
             // first progress callback both values are null, which rendered the
             // meaningless "Syncing (0/0)".
             ? smsSyncProgressTotal
-              ? `Syncing ${smsSyncDetail ? smsSyncDetail + ' ' : ''}(${smsSyncProgressCurrent ?? 0}/${smsSyncProgressTotal})`
-              : 'Syncing to cloud...'
-            : 'Starting sync...';
+              ? t('home.syncProgress', { detail: smsSyncDetail ? smsSyncDetail + ' ' : '', current: smsSyncProgressCurrent ?? 0, total: smsSyncProgressTotal })
+              : t('home.syncToCloud')
+            : t('home.syncStarting');
 
   return (
     <Animated.View 
@@ -368,6 +371,7 @@ function TopReminderAlert({
   onSnooze: (id: string) => void;
   onCancel: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   if (!upcomingBills.length) return null;
 
   const today = new Date();
@@ -383,9 +387,9 @@ function TopReminderAlert({
 
   let label: string;
   if (daysDiff === 0) {
-    label = `Due Today • ${next.name}`;
+    label = t('home.dueTodayLabel', { name: next.name });
   } else {
-    label = `Overdue • ${next.name}`;
+    label = t('home.overdueLabel', { name: next.name });
   }
 
   const dateLabel = due.toLocaleDateString('en-IN', {
@@ -421,7 +425,7 @@ function TopReminderAlert({
               style={[styles.reminderAlertSubtitle, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              {`Due ${dateLabel}`}
+              {t('home.dueDateLabel', { date: dateLabel })}
             </Text>
           </View>
         </View>
@@ -434,7 +438,7 @@ function TopReminderAlert({
             ]}
           >
             <Ionicons name="notifications-off-outline" size={14} color="#FFFFFF" />
-            <Text style={[styles.alertActionText, { color: '#FFFFFF' }]}>Snooze</Text>
+            <Text style={[styles.alertActionText, { color: '#FFFFFF' }]}>{t('home.snooze')}</Text>
           </Pressable>
           <Pressable
             onPress={() => onCancel(next.id)}
@@ -444,7 +448,7 @@ function TopReminderAlert({
             ]}
           >
             <Ionicons name="close-circle-outline" size={14} color={colors.textTertiary} />
-            <Text style={[styles.alertActionText, { color: colors.textTertiary }]}>Cancel</Text>
+            <Text style={[styles.alertActionText, { color: colors.textTertiary }]}>{t('common.cancel')}</Text>
           </Pressable>
         </View>
       </View>
@@ -470,6 +474,7 @@ function PrimaryCircleActions({ colors, onScanBill, onQuickAdd, onAutoTrack }: {
   onQuickAdd: () => void;
   onAutoTrack: () => void;
 }) {
+  const { t } = useTranslation();
   const baseScale = useSharedValue(0.9);
   useEffect(() => {
     baseScale.value = withSpring(1, { damping: 14, stiffness: 140 });
@@ -518,7 +523,7 @@ function PrimaryCircleActions({ colors, onScanBill, onQuickAdd, onAutoTrack }: {
           <View pointerEvents="none" style={styles.primaryCircleInnerWhiteBorder} />
           <Ionicons name="mic" size={24} color={purple} />
         </Animated.View>
-        <Text style={[styles.primaryCircleLabel, { color: colors.textSecondary }]}>Voice Reminder</Text>
+        <Text style={[styles.primaryCircleLabel, { color: colors.textSecondary }]}>{t('home.voiceReminder')}</Text>
       </Pressable>
       <Pressable onPress={onScanBill} style={styles.primaryCircleItem}>
         <Animated.View
@@ -534,7 +539,7 @@ function PrimaryCircleActions({ colors, onScanBill, onQuickAdd, onAutoTrack }: {
           <View pointerEvents="none" style={styles.primaryCircleInnerWhiteBorder} />
           <Ionicons name="camera" size={24} color={blue} />
         </Animated.View>
-        <Text style={[styles.primaryCircleLabel, { color: colors.textSecondary }]}>Scan Bills</Text>
+        <Text style={[styles.primaryCircleLabel, { color: colors.textSecondary }]}>{t('home.scanBills')}</Text>
       </Pressable>
       <Pressable onPress={onAutoTrack} style={styles.primaryCircleItem}>
         <Animated.View
@@ -550,21 +555,22 @@ function PrimaryCircleActions({ colors, onScanBill, onQuickAdd, onAutoTrack }: {
           <View pointerEvents="none" style={styles.primaryCircleInnerWhiteBorder} />
           <Ionicons name="chatbubble-ellipses" size={24} color={amber} />
         </Animated.View>
-        <Text style={[styles.primaryCircleLabel, { color: colors.textSecondary }]}>Wise AI</Text>
+        <Text style={[styles.primaryCircleLabel, { color: colors.textSecondary }]}>{t('home.wiseAi')}</Text>
       </Pressable>
     </View>
   );
 }
 
-const GREETING_CONFIG: Record<GreetingPeriod, { icon: string; accent: string; label: string }> = {
-  morning: { icon: 'sunny', accent: '#F59E0B', label: 'Good Morning' },
-  afternoon: { icon: 'partly-sunny', accent: '#3B82F6', label: 'Good Afternoon' },
-  evening: { icon: 'moon', accent: '#8B5CF6', label: 'Good Evening' },
+const GREETING_CONFIG: Record<GreetingPeriod, { icon: string; accent: string; labelKey: string }> = {
+  morning: { icon: 'sunny', accent: '#F59E0B', labelKey: 'home.goodMorning' },
+  afternoon: { icon: 'partly-sunny', accent: '#3B82F6', labelKey: 'home.goodAfternoon' },
+  evening: { icon: 'moon', accent: '#8B5CF6', labelKey: 'home.goodEvening' },
 };
 
 const springConfig = { damping: 14, stiffness: 120 };
 
 function AnimatedGreeting({ userName, colors }: { userName: string; colors: any }) {
+  const { t } = useTranslation();
   const period = getGreetingPeriod();
   const config = GREETING_CONFIG[period];
   const iconScale = useSharedValue(0);
@@ -632,7 +638,7 @@ function AnimatedGreeting({ userName, colors }: { userName: string; colors: any 
             style={[styles.greetingAnimated, { color: config.accent }, greetingTextStyle]}
             numberOfLines={1}
           >
-            {config.label}
+            {t(config.labelKey)}
           </Animated.Text>
           <Animated.Text
             style={[styles.userNameHero, { color: colors.text }, nameTextStyle]}
@@ -647,6 +653,7 @@ function AnimatedGreeting({ userName, colors }: { userName: string; colors: any 
 }
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarContentInset();
   const {
@@ -865,21 +872,21 @@ export default function HomeScreen() {
       {
         key: 'import',
         icon: 'document-text-outline',
-        label: 'Import statement',
+        label: t('home.fabImportStatement'),
         color: colors.warning,
         onPress: () => router.push('/import-statement'),
       },
       {
         key: 'recurring',
         icon: 'repeat',
-        label: 'Recurring expenses',
+        label: t('home.fabRecurringExpenses'),
         color: colors.accentMint || '#10B981',
         onPress: () => router.push('/recurring-expenses'),
       },
       {
         key: 'voice',
         icon: 'mic',
-        label: 'Speak an expense',
+        label: t('home.fabSpeakExpense'),
         color: colors.accentPurple || colors.accent,
         // mode=expense flips the screen's primary action to "Save expense".
         // Without it the user arrives from "Speak an expense" at a screen whose
@@ -889,19 +896,19 @@ export default function HomeScreen() {
       {
         key: 'scan',
         icon: 'camera',
-        label: 'Scan a receipt',
+        label: t('home.fabScanReceipt'),
         color: colors.accentBlue || '#3B82F6',
         onPress: () => router.push('/scan-bill?mode=expense'),
       },
       {
         key: 'quick',
         icon: 'create-outline',
-        label: 'Add expense',
+        label: t('home.fabAddExpense'),
         color: colors.accent,
         onPress: () => router.push('/add-expense'),
       },
     ],
-    [router, colors],
+    [router, colors, t],
   );
 
   // Never show a full-screen sync animation; we use a compact top banner instead.
@@ -1053,11 +1060,11 @@ export default function HomeScreen() {
 
   const showComingSoon = useCallback(() => {
     showAlert({
-      title: 'Coming Soon',
-      message: 'This feature will be available in a future update.',
+      title: t('home.comingSoonTitle'),
+      message: t('home.comingSoonMessage'),
       type: 'info',
     });
-  }, [showAlert]);
+  }, [showAlert, t]);
 
   if (isLoading && !refreshing) {
     return (
@@ -1078,7 +1085,7 @@ export default function HomeScreen() {
               onRefresh={onRefresh}
               colors={[colors.accent]}
               tintColor={colors.accent}
-              title="Refreshing…"
+              title={t('home.refreshing')}
             />
           }
           contentContainerStyle={[styles.scrollContent, { paddingTop: topInset + 12, paddingBottom: tabBarInset.bottom }]}
@@ -1133,7 +1140,7 @@ export default function HomeScreen() {
 
           <View style={[styles.seniorHeroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.seniorHeroLabel, { color: colors.textSecondary }]}>
-              {isLastMonthFallback ? 'Last Month' : 'Balance Left'}
+              {isLastMonthFallback ? t('home.lastMonth') : t('home.balanceLeft')}
             </Text>
             <Money style={[styles.seniorHeroAmount, { color: colors.text }]}>
               {formatAmount(Math.max(0, monthlyBudget - displaySpend))}
@@ -1142,7 +1149,7 @@ export default function HomeScreen() {
 
           {upcomingBills.length > 0 && (
             <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(120).duration(450) : undefined}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Upcoming</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.upcoming')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.remindersScroll}>
                 {upcomingBills.map((bill) => {
                   const dueDate = new Date(bill.dueDate);
@@ -1182,7 +1189,7 @@ export default function HomeScreen() {
                             </Text>
                           )}
                           <Text style={[styles.reminderPillMember, { color: colors.textTertiary }]} numberOfLines={1}>
-                            {dueOrRepeatText ? ' • ' : ''}You
+                            {dueOrRepeatText ? ' • ' : ''}{t('common.you')}
                           </Text>
                         </View>
                       </View>
@@ -1201,31 +1208,31 @@ export default function HomeScreen() {
               <View style={[styles.seniorBtnIcon, { backgroundColor: colors.accentDim }]}>
                 <Ionicons name="wallet" size={32} color={colors.accent} />
               </View>
-              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Money</Text>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>{t('home.money')}</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/family')} style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.seniorBtnIcon, { backgroundColor: '#10B981' + '12' }]}>
                 <Ionicons name="medkit" size={32} color="#10B981" />
               </View>
-              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Health</Text>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>{t('home.health')}</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/family')} style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.seniorBtnIcon, { backgroundColor: '#EC4899' + '12' }]}>
                 <Ionicons name="people" size={32} color="#EC4899" />
               </View>
-              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Family</Text>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>{t('home.family')}</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/(tabs)/bills')} style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.seniorBtnIcon, { backgroundColor: '#F59E0B' + '12' }]}>
                 <Ionicons name="notifications" size={32} color="#F59E0B" />
               </View>
-              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Reminders</Text>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>{t('home.reminders')}</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/voice-reminder')} style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.seniorBtnIcon, { backgroundColor: '#6366F1' + '12' }]}>
                 <Ionicons name="mic" size={32} color="#6366F1" />
               </View>
-              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Voice Reminder</Text>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>{t('home.voiceReminder')}</Text>
             </Pressable>
             <Pressable
               onPress={() => router.push('/add-expense')}
@@ -1235,7 +1242,7 @@ export default function HomeScreen() {
               <View style={[styles.seniorBtnIcon, { backgroundColor: '#3B82F6' + '12' }]}>
                 <Ionicons name="add-circle" size={32} color="#3B82F6" />
               </View>
-              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>Add Expense</Text>
+              <Text style={[styles.seniorBtnLabel, { color: colors.text }]}>{t('home.addExpense')}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -1257,7 +1264,7 @@ export default function HomeScreen() {
             onRefresh={onRefresh}
             colors={[colors.accent]}
             tintColor={colors.accent}
-            title="Refreshing…"
+            title={t('home.refreshing')}
           />
         }
         contentContainerStyle={[
@@ -1335,7 +1342,7 @@ export default function HomeScreen() {
             <View style={styles.heroTop}>
               <View style={styles.heroLeft}>
                 <Text style={[styles.heroLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(15,23,42,0.45)' }]}>
-                  {isLastMonthFallback ? 'Last Month' : 'This Month'}
+                  {isLastMonthFallback ? t('home.lastMonth') : t('home.thisMonth')}
                 </Text>
                 <Money style={[styles.heroAmount, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{formatAmount(displaySpend)}</Money>
                 <View style={styles.budgetSection}>
@@ -1348,7 +1355,7 @@ export default function HomeScreen() {
                     />
                   </View>
                   <Text style={[styles.budgetText, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(15,23,42,0.35)' }]}>
-                    {isLastMonthFallback ? 'Based on last month' : `${Math.round(budgetUsed)}% of ${formatAmount(monthlyBudget)}`}
+                    {isLastMonthFallback ? t('home.basedOnLastMonth') : t('home.percentOfBudget', { percent: Math.round(budgetUsed), amount: formatAmount(monthlyBudget) })}
                   </Text>
                 </View>
               </View>
@@ -1358,14 +1365,14 @@ export default function HomeScreen() {
             <View style={styles.heroStats}>
               <View style={styles.heroStat}>
                 <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>
-                  {isLastMonthFallback ? 'Today (no spend yet)' : 'Today'}
+                  {isLastMonthFallback ? t('home.todayNoSpendYet') : t('home.today')}
                 </Text>
                 <Money style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>{formatAmount(todaySpend)}</Money>
               </View>
               <View style={[styles.heroStatDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)' }]} />
               <View style={styles.heroStat}>
                 <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>
-                  {isLastMonthFallback ? 'Avg (last mo.)' : 'Daily Avg'}
+                  {isLastMonthFallback ? t('home.avgLastMonth') : t('home.dailyAvg')}
                 </Text>
                 <Money style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
                   {formatAmount(Math.round(dailyAvg))}
@@ -1373,7 +1380,7 @@ export default function HomeScreen() {
               </View>
               <View style={[styles.heroStatDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)' }]} />
               <View style={styles.heroStat}>
-                <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>Remaining</Text>
+                <Text style={[styles.heroStatLabel, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)' }]}>{t('home.remaining')}</Text>
                 <Money style={[styles.heroStatValue, { color: isDark ? '#F1F5F9' : '#0F172A' }, monthlyBudget - displaySpend < 0 ? { color: colors.danger } : {}]}>
                   {formatAmount(Math.max(0, monthlyBudget - displaySpend))}
                 </Money>
@@ -1384,7 +1391,7 @@ export default function HomeScreen() {
 
         {upcomingBills.length > 0 && (
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(120).duration(500) : undefined}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Upcoming</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.upcoming')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.remindersScroll}>
               {upcomingBills.map((bill) => {
                 const dueDate = new Date(bill.dueDate);
@@ -1421,7 +1428,7 @@ export default function HomeScreen() {
                           </Text>
                         )}
                         <Text style={[styles.reminderPillMember, { color: colors.textTertiary }]} numberOfLines={1}>
-                          {dueOrRepeatText ? ' • ' : ''}You
+                          {dueOrRepeatText ? ' • ' : ''}{t('common.you')}
                         </Text>
                       </View>
                     </View>
@@ -1444,9 +1451,9 @@ export default function HomeScreen() {
                 icon="water"
                 iconColor={colors.danger}
                 bgColor={colors.dangerDim}
-                title="Leaks"
+                title={t('home.leaks')}
                 value={oneDecimal(formatAmount(totalLeakAmount))}
-                subtitle="/month"
+                subtitle={t('home.perMonth')}
                 colors={colors}
                 isSeniorMode={isSeniorMode}
               />
@@ -1456,9 +1463,9 @@ export default function HomeScreen() {
                 icon="notifications"
                 iconColor={colors.warning}
                 bgColor={colors.warningDim}
-                title="Due"
+                title={t('home.due')}
                 value={String(unpaidBills)}
-                subtitle="reminders"
+                subtitle={t('home.remindersSubtitle')}
                 colors={colors}
                 isSeniorMode={isSeniorMode}
               />
@@ -1468,9 +1475,9 @@ export default function HomeScreen() {
                 icon="swap-horizontal"
                 iconColor={colors.accentBlue}
                 bgColor={colors.accentBlueDim}
-                title="Transactions"
+                title={t('home.transactions')}
                 value={String(thisMonthTxsCount)}
-                subtitle="this month"
+                subtitle={t('home.thisMonthSubtitle')}
                 colors={colors}
                 isSeniorMode={isSeniorMode}
               />
@@ -1479,20 +1486,20 @@ export default function HomeScreen() {
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(200).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Reach</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.quickReach')}</Text>
           <View style={styles.quickReachRow}>
             <QuickAccessCard
               icon="water"
-              label="Leaks"
-              subtitle="Save money"
+              label={t('home.leaks')}
+              subtitle={t('home.saveMoney')}
               color="#EF4444"
               onPress={() => router.push('/(tabs)/leaks')}
               colors={colors}
             />
             <QuickAccessCard
               icon="stats-chart"
-              label="Analytics"
-              subtitle="View activity"
+              label={t('home.analytics')}
+              subtitle={t('home.viewActivity')}
               color="#3B82F6"
               onPress={() => router.push('/(tabs)/transactions')}
               colors={colors}
@@ -1507,29 +1514,29 @@ export default function HomeScreen() {
               <Ionicons name="wallet" size={18} color={colors.accentBlue || colors.accent} />
             </View>
             <View style={styles.lifeInsightContent}>
-              <Text style={[styles.lifeInsightTitle, { color: colors.text }]}>Spending Insight</Text>
+              <Text style={[styles.lifeInsightTitle, { color: colors.text }]}>{t('home.spendingInsight')}</Text>
               <Text style={[styles.lifeInsightText, { color: colors.textSecondary }]}>
                 {isLastMonthFallback
-                  ? "No spending recorded yet this month — figures below are from last month so you have something to compare against."
+                  ? t('home.spendingInsightNoSpend')
                   : todaySpend > 500
-                  ? `You've spent ${formatAmount(todaySpend)} today. Consider slowing down to stay within your daily average.`
-                  : `Great discipline today! You've only spent ${formatAmount(todaySpend)} so far.`}
+                  ? t('home.spendingInsightHigh', { amount: formatAmount(todaySpend) })
+                  : t('home.spendingInsightGood', { amount: formatAmount(todaySpend) })}
               </Text>
             </View>
           </View>
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(320).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Spending by Category</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.spendingByCategory')}</Text>
           {sortedCategories.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.emptyIconWrap, { backgroundColor: colors.accentDim }]}>
                 <Ionicons name="pie-chart-outline" size={20} color={colors.accent} />
               </View>
               <View style={styles.emptyTextWrap}>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No spending yet</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('home.noSpendingYet')}</Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>
-                  Add a few expenses and we’ll show a beautiful category breakdown here.
+                  {t('home.noSpendingYetSubtitle')}
                 </Text>
               </View>
             </View>
@@ -1551,17 +1558,16 @@ export default function HomeScreen() {
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(400).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.recentTransactions')}</Text>
           {recentTxs.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.emptyIconWrap, { backgroundColor: colors.accentBlueDim || colors.accentDim }]}>
                 <Ionicons name="receipt-outline" size={20} color={colors.accentBlue || colors.accent} />
               </View>
               <View style={styles.emptyTextWrap}>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No activity recorded</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('home.noActivityRecorded')}</Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>
-                  Add a transaction, or pull down to scan your bank SMS, to see your latest
-                  spending here.
+                  {t('home.noActivityRecordedSubtitle')}
                 </Text>
               </View>
             </View>
@@ -1594,7 +1600,7 @@ export default function HomeScreen() {
         {/* No close button here — CustomModal renders its own, and a second one
             sat directly on top of it. */}
         <View style={[styles.scoreDetailHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.scoreDetailTitle, { color: colors.text }]}>Life Score Breakdown</Text>
+          <Text style={[styles.scoreDetailTitle, { color: colors.text }]}>{t('home.lifeScoreBreakdown')}</Text>
         </View>
 
         <View style={{ alignItems: 'center', paddingVertical: 20 }}>
@@ -1605,7 +1611,7 @@ export default function HomeScreen() {
           <View style={[styles.scoreRow, { borderBottomColor: colors.border }]}>
             <View style={styles.scoreRowLeft}>
               <View style={[styles.scoreRowDot, { backgroundColor: colors.accentMint }]} />
-              <Text style={[styles.scoreRowLabel, { color: colors.text }]}>Budget Control</Text>
+              <Text style={[styles.scoreRowLabel, { color: colors.text }]}>{t('home.budgetControl')}</Text>
             </View>
             <Text style={[styles.scoreRowValue, { color: colors.accentMint }]}>
               {Math.round(Math.max(0, Math.min(100, 100 - budgetUsed)) * 0.5)}/50
@@ -1614,7 +1620,7 @@ export default function HomeScreen() {
           <View style={[styles.scoreRow, { borderBottomColor: colors.border }]}>
             <View style={styles.scoreRowLeft}>
               <View style={[styles.scoreRowDot, { backgroundColor: colors.accentBlue }]} />
-              <Text style={[styles.scoreRowLabel, { color: colors.text }]}>Bills Paid</Text>
+              <Text style={[styles.scoreRowLabel, { color: colors.text }]}>{t('home.billsPaid')}</Text>
             </View>
             <Text style={[styles.scoreRowValue, { color: colors.accentBlue }]}>
               {Math.round((bills.length > 0 ? billsPaidRatio * 100 : 100) * 0.3)}/30
@@ -1623,7 +1629,7 @@ export default function HomeScreen() {
           <View style={[styles.scoreRow, { borderBottomColor: colors.border }]}>
             <View style={styles.scoreRowLeft}>
               <View style={[styles.scoreRowDot, { backgroundColor: colors.warning }]} />
-              <Text style={[styles.scoreRowLabel, { color: colors.text }]}>Leak Detection</Text>
+              <Text style={[styles.scoreRowLabel, { color: colors.text }]}>{t('home.leakDetection')}</Text>
             </View>
             <Text style={[styles.scoreRowValue, { color: colors.warning }]}>
               {Math.round((leaks.length > 0 ? (totalLeakAmount < 1000 ? 100 : totalLeakAmount < 3000 ? 50 : 0) : 100) * 0.2)}/20
@@ -1633,7 +1639,7 @@ export default function HomeScreen() {
 
         <Pressable onPress={() => { setShowScoreDetail(false); showComingSoon(); }} style={[styles.shareBtn, { backgroundColor: colors.accentDim }]}>
           <Ionicons name="share-outline" size={18} color={colors.accent} />
-          <Text style={[styles.shareBtnText, { color: colors.accent }]}>Share Score Card</Text>
+          <Text style={[styles.shareBtnText, { color: colors.accent }]}>{t('home.shareScoreCard')}</Text>
         </Pressable>
       </CustomModal>
 
@@ -1646,10 +1652,10 @@ export default function HomeScreen() {
       >
         {/* Close button comes from CustomModal; a second one here overlapped it. */}
         <View style={[styles.scoreDetailHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.scoreDetailTitle, { color: colors.text }]}>Quick Add Reminder</Text>
+          <Text style={[styles.scoreDetailTitle, { color: colors.text }]}>{t('home.quickAddReminder')}</Text>
         </View>
         <Text style={[styles.lifeInsightText, { color: colors.textSecondary, marginBottom: 12 }]}>
-          {`Type something like "Pay electricity bill tomorrow at 8 pm".`}
+          {t('home.quickAddReminderHint')}
         </Text>
         <TextInput
           style={[
@@ -1663,7 +1669,7 @@ export default function HomeScreen() {
           ]}
           value={quickAddText}
           onChangeText={setQuickAddText}
-          placeholder={`e.g., "Pay electricity bill tomorrow at 8 pm"`}
+          placeholder={t('home.quickAddReminderPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           multiline
           numberOfLines={3}
@@ -1691,28 +1697,28 @@ export default function HomeScreen() {
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-              <Text style={[styles.shareBtnText, { color: '#FFFFFF' }]}>Create Reminder</Text>
+              <Text style={[styles.shareBtnText, { color: '#FFFFFF' }]}>{t('home.createReminder')}</Text>
             </>
           )}
         </Pressable>
       </CustomModal>
       <CustomModal visible={isSnoozeModalVisible} onClose={() => setIsSnoozeModalVisible(false)} showCloseButton={false}>
         <View style={styles.modalHeader}>
-          <Text style={[styles.snoozeModalTitle, { color: colors.text }]}>Snooze Reminder</Text>
+          <Text style={[styles.snoozeModalTitle, { color: colors.text }]}>{t('home.snoozeReminder')}</Text>
         </View>
         <Text style={[styles.snoozeModalSubtitle, { color: colors.textSecondary }]}>
-          When should we remind you again?
+          {t('home.snoozeReminderQuestion')}
         </Text>
 
         <View style={styles.snoozeOptions}>
           {[
-            { label: '10 Minutes', desc: 'Quick nudge', icon: 'timer-outline', color: colors.accent, value: { minutes: 10 } },
-            { label: '1 Hour', desc: 'Later today', icon: 'time-outline', color: colors.accentBlue, value: { minutes: 60 } },
-            { label: 'Tomorrow', desc: 'At 9:00 AM', icon: 'sunny-outline', color: colors.warning, value: { days: 1 } },
-            { label: 'Next Week', desc: '7 days later', icon: 'calendar-outline', color: colors.accentMint, value: { days: 7 } },
+            { labelKey: 'home.snooze10Min', descKey: 'home.snooze10MinDesc', icon: 'timer-outline', color: colors.accent, value: { minutes: 10 } },
+            { labelKey: 'home.snooze1Hour', descKey: 'home.snooze1HourDesc', icon: 'time-outline', color: colors.accentBlue, value: { minutes: 60 } },
+            { labelKey: 'home.snoozeTomorrow', descKey: 'home.snoozeTomorrowDesc', icon: 'sunny-outline', color: colors.warning, value: { days: 1 } },
+            { labelKey: 'home.snoozeNextWeek', descKey: 'home.snoozeNextWeekDesc', icon: 'calendar-outline', color: colors.accentMint, value: { days: 7 } },
           ].map((opt) => (
             <Pressable
-              key={opt.label}
+              key={opt.labelKey}
               onPress={async () => {
                 if (activeReminderId) {
                   await snoozeReminder(activeReminderId, opt.value.days || 0, opt.value.minutes || 0);
@@ -1734,10 +1740,10 @@ export default function HomeScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.snoozeOptionLabel, { color: colors.text, fontSize: isSeniorMode ? 18 : 16 }]}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </Text>
                 <Text style={[styles.snoozeOptionDesc, { color: colors.textTertiary, fontSize: isSeniorMode ? 14 : 12 }]}>
-                  {opt.desc}
+                  {t(opt.descKey)}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
@@ -1749,7 +1755,7 @@ export default function HomeScreen() {
           onPress={() => setIsSnoozeModalVisible(false)}
           style={[styles.snoozeCancelBtn, { borderColor: colors.border }]}
         >
-          <Text style={[styles.snoozeCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+          <Text style={[styles.snoozeCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
         </Pressable>
       </CustomModal>
 
@@ -1758,9 +1764,9 @@ export default function HomeScreen() {
           <View style={[styles.confirmIconWrap, { backgroundColor: colors.dangerDim }]}>
             <Ionicons name="trash-outline" size={32} color={colors.danger} />
           </View>
-          <Text style={[styles.confirmTitle, { color: colors.text }]}>Remove Reminder?</Text>
+          <Text style={[styles.confirmTitle, { color: colors.text }]}>{t('home.removeReminderTitle')}</Text>
           <Text style={[styles.confirmSubtitle, { color: colors.textSecondary }]}>
-            Are you sure you want to stop tracking this reminder? You won't get any more alerts for it.
+            {t('home.removeReminderMessage')}
           </Text>
 
           <View style={styles.confirmActions}>
@@ -1768,7 +1774,7 @@ export default function HomeScreen() {
               onPress={() => setIsCancelModalVisible(false)}
               style={[styles.confirmBtn, { borderColor: colors.border }]}
             >
-              <Text style={[styles.confirmBtnText, { color: colors.textSecondary }]}>No, Keep It</Text>
+              <Text style={[styles.confirmBtnText, { color: colors.textSecondary }]}>{t('home.noKeepIt')}</Text>
             </Pressable>
             <Pressable
               onPress={async () => {
@@ -1780,7 +1786,7 @@ export default function HomeScreen() {
               }}
               style={[styles.confirmBtn, { backgroundColor: colors.danger, borderColor: colors.danger }]}
             >
-              <Text style={[styles.confirmBtnText, { color: '#FFFFFF' }]}>Yes, Remove</Text>
+              <Text style={[styles.confirmBtnText, { color: '#FFFFFF' }]}>{t('home.yesRemove')}</Text>
             </Pressable>
           </View>
         </View>

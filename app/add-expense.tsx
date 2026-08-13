@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -52,11 +53,11 @@ const CHIP_CATEGORIES: CategoryType[] = [
   'others',
 ];
 
-const PAYMENT_MODES: { id: PaymentMode; label: string; icon: string }[] = [
-  { id: 'upi', label: 'UPI', icon: 'phone-portrait-outline' },
-  { id: 'cash', label: 'Cash', icon: 'cash-outline' },
-  { id: 'card', label: 'Card', icon: 'card-outline' },
-  { id: 'netbanking', label: 'Net Banking', icon: 'business-outline' },
+const PAYMENT_MODES: { id: PaymentMode; labelKey: string; icon: string }[] = [
+  { id: 'upi', labelKey: 'addExpense.paymentModeUpi', icon: 'phone-portrait-outline' },
+  { id: 'cash', labelKey: 'addExpense.paymentModeCash', icon: 'cash-outline' },
+  { id: 'card', labelKey: 'addExpense.paymentModeCard', icon: 'card-outline' },
+  { id: 'netbanking', labelKey: 'addExpense.paymentModeNetBanking', icon: 'business-outline' },
 ];
 
 interface FamilyMemberLite {
@@ -71,11 +72,11 @@ interface FamilyMemberLite {
  * category for that time of day" and note suggestions like "7 PM — Dinner?".
  * A local heuristic covers this without a model call.
  */
-function suggestionForNow(): { category: CategoryType; note: string } | null {
+function suggestionForNow(): { category: CategoryType; noteKey: string } | null {
   const h = new Date().getHours();
-  if (h >= 6 && h < 11) return { category: 'food', note: 'Chai / Coffee' };
-  if (h >= 12 && h < 15) return { category: 'food', note: 'Lunch' };
-  if (h >= 19 && h < 23) return { category: 'food', note: 'Dinner' };
+  if (h >= 6 && h < 11) return { category: 'food', noteKey: 'addExpense.suggestionChaiCoffee' };
+  if (h >= 12 && h < 15) return { category: 'food', noteKey: 'addExpense.suggestionLunch' };
+  if (h >= 19 && h < 23) return { category: 'food', noteKey: 'addExpense.suggestionDinner' };
   return null;
 }
 
@@ -87,6 +88,7 @@ export default function AddExpenseScreen() {
   const { currentCurrency, convertForStorage } = useCurrency();
   const { showAlert } = useAlert();
   const { addTransaction } = useExpenses();
+  const { t } = useTranslation();
 
   const suggestion = useMemo(() => suggestionForNow(), []);
 
@@ -168,8 +170,8 @@ export default function AddExpenseScreen() {
       setReceiptUri(url);
     } catch (e: any) {
       showAlert({
-        title: 'Could not attach receipt',
-        message: e?.message || 'Please try again.',
+        title: t('addExpense.couldNotAttachReceipt'),
+        message: e?.message || t('addExpense.couldNotAttachReceiptFallback'),
         type: 'error',
       });
     } finally {
@@ -222,8 +224,8 @@ export default function AddExpenseScreen() {
     if (!created) {
       setIsSaving(false);
       showAlert({
-        title: 'Could not save',
-        message: 'The expense was not saved. Please check your connection and try again.',
+        title: t('addExpense.couldNotSave'),
+        message: t('addExpense.couldNotSaveMessage'),
         type: 'error',
       });
       return;
@@ -233,7 +235,7 @@ export default function AddExpenseScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
     showAlert({
-      title: isDebit ? 'Expense saved' : 'Income saved',
+      title: isDebit ? t('addExpense.expenseSaved') : t('addExpense.incomeSaved'),
       message: `${currentCurrency.symbol}${amountValue.toLocaleString('en-IN')} · ${
         CATEGORIES[category].label
       }${selectedMember ? ` · ${selectedMember.name}` : ''}`,
@@ -256,6 +258,7 @@ export default function AddExpenseScreen() {
     convertForStorage,
     router,
     isDebit,
+    t,
   ]);
 
   const isToday = new Date().toDateString() === date.toDateString();
@@ -266,7 +269,7 @@ export default function AddExpenseScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.headerBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Add Expense</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('addExpense.title')}</Text>
         <View style={styles.headerBtn} />
       </View>
 
@@ -288,7 +291,7 @@ export default function AddExpenseScreen() {
             ]}
           >
             <Text style={[styles.typeText, { color: isDebit ? colors.danger : colors.textSecondary }]}>
-              Expense
+              {t('addExpense.expense')}
             </Text>
           </Pressable>
           <Pressable
@@ -302,7 +305,7 @@ export default function AddExpenseScreen() {
             ]}
           >
             <Text style={[styles.typeText, { color: !isDebit ? (colors.accentMint || colors.text) : colors.textSecondary }]}>
-              Income
+              {t('addExpense.income')}
             </Text>
           </Pressable>
         </View>
@@ -322,7 +325,7 @@ export default function AddExpenseScreen() {
         </View>
 
         {/* Categories */}
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Category</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('addExpense.category')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -367,7 +370,7 @@ export default function AddExpenseScreen() {
         {/* Member selector — only meaningful once a family exists. */}
         {members.length > 0 && (
           <>
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>For</Text>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('addExpense.for')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -397,7 +400,7 @@ export default function AddExpenseScreen() {
                     { color: memberId === null ? colors.accent : colors.textSecondary },
                   ]}
                 >
-                  Me
+                  {t('addExpense.me')}
                 </Text>
               </Pressable>
               {members.map((m) => {
@@ -464,7 +467,7 @@ export default function AddExpenseScreen() {
           style={styles.moreToggle}
         >
           <Text style={[styles.moreText, { color: colors.accent }]}>
-            {showMore ? 'Less' : 'More options'}
+            {showMore ? t('addExpense.less') : t('addExpense.moreOptions')}
           </Text>
           <Ionicons
             name={showMore ? 'chevron-up' : 'chevron-down'}
@@ -478,7 +481,11 @@ export default function AddExpenseScreen() {
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder={suggestion ? `e.g. ${suggestion.note}` : 'Note (optional)'}
+              placeholder={
+                suggestion
+                  ? t('addExpense.notePlaceholderSuggestion', { suggestion: t(suggestion.noteKey) })
+                  : t('addExpense.notePlaceholder')
+              }
               placeholderTextColor={colors.textTertiary}
               style={[
                 styles.input,
@@ -500,7 +507,7 @@ export default function AddExpenseScreen() {
             >
               <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
               <Text style={[styles.dateText, { color: colors.text }]}>
-                {isToday ? 'Today' : date.toLocaleDateString('en-IN')}
+                {isToday ? t('home.today') : date.toLocaleDateString('en-IN')}
               </Text>
             </Pressable>
 
@@ -522,7 +529,7 @@ export default function AddExpenseScreen() {
             )}
             {showDatePicker && Platform.OS === 'ios' && (
               <Pressable onPress={() => setShowDatePicker(false)} style={styles.moreToggle}>
-                <Text style={[styles.moreText, { color: colors.accent }]}>Done</Text>
+                <Text style={[styles.moreText, { color: colors.accent }]}>{t('common.done')}</Text>
               </Pressable>
             )}
 
@@ -555,7 +562,7 @@ export default function AddExpenseScreen() {
                         { color: active ? colors.accent : colors.textSecondary },
                       ]}
                     >
-                      {mode.label}
+                      {t(mode.labelKey)}
                     </Text>
                   </Pressable>
                 );
@@ -589,10 +596,10 @@ export default function AddExpenseScreen() {
                 ]}
               >
                 {isUploadingReceipt
-                  ? 'Uploading receipt…'
+                  ? t('addExpense.uploadingReceipt')
                   : receiptUri
-                    ? 'Receipt attached'
-                    : 'Attach receipt photo (optional)'}
+                    ? t('addExpense.receiptAttached')
+                    : t('addExpense.attachReceipt')}
               </Text>
               {receiptUri && !isUploadingReceipt && (
                 <Pressable
@@ -619,7 +626,7 @@ export default function AddExpenseScreen() {
           {isSaving ? (
             <LoadingIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveText}>Save Expense</Text>
+            <Text style={styles.saveText}>{t('addExpense.saveExpense')}</Text>
           )}
         </Pressable>
 
@@ -630,7 +637,7 @@ export default function AddExpenseScreen() {
         >
           <Ionicons name="document-text-outline" size={15} color={colors.textSecondary} />
           <Text style={[styles.importText, { color: colors.textSecondary }]}>
-            Import bank statement or CSV
+            {t('addExpense.importBankStatement')}
           </Text>
           <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
         </Pressable>
@@ -642,7 +649,7 @@ export default function AddExpenseScreen() {
         >
           <Ionicons name="repeat" size={15} color={colors.textSecondary} />
           <Text style={[styles.importText, { color: colors.textSecondary }]}>
-            Recurring expenses
+            {t('addExpense.recurringExpenses')}
           </Text>
           <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
         </Pressable>

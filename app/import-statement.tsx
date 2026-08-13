@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -106,6 +107,7 @@ const EDIT_CATEGORIES: CategoryType[] = [
 ];
 
 export default function ImportStatementScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -181,14 +183,14 @@ export default function ImportStatementScreen() {
           const json = await res.json().catch(() => null);
           if (json?.needsPassword) {
             setPendingFile(file);
-            setPasswordError(password ? 'That password did not work. Please try again.' : '');
+            setPasswordError(password ? t('importStatement.wrongPassword') : '');
             setPasswordInput('');
             setPasswordVisible(true);
             return;
           }
           showAlert({
-            title: 'Session expired',
-            message: 'Your session has expired. Please sign out and sign in again.',
+            title: t('importStatement.sessionExpiredTitle'),
+            message: t('importStatement.sessionExpiredMessage'),
             type: 'error',
           });
           return;
@@ -200,10 +202,10 @@ export default function ImportStatementScreen() {
           // server's user-facing message doesn't say WHY it was rejected.
           console.warn('[Import] 422 rejected:', file.name, file.mime, JSON.stringify(json));
           showAlert({
-            title: 'Could not read this statement',
+            title: t('importStatement.couldNotReadStatementTitle'),
             message:
               json?.message ||
-              'This statement could not be read. Try your bank\'s CSV export, which is more accurate.',
+              t('importStatement.couldNotReadStatementMessage'),
             type: 'info',
           });
           return;
@@ -213,11 +215,11 @@ export default function ImportStatementScreen() {
           const detail = await res.text().catch(() => '');
           console.error(`[Import] HTTP ${res.status}:`, detail.slice(0, 300));
           showAlert({
-            title: 'Could not read this file',
+            title: t('importStatement.couldNotReadFileTitle'),
             message:
               res.status === 413
-                ? 'This file is too large to upload. Try exporting a shorter date range.'
-                : `Upload failed (error ${res.status}). Please try again.`,
+                ? t('importStatement.fileTooLarge')
+                : t('importStatement.uploadFailed', { status: res.status }),
             type: 'error',
           });
           return;
@@ -230,11 +232,11 @@ export default function ImportStatementScreen() {
 
         if (!previewRows || previewRows.length === 0) {
           showAlert({
-            title: 'No transactions found',
+            title: t('importStatement.noTransactionsFoundTitle'),
             message:
               file.mime === 'application/pdf'
-                ? 'No transactions could be read from this PDF. Your bank\'s CSV export is more reliable.'
-                : 'This file did not contain any readable transactions.',
+                ? t('importStatement.noTransactionsFoundPdf')
+                : t('importStatement.noTransactionsFoundGeneric'),
             type: 'error',
           });
           return;
@@ -263,13 +265,13 @@ export default function ImportStatementScreen() {
       } catch (err) {
         setIsParsing(false);
         showAlert({
-          title: 'Could not open the file',
-          message: 'Please check your connection and try again.',
+          title: t('importStatement.couldNotOpenFileTitle'),
+          message: t('importStatement.checkConnectionMessage'),
           type: 'error',
         });
       }
     },
-    [token, showAlert],
+    [token, showAlert, t],
   );
 
   const handlePickFile = useCallback(async () => {
@@ -295,12 +297,12 @@ export default function ImportStatementScreen() {
       await uploadFile({ uri: asset.uri, name, mime: mimeForFile(name, asset.mimeType) });
     } catch (err) {
       showAlert({
-        title: 'Could not open the file',
-        message: 'The file could not be opened. Please try again.',
+        title: t('importStatement.couldNotOpenFileTitle'),
+        message: t('importStatement.fileCouldNotBeOpened'),
         type: 'error',
       });
     }
-  }, [token, uploadFile, showAlert]);
+  }, [token, uploadFile, showAlert, t]);
 
   const submitPassword = useCallback(() => {
     const pw = passwordInput.trim();
@@ -353,8 +355,8 @@ export default function ImportStatementScreen() {
     if (saved === 0) {
       setStage('review');
       showAlert({
-        title: 'Nothing was imported',
-        message: 'The transactions could not be saved. Please check your connection and try again.',
+        title: t('importStatement.nothingImportedTitle'),
+        message: t('importStatement.nothingImportedMessage'),
         type: 'error',
       });
       return;
@@ -362,15 +364,15 @@ export default function ImportStatementScreen() {
 
     const failed = selectedRows.length - saved;
     showAlert({
-      title: 'Import complete',
+      title: t('importStatement.importCompleteTitle'),
       message:
         failed > 0
-          ? `${saved} of ${selectedRows.length} transactions imported. ${failed} could not be saved.`
-          : `${saved} transactions imported.`,
+          ? t('importStatement.importCompletePartial', { saved, total: selectedRows.length, failed })
+          : t('importStatement.importCompleteFull', { saved }),
       type: failed > 0 ? 'warning' : 'success',
-      buttons: [{ text: 'Done', onPress: () => router.back() }],
+      buttons: [{ text: t('common.done'), onPress: () => router.back() }],
     });
-  }, [selectedRows, addTransactionsBulk, showAlert, router]);
+  }, [selectedRows, addTransactionsBulk, showAlert, router, t]);
 
   /* ---------------------------------------------------------------- */
 
@@ -379,10 +381,9 @@ export default function ImportStatementScreen() {
       <View style={[styles.heroIcon, { backgroundColor: colors.accent + '18' }]}>
         <Ionicons name="document-text-outline" size={34} color={colors.accent} />
       </View>
-      <Text style={[styles.heroTitle, { color: colors.text }]}>Import a bank statement</Text>
+      <Text style={[styles.heroTitle, { color: colors.text }]}>{t('importStatement.heroTitle')}</Text>
       <Text style={[styles.heroText, { color: colors.textSecondary }]}>
-        Download a statement from your bank app or net banking, then pick it here. One import fills
-        in a whole month at once.
+        {t('importStatement.heroText')}
       </Text>
 
       <Pressable
@@ -395,13 +396,13 @@ export default function ImportStatementScreen() {
         ) : (
           <>
             <Ionicons name="folder-open-outline" size={17} color="#FFFFFF" />
-            <Text style={styles.primaryBtnText}>Choose statement file</Text>
+            <Text style={styles.primaryBtnText}>{t('importStatement.chooseStatementFile')}</Text>
           </>
         )}
       </Pressable>
 
       <View style={styles.formatRow}>
-        {['PDF', 'CSV', 'Excel'].map((fmt) => (
+        {[t('importStatement.formatPdf'), t('importStatement.formatCsv'), t('importStatement.formatExcel')].map((fmt) => (
           <View
             key={fmt}
             style={[styles.formatChip, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}
@@ -412,11 +413,11 @@ export default function ImportStatementScreen() {
       </View>
 
       <View style={[styles.infoCard, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
-        <Text style={[styles.infoTitle, { color: colors.text }]}>Where to find your statement</Text>
+        <Text style={[styles.infoTitle, { color: colors.text }]}>{t('importStatement.whereToFindTitle')}</Text>
         {[
-          'HDFC / ICICI / Axis — net banking → Account Statement → download as PDF, CSV or Excel',
-          'SBI — YONO or net banking → Account Statement → PDF or CSV',
-          'Emailed statements — the monthly PDF your bank sends works too',
+          t('importStatement.whereToFindBullet1'),
+          t('importStatement.whereToFindBullet2'),
+          t('importStatement.whereToFindBullet3'),
         ].map((line) => (
           <View key={line} style={styles.bullet}>
             <Text style={[styles.bulletDot, { color: colors.textTertiary }]}>•</Text>
@@ -428,8 +429,7 @@ export default function ImportStatementScreen() {
       <View style={[styles.noteCard, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
         <Ionicons name="lock-closed-outline" size={16} color={colors.textTertiary} />
         <Text style={[styles.noteText, { color: colors.textSecondary }]}>
-          Password-protected PDFs are fine — we&rsquo;ll ask for the password. If a PDF can&rsquo;t
-          be read, your bank&rsquo;s CSV export is the most accurate option.
+          {t('importStatement.passwordProtectedNote')}
         </Text>
       </View>
     </View>
@@ -443,9 +443,10 @@ export default function ImportStatementScreen() {
         </Text>
         <Text style={[styles.summaryLine, { color: colors.textSecondary }]}>
           {sourceBank ? `${sourceBank} · ` : ''}
-          {debitCount} expense{debitCount === 1 ? '' : 's'}
-          {creditCount > 0 ? ` · ${creditCount} credit${creditCount === 1 ? '' : 's'}` : ''} found
-          {skippedCount > 0 ? ` · ${skippedCount} row${skippedCount === 1 ? '' : 's'} unreadable` : ''}
+          {t('importStatement.expenseCount', { count: debitCount })}
+          {creditCount > 0 ? ` · ${t('importStatement.creditCount', { count: creditCount })}` : ''}
+          {' '}{t('importStatement.foundSuffix')}
+          {skippedCount > 0 ? ` · ${t('importStatement.rowsUnreadable', { count: skippedCount })}` : ''}
         </Text>
       </View>
 
@@ -457,11 +458,11 @@ export default function ImportStatementScreen() {
             color={allSelected ? colors.accent : colors.textTertiary}
           />
           <Text style={[styles.selectAllText, { color: colors.textSecondary }]}>
-            {allSelected ? 'Deselect all' : 'Select all'}
+            {allSelected ? t('importStatement.deselectAll') : t('importStatement.selectAll')}
           </Text>
         </Pressable>
         <Text style={[styles.selectedCount, { color: colors.textTertiary }]}>
-          {selected.size} selected
+          {t('importStatement.selectedCount', { count: selected.size })}
         </Text>
       </View>
 
@@ -523,7 +524,7 @@ export default function ImportStatementScreen() {
       })}
 
       <Text style={[styles.footnote, { color: colors.textTertiary }]}>
-        Tap a category chip to change it. Uncheck anything that shouldn't be imported.
+        {t('importStatement.footnote')}
       </Text>
     </>
   );
@@ -535,7 +536,7 @@ export default function ImportStatementScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {stage === 'pick' ? 'Import Statement' : 'Review transactions'}
+          {stage === 'pick' ? t('importStatement.headerTitlePick') : t('importStatement.headerTitleReview')}
         </Text>
         <View style={styles.iconBtn} />
       </View>
@@ -564,7 +565,7 @@ export default function ImportStatementScreen() {
         >
           <View style={{ flex: 1 }}>
             <Text style={[styles.footerLabel, { color: colors.textTertiary }]}>
-              {selected.size} selected
+              {t('importStatement.selectedCount', { count: selected.size })}
             </Text>
             <Money style={[styles.footerTotal, { color: colors.text }]}>
               {formatAmount(selectedTotal)}
@@ -584,7 +585,7 @@ export default function ImportStatementScreen() {
               <LoadingIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.importBtnText}>
-                Import {selected.size > 0 ? selected.size : ''}
+                {selected.size > 0 ? t('importStatement.importWithCount', { count: selected.size }) : t('importStatement.importAction')}
               </Text>
             )}
           </Pressable>
@@ -600,19 +601,18 @@ export default function ImportStatementScreen() {
         }}
         showCloseButton={false}
       >
-        <Text style={[styles.modalTitle, { color: colors.text }]}>This PDF is protected</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('importStatement.pdfProtectedTitle')}</Text>
         <Text style={[styles.modalSub, { color: colors.textTertiary }]}>
-          Enter the password your bank uses for this statement. It&rsquo;s often your date of birth
-          as DDMMYYYY, or your PAN in lower case.
+          {t('importStatement.pdfProtectedMessage')}
         </Text>
 
         <TextInput
           value={passwordInput}
-          onChangeText={(t) => {
-            setPasswordInput(t);
+          onChangeText={(val) => {
+            setPasswordInput(val);
             if (passwordError) setPasswordError('');
           }}
-          placeholder="Statement password"
+          placeholder={t('importStatement.statementPasswordPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           secureTextEntry
           autoCapitalize="none"
@@ -641,7 +641,7 @@ export default function ImportStatementScreen() {
             }}
             style={[styles.pwBtn, { backgroundColor: colors.bgSecondary }]}
           >
-            <Text style={[styles.pwBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+            <Text style={[styles.pwBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
           </Pressable>
           <Pressable
             onPress={submitPassword}
@@ -651,7 +651,7 @@ export default function ImportStatementScreen() {
               { backgroundColor: passwordInput.trim() ? colors.accent : colors.border },
             ]}
           >
-            <Text style={[styles.pwBtnText, { color: '#FFFFFF' }]}>Unlock</Text>
+            <Text style={[styles.pwBtnText, { color: '#FFFFFF' }]}>{t('importStatement.unlock')}</Text>
           </Pressable>
         </View>
       </CustomModal>
@@ -662,7 +662,7 @@ export default function ImportStatementScreen() {
         onClose={() => setEditingRow(null)}
         showCloseButton={false}
       >
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Change category</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('importStatement.changeCategory')}</Text>
         <Text style={[styles.modalSub, { color: colors.textTertiary }]} numberOfLines={1}>
           {editingRow?.description}
         </Text>

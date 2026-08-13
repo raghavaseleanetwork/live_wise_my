@@ -14,9 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency, CURRENCIES, CurrencyOption } from '@/lib/currency-context';
+import { useLanguage } from '@/lib/language-context';
 import { useExpenses } from '@/lib/expense-context';
 import { useSeniorMode } from '@/lib/senior-context';
 import { useAlert } from '@/lib/alert-context';
@@ -62,9 +64,11 @@ function SettingRow({
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { user, logout, updateProfile } = useAuth();
   const { colors, mode, toggleTheme, isDark } = useTheme();
   const { currentCurrency, setCurrency, formatAmount, convertForDisplay, convertForStorage } = useCurrency();
+  const { currentLanguage, languages, setLanguage } = useLanguage();
   const { monthlyBudget, setMonthlyBudget } = useExpenses();
   const { isSeniorMode, setSeniorMode } = useSeniorMode();
   const { showAlert } = useAlert();
@@ -76,6 +80,7 @@ export default function SettingsScreen() {
     setEnabled: setLockEnabled,
   } = useAppLock();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget || ''));
 
@@ -93,9 +98,8 @@ export default function SettingsScreen() {
     const ok = await setLockEnabled(val);
     if (!ok) {
       showAlert({
-        title: val ? "Couldn't turn on App Lock" : "Couldn't turn off App Lock",
-        message:
-          'Authentication was cancelled or failed. Your App Lock setting has not been changed.',
+        title: val ? t('settings.appLockOnFailed') : t('settings.appLockOffFailed'),
+        message: t('settings.appLockFailedMessage'),
         type: 'error',
       });
     }
@@ -111,13 +115,13 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     showAlert({
-      title: 'Logout',
-      message: 'Are you sure you want to logout?',
+      title: t('settings.logout'),
+      message: t('settings.logoutConfirm'),
       type: 'confirm',
       buttons: [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('settings.logout'),
           style: 'destructive',
           onPress: () => logout().then(() => router.replace('/(auth)/login')),
         },
@@ -135,7 +139,7 @@ export default function SettingsScreen() {
           <Pressable onPress={handleBack} hitSlop={10} testID="settings-back">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.screenTitle, { color: colors.text }]}>Settings</Text>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>{t('settings.title')}</Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -151,17 +155,17 @@ export default function SettingsScreen() {
             )}
           </View>
           <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, { color: colors.text }]}>{user?.name || 'User'}</Text>
+            <Text style={[styles.profileName, { color: colors.text }]}>{user?.name || t('common.user')}</Text>
             <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{user?.email || 'user@email.com'}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
         </Pressable>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Appearance</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('settings.appearance')}</Text>
         <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <SettingRow
             icon="moon"
-            label="Dark Mode"
+            label={t('settings.darkMode')}
             colors={colors}
             rightElement={
               <Switch
@@ -174,7 +178,7 @@ export default function SettingsScreen() {
           />
           <SettingRow
             icon="accessibility"
-            label="Senior Mode"
+            label={t('settings.seniorMode')}
             colors={colors}
             rightElement={
               <Switch
@@ -187,16 +191,16 @@ export default function SettingsScreen() {
           />
           <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
             <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
-              Senior Mode makes the app easier to use with larger text, simple layout, and better visibility.
+              {t('settings.seniorModeHint')}
             </Text>
           </View>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Preferences</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('settings.preferences')}</Text>
         <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <SettingRow
             icon="cash"
-            label="Currency"
+            label={t('settings.currency')}
             colors={colors}
             onPress={() => setShowCurrencyPicker(true)}
             rightElement={
@@ -209,8 +213,22 @@ export default function SettingsScreen() {
             }
           />
           <SettingRow
+            icon="language"
+            label={t('settings.language')}
+            colors={colors}
+            onPress={() => setShowLanguagePicker(true)}
+            rightElement={
+              <Pressable onPress={() => setShowLanguagePicker(true)} style={styles.currencyBadge}>
+                <Text style={[styles.currencyBadgeText, { color: colors.accent }]}>
+                  {currentLanguage.nativeLabel}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+              </Pressable>
+            }
+          />
+          <SettingRow
             icon="wallet-outline"
-            label="Monthly Budget"
+            label={t('settings.monthlyBudget')}
             colors={colors}
             onPress={() => {
               setBudgetInput(monthlyBudget ? String(Math.round(convertForDisplay(monthlyBudget))) : '');
@@ -233,11 +251,11 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Subscription</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('settings.subscription')}</Text>
         <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <SettingRow
             icon="pricetags-outline"
-            label="Manage Plan"
+            label={t('settings.managePlan')}
             onPress={() => router.push('/subscription' as any)}
             colors={colors}
             rightElement={
@@ -256,11 +274,11 @@ export default function SettingsScreen() {
         */}
         {lockSupported && (
           <>
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Security</Text>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('settings.security')}</Text>
             <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <SettingRow
                 icon={biometricIcon(biometricKind)}
-                label="App Lock"
+                label={t('settings.appLock')}
                 colors={colors}
                 rightElement={
                   <Switch
@@ -273,32 +291,30 @@ export default function SettingsScreen() {
               />
               <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
                 <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
-                  Require {biometricLabel(biometricKind).toLowerCase()} or your device PIN to open
-                  LifeWise. Applies when you open the app and after it has been in the
-                  background for a while.
+                  {t('settings.appLockHint', { method: biometricLabel(biometricKind).toLowerCase() })}
                 </Text>
               </View>
             </View>
           </>
         )}
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>General</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('settings.general')}</Text>
         <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingRow icon="notifications-outline" label="Notifications" onPress={() => router.push('/notifications')} colors={colors} />
-          <SettingRow icon="shield-checkmark-outline" label="Privacy" onPress={() => router.push('/privacy')} colors={colors} />
-          <SettingRow icon="help-circle-outline" label="Help & Support" onPress={() => router.push('/support')} colors={colors} />
+          <SettingRow icon="notifications-outline" label={t('settings.notifications')} onPress={() => router.push('/notifications')} colors={colors} />
+          <SettingRow icon="shield-checkmark-outline" label={t('settings.privacy')} onPress={() => router.push('/privacy')} colors={colors} />
+          <SettingRow icon="help-circle-outline" label={t('settings.helpSupport')} onPress={() => router.push('/support')} colors={colors} />
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Account</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('settings.account')}</Text>
         <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingRow icon="log-out-outline" label="Logout" onPress={handleLogout} danger colors={colors} />
+          <SettingRow icon="log-out-outline" label={t('settings.logout')} onPress={handleLogout} danger colors={colors} />
         </View>
 
         <Text style={[styles.versionText, { color: colors.textTertiary }]}>LifeWise v1.0.0</Text>
       </ScrollView>
 
       <CustomModal visible={showCurrencyPicker} onClose={() => setShowCurrencyPicker(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Select Currency</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.selectCurrency')}</Text>
         {CURRENCIES.map(curr => (
           <Pressable
             key={curr.code}
@@ -328,14 +344,48 @@ export default function SettingsScreen() {
           </Pressable>
         ))}
         <Pressable onPress={() => setShowCurrencyPicker(false)} style={[styles.cancelBtn, { borderColor: colors.border }]}>
-          <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+          <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
+        </Pressable>
+      </CustomModal>
+
+      <CustomModal visible={showLanguagePicker} onClose={() => setShowLanguagePicker(false)} showCloseButton={false}>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.selectLanguage')}</Text>
+        {languages.map(lang => (
+          <Pressable
+            key={lang.code}
+            onPress={() => {
+              setLanguage(lang.code);
+              // Same rationale as the currency sync above: the server has no
+              // other way to know which language to render emails/notifications
+              // in. NOT YET CONSUMED server-side — see
+              // backend-team/I18N-backend-requirements.md.
+              void updateProfile({ preferredLanguage: lang.code });
+              setShowLanguagePicker(false);
+            }}
+            style={[
+              styles.currencyRow,
+              { borderBottomColor: colors.border },
+              lang.code === currentLanguage.code && { backgroundColor: colors.accentDim },
+            ]}
+          >
+            <View style={styles.currencyInfo}>
+              <Text style={[styles.currencyCode, { color: colors.text }]}>{lang.nativeLabel}</Text>
+              <Text style={[styles.currencyName, { color: colors.textSecondary }]}>{lang.label}</Text>
+            </View>
+            {lang.code === currentLanguage.code && (
+              <Ionicons name="checkmark-circle" size={22} color={colors.accent} />
+            )}
+          </Pressable>
+        ))}
+        <Pressable onPress={() => setShowLanguagePicker(false)} style={[styles.cancelBtn, { borderColor: colors.border }]}>
+          <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
         </Pressable>
       </CustomModal>
 
       <CustomModal visible={showBudgetModal} onClose={() => setShowBudgetModal(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Set Monthly Budget</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.setMonthlyBudget')}</Text>
         <Text style={[styles.budgetHint, { color: colors.textSecondary }]}>
-          This amount is used for the home screen budget bar and remaining balance.
+          {t('settings.monthlyBudgetHint')}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
           <TextInput
@@ -392,13 +442,13 @@ export default function SettingsScreen() {
           }}
           style={[styles.cancelBtn, { borderColor: colors.border, marginTop: 20, backgroundColor: colors.accent }]}
         >
-          <Text style={[styles.cancelBtnText, { color: '#FFFFFF' }]}>Save Budget</Text>
+          <Text style={[styles.cancelBtnText, { color: '#FFFFFF' }]}>{t('settings.saveBudget')}</Text>
         </Pressable>
         <Pressable
           onPress={() => setShowBudgetModal(false)}
           style={[styles.cancelBtn, { borderColor: colors.border }]}
         >
-          <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+          <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
         </Pressable>
       </CustomModal>
     </View>
