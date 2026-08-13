@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { addStockItem, loadStock, updateStockItem } from '@/lib/family-records';
@@ -13,6 +14,7 @@ export default function AddStockItemScreen() {
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [medicineName, setMedicineName] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -41,12 +43,12 @@ export default function AddStockItemScreen() {
 
   const handleSave = async () => {
     if (!medicineName.trim()) {
-      setError('Please enter the medicine name');
+      setError(t('familyStock.errorEnterName'));
       return;
     }
     const qty = parseInt(quantity, 10);
     if (!quantity.trim() || Number.isNaN(qty) || qty < 0) {
-      setError('Please enter a valid quantity remaining');
+      setError(t('familyStock.errorInvalidQuantity'));
       return;
     }
     if (!memberId || saving) return;
@@ -74,38 +76,38 @@ export default function AddStockItemScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Medicine Stock' : 'Track Medicine Stock'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyStock.editHeaderTitle') : t('familyStock.newHeaderTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyStock.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Medicine Name</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyStock.medicineNameLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={medicineName}
           onChangeText={setMedicineName}
-          placeholder="e.g. Metformin"
+          placeholder={t('familyStock.medicineNamePlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Quantity Remaining</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyStock.quantityRemainingLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={quantity}
           onChangeText={setQuantity}
-          placeholder="e.g. 30"
+          placeholder={t('familyStock.quantityPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           keyboardType="numeric"
         />
 
         <View style={styles.formRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Daily Usage</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyStock.dailyUsageLabel')}</Text>
             <TextInput
               style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
               value={dailyUsage}
@@ -116,7 +118,7 @@ export default function AddStockItemScreen() {
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Low Stock Alert At</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyStock.lowStockAlertLabel')}</Text>
             <TextInput
               style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
               value={threshold}
@@ -129,7 +131,7 @@ export default function AddStockItemScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyStock.saveChanges') : t('common.save')}</Text>
         </Pressable>
       </ScrollView>
     </View>

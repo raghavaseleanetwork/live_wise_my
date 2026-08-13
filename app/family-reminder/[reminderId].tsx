@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -43,16 +44,16 @@ const KIND_ROUTE: Record<FamilyReminderKind, string> = {
   travel: '/family-travel',
 };
 
-function formatRepeat(r: RepeatType) {
-  return REPEAT_OPTIONS.find((x) => x.key === r)?.label ?? 'One-time';
+function formatRepeat(r: RepeatType, t: (key: string, opts?: any) => string) {
+  return REPEAT_OPTIONS.find((x) => x.key === r)?.label ?? t('familyReminder.oneTime');
 }
 
-function dueLabel(dueDate: string): { text: string; urgent: boolean } {
+function dueLabel(dueDate: string, t: (key: string, opts?: any) => string): { text: string; urgent: boolean } {
   const days = getDaysUntil(dueDate);
-  if (days < 0) return { text: `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`, urgent: true };
-  if (days === 0) return { text: 'Due today', urgent: true };
-  if (days === 1) return { text: 'Due tomorrow', urgent: false };
-  return { text: `Due in ${days} days`, urgent: false };
+  if (days < 0) return { text: t('familyReminder.overdueBy', { count: Math.abs(days) }), urgent: true };
+  if (days === 0) return { text: t('familyReminder.dueToday'), urgent: true };
+  if (days === 1) return { text: t('familyReminder.dueTomorrow'), urgent: false };
+  return { text: t('familyReminder.dueInDays', { count: days }), urgent: false };
 }
 
 export default function FamilyReminderDetailScreen() {
@@ -62,6 +63,7 @@ export default function FamilyReminderDetailScreen() {
   const { formatAmount } = useCurrency();
   const { isSeniorMode } = useSeniorMode();
   const { familyReminders } = useFamilyReminders();
+  const { t } = useTranslation();
 
   const reminder = useMemo(
     () => familyReminders.find((r) => r.id === String(reminderId)),
@@ -76,12 +78,12 @@ export default function FamilyReminderDetailScreen() {
     // not-found state on every cold open of this screen.
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <PremiumLoader size={80} text="Loading reminder..." />
+        <PremiumLoader size={80} text={t('familyReminder.loadingText')} />
       </View>
     );
   }
 
-  const due = dueLabel(reminder.dueDate);
+  const due = dueLabel(reminder.dueDate, t);
   const category = CATEGORIES[reminder.category] ?? CATEGORIES.others;
   // The stored name is "<title> · <member>"; the member is shown on its own row
   // below, so the heading uses just the title.
@@ -106,7 +108,7 @@ export default function FamilyReminderDetailScreen() {
           <Pressable onPress={() => router.back()} hitSlop={12} testID="family-reminder-back">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Reminder</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyReminder.headerTitle')}</Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -140,13 +142,13 @@ export default function FamilyReminderDetailScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <DetailRow
             icon="person-outline"
-            label="For"
+            label={t('familyReminder.forLabel')}
             value={reminder.memberName}
             colors={colors}
           />
           <DetailRow
             icon="calendar-outline"
-            label="Due"
+            label={t('familyReminder.dueLabel')}
             value={dueDate.toLocaleDateString('en-IN', {
               weekday: 'short',
               day: 'numeric',
@@ -157,19 +159,19 @@ export default function FamilyReminderDetailScreen() {
           />
           <DetailRow
             icon="repeat-outline"
-            label="Repeats"
-            value={formatRepeat(reminder.repeatType)}
+            label={t('familyReminder.repeatsLabel')}
+            value={formatRepeat(reminder.repeatType, t)}
             colors={colors}
           />
           <DetailRow
             icon="notifications-outline"
-            label="Reminders"
+            label={t('familyReminder.remindersLabel')}
             value={
               reminder.reminderDaysBefore.length
                 ? reminder.reminderDaysBefore
-                    .map((d) => (d === 0 ? 'on the day' : `${d}d before`))
+                    .map((d) => (d === 0 ? t('familyReminder.onTheDay') : t('familyReminder.daysBefore', { count: d })))
                     .join(', ')
-                : 'None'
+                : t('familyReminder.none')
             }
             colors={colors}
             isLast
@@ -190,18 +192,17 @@ export default function FamilyReminderDetailScreen() {
           <Ionicons name="people-outline" size={20} color={colors.accent} />
           <View style={styles.manageTextWrap}>
             <Text style={[styles.manageTitle, { color: colors.accent }]}>
-              Manage in Family Hub
+              {t('familyReminder.manageInFamilyHub')}
             </Text>
             <Text style={[styles.manageSubtitle, { color: colors.textSecondary }]}>
-              Edit or remove this from {reminder.memberName}’s {familyReminderLabel(reminder.sourceKind).toLowerCase()}s
+              {t('familyReminder.manageSubtitle', { member: reminder.memberName, kind: familyReminderLabel(reminder.sourceKind).toLowerCase() })}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.accent} />
         </Pressable>
 
         <Text style={[styles.footnote, { color: colors.textTertiary }]}>
-          This reminder comes from Family Hub. It updates automatically when the
-          original record changes.
+          {t('familyReminder.footnote')}
         </Text>
       </ScrollView>
     </View>

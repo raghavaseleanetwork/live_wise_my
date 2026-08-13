@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -28,6 +29,7 @@ export default function FamilyEmergencyScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
 
   const [settings, setSettings] = useState<EmergencySettings>(DEFAULT_EMERGENCY_SETTINGS);
   const [log, setLog] = useState<EmergencyLogEntry[]>([]);
@@ -64,10 +66,10 @@ export default function FamilyEmergencyScreen() {
         const missed = findMissedMedicines(medicines, settings.missedMedicineThresholdHours);
         if (missed.length > 0) {
           foundSomething = true;
-          const message = `${missed.join(', ')} ${missed.length === 1 ? 'was' : 'were'} not marked as taken more than ${settings.missedMedicineThresholdHours}h after the scheduled time.`;
+          const message = t('familyEmergency.missedMedicineMessage', { medicines: missed.join(', '), count: missed.length, hours: settings.missedMedicineThresholdHours });
           await addEmergencyLogEntry(String(memberId), 'missed_medicine', message);
           await scheduleLocalNotification({
-            title: `${memberName || 'Family member'}: Medicine may have been missed`,
+            title: t('familyEmergency.missedMedicineNotifTitle', { name: memberName || t('familyEmergency.familyMemberFallback') }),
             body: message,
             data: { type: 'family_emergency', memberId: String(memberId) },
             triggerAt: new Date(Date.now() + 1000),
@@ -77,7 +79,7 @@ export default function FamilyEmergencyScreen() {
 
       await load();
       if (!foundSomething) {
-        await addEmergencyLogEntry(String(memberId), 'missed_medicine', 'Check complete — nothing to report right now.');
+        await addEmergencyLogEntry(String(memberId), 'missed_medicine', t('familyEmergency.checkCompleteNothing'));
         const refreshed = await loadEmergencyLog(String(memberId));
         setLog(refreshed);
       }
@@ -96,26 +98,26 @@ export default function FamilyEmergencyScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Emergency Alerts</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyEmergency.headerTitle')}</Text>
           <View style={{ width: 40 }} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyEmergency.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         <View style={[styles.infoBanner, { backgroundColor: colors.accentDim, borderColor: colors.accent + '30' }]}>
           <Ionicons name="information-circle" size={18} color={colors.accent} />
           <Text style={[styles.infoText, { color: colors.text }]}>
-            Alerts fire as a notification on <Text style={{ fontFamily: 'Inter_700Bold' }}>this device</Text>. Sending alerts to other family members' phones needs a small backend addition — see the notes in this app's project docs.
+            {t('familyEmergency.infoBannerPrefix')}<Text style={{ fontFamily: 'Inter_700Bold' }}>{t('familyEmergency.thisDevice')}</Text>{t('familyEmergency.infoBannerSuffix')}
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Settings</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyEmergency.settingsSection')}</Text>
         <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingTitle, { color: colors.text }]}>Missed Medicine Alert</Text>
-              <Text style={[styles.settingSub, { color: colors.textTertiary }]}>Alert if a dose is {settings.missedMedicineThresholdHours}h+ overdue</Text>
+              <Text style={[styles.settingTitle, { color: colors.text }]}>{t('familyEmergency.missedMedicineAlertTitle')}</Text>
+              <Text style={[styles.settingSub, { color: colors.textTertiary }]}>{t('familyEmergency.missedMedicineAlertSub', { hours: settings.missedMedicineThresholdHours })}</Text>
             </View>
             <Switch
               value={settings.missedMedicineAlertEnabled}
@@ -126,8 +128,8 @@ export default function FamilyEmergencyScreen() {
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingTitle, { color: colors.text }]}>No-Activity Alert</Text>
-              <Text style={[styles.settingSub, { color: colors.textTertiary }]}>Alert after {settings.noActivityThresholdDays} day{settings.noActivityThresholdDays === 1 ? '' : 's'} of no logged activity</Text>
+              <Text style={[styles.settingTitle, { color: colors.text }]}>{t('familyEmergency.noActivityAlertTitle')}</Text>
+              <Text style={[styles.settingSub, { color: colors.textTertiary }]}>{t('familyEmergency.noActivityAlertSub', { count: settings.noActivityThresholdDays })}</Text>
             </View>
             <Switch
               value={settings.noActivityAlertEnabled}
@@ -143,14 +145,14 @@ export default function FamilyEmergencyScreen() {
           style={[styles.checkBtn, { backgroundColor: colors.accent, opacity: isChecking ? 0.6 : 1 }]}
         >
           <Ionicons name="shield-checkmark" size={18} color="#FFF" />
-          <Text style={styles.checkBtnText}>{isChecking ? 'Checking…' : 'Check Now'}</Text>
+          <Text style={styles.checkBtnText}>{isChecking ? t('familyEmergency.checking') : t('familyEmergency.checkNow')}</Text>
         </Pressable>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 24 }]}>Alert log</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 24 }]}>{t('familyEmergency.alertLogSection')}</Text>
         {log.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="shield-checkmark-outline" size={40} color={colors.textTertiary} />
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>No alerts yet. Tap "Check Now" to run a check.</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyEmergency.emptyLogDesc')}</Text>
           </View>
         ) : (
           log.map((entry) => (

@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -30,6 +31,7 @@ export default function FamilyCaregiversScreen() {
   const { colors } = useTheme();
   const { token, user } = useAuth();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
 
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,13 +62,13 @@ export default function FamilyCaregiversScreen() {
 
   const confirmRemove = (c: Caregiver) => {
     showAlert({
-      title: 'Remove caregiver?',
-      message: `${c.name} will no longer receive reminders or alerts for ${memberName || 'this member'}.`,
+      title: t('familyCaregivers.removeConfirmTitle'),
+      message: t('familyCaregivers.removeConfirmMessage', { name: c.name, member: memberName || t('familyCaregivers.thisMember') }),
       type: 'warning',
       buttons: [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('familyCaregivers.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -74,7 +76,7 @@ export default function FamilyCaregiversScreen() {
               load();
             } catch (e) {
               console.error('Remove caregiver error:', e);
-              showAlert({ title: 'Could not remove', message: 'Please try again.', type: 'error' });
+              showAlert({ title: t('familyCaregivers.couldNotRemoveTitle'), message: t('familyCaregivers.tryAgain'), type: 'error' });
             }
           },
         },
@@ -91,17 +93,17 @@ export default function FamilyCaregiversScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Caregivers</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyCaregivers.headerTitle')}</Text>
           <Pressable onPress={openInvite} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="person-add" size={24} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Connected to {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCaregivers.connectedTo', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         <Text style={[styles.introText, { color: colors.textSecondary }]}>
-          Everyone connected here gets the same reminders, bill alerts, emergency and health notifications for {memberName || 'this member'}. Marking something done updates it for everyone instantly.
+          {t('familyCaregivers.introText', { member: memberName || t('familyCaregivers.thisMember') })}
         </Text>
 
         {loading ? (
@@ -112,7 +114,7 @@ export default function FamilyCaregiversScreen() {
           <View style={[styles.noticeBox, { backgroundColor: colors.warningDim, borderColor: colors.warning }]}>
             <Ionicons name="alert-circle-outline" size={22} color={colors.warning} />
             <Text style={[styles.noticeText, { color: colors.text }]}>
-              Couldn’t load caregivers right now. Pull to refresh or try again in a moment.
+              {t('familyCaregivers.loadErrorText')}
             </Text>
           </View>
         ) : (
@@ -120,9 +122,9 @@ export default function FamilyCaregiversScreen() {
             {caregivers.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No caregivers connected yet</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyCaregivers.emptyTitle')}</Text>
                 <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>
-                  Invite a family member by email so they get the same reminders and alerts.
+                  {t('familyCaregivers.emptyDesc')}
                 </Text>
               </View>
             )}
@@ -135,7 +137,7 @@ export default function FamilyCaregiversScreen() {
                     <Text style={[styles.cardTitle, { color: colors.text }]}>{c.name}</Text>
                     {c.role === 'owner' && (
                       <View style={[styles.ownerBadge, { backgroundColor: colors.accentDim }]}>
-                        <Text style={[styles.ownerBadgeText, { color: colors.accent }]}>Owner</Text>
+                        <Text style={[styles.ownerBadgeText, { color: colors.accent }]}>{t('familyCaregivers.ownerBadge')}</Text>
                       </View>
                     )}
                   </View>
@@ -153,7 +155,7 @@ export default function FamilyCaregiversScreen() {
 
         <Pressable onPress={openInvite} style={[styles.inviteCta, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
           <Ionicons name="person-add-outline" size={18} color={colors.accent} />
-          <Text style={[styles.inviteCtaText, { color: colors.accent }]}>Invite a caregiver by email</Text>
+          <Text style={[styles.inviteCtaText, { color: colors.accent }]}>{t('familyCaregivers.inviteCta')}</Text>
         </Pressable>
       </ScrollView>
 

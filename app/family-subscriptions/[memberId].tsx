@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -22,6 +23,7 @@ export default function FamilySubscriptionsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { formatAmount } = useCurrency();
+  const { t } = useTranslation();
 
   const [items, setItems] = useState<FamilySubscription[]>([]);
 
@@ -47,27 +49,27 @@ export default function FamilySubscriptionsScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Subscriptions</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familySubscriptions.headerTitle')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familySubscriptions.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {items.length > 0 && (
           <View style={[styles.summaryBanner, { backgroundColor: colors.accentDim, borderColor: colors.accent + '30' }]}>
             <Ionicons name="wallet" size={18} color={colors.accent} />
-            <Text style={[styles.summaryText, { color: colors.accent }]}>~{formatAmount(Math.round(monthlyTotal))}/month across {items.length} subscription{items.length === 1 ? '' : 's'}</Text>
+            <Text style={[styles.summaryText, { color: colors.accent }]}>{t('familySubscriptions.monthlySummary', { amount: formatAmount(Math.round(monthlyTotal)), count: items.length })}</Text>
           </View>
         )}
 
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="tv-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No subscriptions yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to track OTT subscriptions and renewals.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familySubscriptions.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familySubscriptions.emptyDesc')}</Text>
           </View>
         ) : (
           sorted.map((sub) => {
@@ -81,7 +83,7 @@ export default function FamilySubscriptionsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{sub.serviceName}</Text>
                   <Text style={[styles.cardSub, { color: overdue ? colors.danger : colors.textTertiary }]}>
-                    {overdue ? `Renewal overdue by ${Math.abs(days)}d` : `Renews in ${days}d`} · {sub.cycle}
+                    {overdue ? t('familySubscriptions.overdueBy', { count: Math.abs(days) }) : t('familySubscriptions.renewsIn', { count: days })} · {sub.cycle === 'monthly' ? t('familySubscriptions.cycleMonthly') : t('familySubscriptions.cycleYearly')}
                   </Text>
                 </View>
                 <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(sub.amount)}</Money>

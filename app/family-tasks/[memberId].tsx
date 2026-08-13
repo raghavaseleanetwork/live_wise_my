@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import {
@@ -19,6 +20,7 @@ export default function FamilyTasksScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [items, setItems] = useState<FamilyTask[]>([]);
 
@@ -44,28 +46,28 @@ export default function FamilyTasksScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Reminder Tasks</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyTasks.headerTitle')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyTasks.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="list-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No tasks yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to add a daily task or custom reminder.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyTasks.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyTasks.emptyDesc')}</Text>
           </View>
         ) : (
           <>
             {pending.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>To do</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyTasks.sectionToDo')}</Text>
                 {pending.map((task) => (
-                  <TaskRow key={task.id} task={task} colors={colors}
+                  <TaskRow key={task.id} task={task} colors={colors} t={t}
                     onToggle={async () => { await toggleFamilyTask(String(memberId), task.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-tasks/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: task.id } })}
                     onDelete={async () => { await deleteFamilyTask(String(memberId), task.id); load(); }} />
@@ -74,9 +76,9 @@ export default function FamilyTasksScreen() {
             )}
             {done.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>Done</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyTasks.sectionDone')}</Text>
                 {done.map((task) => (
-                  <TaskRow key={task.id} task={task} colors={colors}
+                  <TaskRow key={task.id} task={task} colors={colors} t={t}
                     onToggle={async () => { await toggleFamilyTask(String(memberId), task.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-tasks/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: task.id } })}
                     onDelete={async () => { await deleteFamilyTask(String(memberId), task.id); load(); }} />
@@ -91,8 +93,8 @@ export default function FamilyTasksScreen() {
 }
 
 function TaskRow({
-  task, colors, onToggle, onEdit, onDelete,
-}: { task: FamilyTask; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
+  task, colors, onToggle, onEdit, onDelete, t,
+}: { task: FamilyTask; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string }) {
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Pressable onPress={onToggle} style={styles.checkCircle}>
@@ -102,7 +104,7 @@ function TaskRow({
         <Text style={[styles.cardTitle, { color: colors.text }, task.completed && { textDecorationLine: 'line-through', opacity: 0.5 }]}>{task.title}</Text>
         {!!task.dueDate && (
           <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-            Due {new Date(task.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            {t('familyTasks.dueOn', { date: new Date(task.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) })}
           </Text>
         )}
       </View>

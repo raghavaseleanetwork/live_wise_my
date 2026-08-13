@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -25,6 +26,7 @@ export default function InviteCaregiverScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -33,25 +35,25 @@ export default function InviteCaregiverScreen() {
   const handleInvite = async () => {
     const trimmed = email.trim();
     if (!trimmed || !/^\S+@\S+\.\S+$/.test(trimmed)) {
-      setError('Enter a valid email address');
+      setError(t('familyCaregivers.errorInvalidEmail'));
       return;
     }
     setSending(true);
     setError('');
     try {
       await inviteCaregiver(String(memberId), trimmed, token);
-      showAlert({ title: 'Invite sent', message: `${trimmed} will see this invite next time they open LifeWise.`, type: 'success' });
+      showAlert({ title: t('familyCaregivers.inviteSentTitle'), message: t('familyCaregivers.inviteSentMessage', { email: trimmed }), type: 'success' });
       router.back();
     } catch (e: any) {
       const msg = String(e?.message || '');
       if (msg.includes('400')) {
-        setError('Enter a valid email — you can’t invite yourself.');
+        setError(t('familyCaregivers.errorCannotInviteSelf'));
       } else if (msg.includes('403')) {
-        setError('Only the owner can invite caregivers for this member.');
+        setError(t('familyCaregivers.errorOnlyOwner'));
       } else if (msg.includes('409')) {
-        setError('That person is already connected or already invited.');
+        setError(t('familyCaregivers.errorAlreadyConnected'));
       } else {
-        setError('Could not send invite. Please try again.');
+        setError(t('familyCaregivers.errorSendFailed'));
       }
       setSending(false);
     }
@@ -66,24 +68,24 @@ export default function InviteCaregiverScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Invite Caregiver</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyCaregivers.inviteHeaderTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Connected to {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCaregivers.connectedTo', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[styles.introText, { color: colors.textSecondary }]}>
-          They'll get an invite in their LifeWise app. Once accepted, they'll see {memberName || 'this member'} and receive the same reminders and alerts.
+          {t('familyCaregivers.inviteIntroText', { member: memberName || t('familyCaregivers.thisMember') })}
         </Text>
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Email address</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCaregivers.emailLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={email}
           onChangeText={setEmail}
-          placeholder="e.g. priya@example.com"
+          placeholder={t('familyCaregivers.emailPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoCapitalize="none"
           keyboardType="email-address"
@@ -91,7 +93,7 @@ export default function InviteCaregiverScreen() {
         />
 
         <Pressable onPress={handleInvite} disabled={sending} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: sending ? 0.6 : 1 }]}>
-          {sending ? <LoadingIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnLabel}>Send Invite</Text>}
+          {sending ? <LoadingIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnLabel}>{t('familyCaregivers.sendInvite')}</Text>}
         </Pressable>
       </ScrollView>
     </View>

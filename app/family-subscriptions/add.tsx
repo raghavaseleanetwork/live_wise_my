@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -16,6 +17,7 @@ export default function AddSubscriptionScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { convertForStorage, convertForDisplay, symbol } = useCurrency();
+  const { t } = useTranslation();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [serviceName, setServiceName] = useState('');
@@ -47,16 +49,16 @@ export default function AddSubscriptionScreen() {
 
   const handleSave = async () => {
     if (!cycle) {
-      setError('Please select a billing cycle');
+      setError(t('familySubscriptions.errorSelectCycle'));
       return;
     }
     if (!serviceName.trim()) {
-      setError('Please enter a service name');
+      setError(t('familySubscriptions.errorEnterName'));
       return;
     }
     const amt = parseFloat(amount);
     if (!amount.trim() || Number.isNaN(amt) || amt <= 0) {
-      setError('Please enter a valid amount');
+      setError(t('familySubscriptions.errorInvalidAmount'));
       return;
     }
     if (!memberId || saving) return;
@@ -86,28 +88,28 @@ export default function AddSubscriptionScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Subscription' : 'New Subscription'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familySubscriptions.editHeaderTitle') : t('familySubscriptions.newHeaderTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familySubscriptions.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Service Name</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.serviceNameLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={serviceName}
           onChangeText={setServiceName}
-          placeholder="e.g. Netflix"
+          placeholder={t('familySubscriptions.serviceNamePlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
         <View style={styles.formRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.amountLabel')}</Text>
             <View style={[styles.amountWrap, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
               <Text style={[styles.amountPrefix, { color: colors.textSecondary }]}>{symbol}</Text>
               <TextInput
@@ -121,24 +123,24 @@ export default function AddSubscriptionScreen() {
             </View>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Renewal Date</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.renewalDateLabel')}</Text>
             <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
               <Text style={{ color: colors.text }}>{renewalDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
             </Pressable>
           </View>
         </View>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Billing Cycle</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.billingCycleLabel')}</Text>
         <View style={styles.typeRow}>
           {(['monthly', 'yearly'] as const).map((c) => (
             <Pressable key={c} onPress={() => setCycle(c)} style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, cycle === c && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
-              <Text style={[styles.typeChipText, { color: cycle === c ? '#FFF' : colors.textSecondary }]}>{c === 'monthly' ? 'Monthly' : 'Yearly'}</Text>
+              <Text style={[styles.typeChipText, { color: cycle === c ? '#FFF' : colors.textSecondary }]}>{c === 'monthly' ? t('familySubscriptions.cycleMonthly') : t('familySubscriptions.cycleYearly')}</Text>
             </Pressable>
           ))}
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familySubscriptions.saveChanges') : t('common.save')}</Text>
         </Pressable>
       </ScrollView>
 

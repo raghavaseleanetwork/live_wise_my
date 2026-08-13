@@ -5,15 +5,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { TravelType, TRAVEL_TYPE_LABELS, addTravelItem, loadTravelItems, updateTravelItem } from '@/lib/family-records';
 
 /** Example title per travel type, so the hint matches the selected chip. */
-const TYPE_PLACEHOLDERS: Record<TravelType, string> = {
-  doctor_visit: 'e.g. Cardiology Check-up',
-  family_visit: 'e.g. Visit Grandma',
-  trip: 'e.g. Weekend in Jaipur',
+const TYPE_PLACEHOLDER_KEYS: Record<TravelType, string> = {
+  doctor_visit: 'familyTravel.placeholderDoctorVisit',
+  family_visit: 'familyTravel.placeholderFamilyVisit',
+  trip: 'familyTravel.placeholderTrip',
 };
 
 export default function AddTravelItemScreen() {
@@ -21,6 +22,7 @@ export default function AddTravelItemScreen() {
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   // Nothing preselected on a new entry; editing seeds it from the record.
@@ -51,11 +53,11 @@ export default function AddTravelItemScreen() {
 
   const handleSave = async () => {
     if (!type) {
-      setError('Please select a type');
+      setError(t('familyTravel.errorSelectType'));
       return;
     }
     if (!title.trim()) {
-      setError('Please enter a title');
+      setError(t('familyTravel.errorEnterTitle'));
       return;
     }
     if (!memberId || saving) return;
@@ -83,10 +85,10 @@ export default function AddTravelItemScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Visit / Trip' : 'New Visit / Trip'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyTravel.editHeaderTitle') : t('familyTravel.newHeaderTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyTravel.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -98,49 +100,49 @@ export default function AddTravelItemScreen() {
           style={styles.typeScroll}
           contentContainerStyle={styles.typeRow}
         >
-          {(Object.keys(TRAVEL_TYPE_LABELS) as TravelType[]).map((t) => (
+          {(Object.keys(TRAVEL_TYPE_LABELS) as TravelType[]).map((tt) => (
             <Pressable
-              key={t}
-              onPress={() => setType(t)}
-              style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, type === t && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+              key={tt}
+              onPress={() => setType(tt)}
+              style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, type === tt && { backgroundColor: colors.accent, borderColor: colors.accent }]}
             >
-              <Ionicons name={TRAVEL_TYPE_LABELS[t].icon as any} size={14} color={type === t ? '#FFF' : colors.textSecondary} />
-              <Text style={[styles.typeChipText, { color: type === t ? '#FFF' : colors.textSecondary }]}>{TRAVEL_TYPE_LABELS[t].label}</Text>
+              <Ionicons name={TRAVEL_TYPE_LABELS[tt].icon as any} size={14} color={type === tt ? '#FFF' : colors.textSecondary} />
+              <Text style={[styles.typeChipText, { color: type === tt ? '#FFF' : colors.textSecondary }]}>{t(`familyTravel.type.${tt}`)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Title</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.titleLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={title}
           onChangeText={setTitle}
-          placeholder={type ? TYPE_PLACEHOLDERS[type] : 'e.g. Visit title'}
+          placeholder={type ? t(TYPE_PLACEHOLDER_KEYS[type]) : t('familyTravel.titlePlaceholderDefault')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
         <View style={styles.formRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.dateLabel')}</Text>
             <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
               <Text style={{ color: colors.text }}>{date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
             </Pressable>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Location</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.locationLabel')}</Text>
             <TextInput
               style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
               value={location}
               onChangeText={setLocation}
-              placeholder="Optional"
+              placeholder={t('familyTravel.locationPlaceholder')}
               placeholderTextColor={colors.textTertiary}
             />
           </View>
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyTravel.saveChanges') : t('common.save')}</Text>
         </Pressable>
       </ScrollView>
 

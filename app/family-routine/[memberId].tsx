@@ -5,23 +5,27 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import {
   RoutineItem,
+  RoutineType,
   ROUTINE_TYPE_LABELS,
   loadRoutines,
   toggleRoutine,
   deleteRoutine,
 } from '@/lib/family-records';
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 export default function DailyRoutineScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
+
+  const routineTypeLabel = (type: RoutineType) => t(`familyRoutine.type.${type}`);
+  const DAY_LABELS = [t('common.dayShort.sun'), t('common.dayShort.mon'), t('common.dayShort.tue'), t('common.dayShort.wed'), t('common.dayShort.thu'), t('common.dayShort.fri'), t('common.dayShort.sat')];
 
   const [items, setItems] = useState<RoutineItem[]>([]);
 
@@ -46,20 +50,20 @@ export default function DailyRoutineScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Daily Routine</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyRoutine.headerTitle')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyRoutine.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {sorted.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No routine set yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to add wake-up, sleep, or walking reminders.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyRoutine.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyRoutine.emptyDesc')}</Text>
           </View>
         ) : (
           sorted.map((item) => {
@@ -70,9 +74,9 @@ export default function DailyRoutineScreen() {
                   <Ionicons name={def.icon as any} size={20} color={colors.accent} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.cardTitle, { color: colors.text }, !item.enabled && { opacity: 0.4 }]}>{item.label}</Text>
+                  <Text style={[styles.cardTitle, { color: colors.text }, !item.enabled && { opacity: 0.4 }]}>{item.type === 'custom' ? item.label : routineTypeLabel(item.type)}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                    {item.time}{item.days && item.days.length > 0 ? ` · ${item.days.map((d) => DAY_LABELS[d]).join(', ')}` : ' · Every day'}
+                    {item.time}{item.days && item.days.length > 0 ? ` · ${item.days.map((d) => DAY_LABELS[d]).join(', ')}` : ` · ${t('familyRoutine.everyDay')}`}
                   </Text>
                 </View>
                 <Pressable onPress={async () => { await toggleRoutine(String(memberId), item.id); load(); }} hitSlop={10}>

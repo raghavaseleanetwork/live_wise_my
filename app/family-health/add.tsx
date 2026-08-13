@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { HealthMetricType, HEALTH_METRIC_LABELS, addHealthLog } from '@/lib/family-records';
@@ -14,6 +15,9 @@ export default function AddHealthLogScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+
+  const metricLabel = (type: HealthMetricType) => t(`familyHealth.metric.${type}`);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   // Nothing preselected — the user picks which metric they are logging.
@@ -26,11 +30,11 @@ export default function AddHealthLogScreen() {
 
   const handleSave = async () => {
     if (!logType) {
-      setError('Please select what you are logging');
+      setError(t('familyHealth.errorSelectType'));
       return;
     }
     if (!value.trim()) {
-      setError(`Please enter a ${HEALTH_METRIC_LABELS[logType].label.toLowerCase()} value`);
+      setError(t('familyHealth.errorEnterValue', { metric: metricLabel(logType) }));
       return;
     }
     if (!memberId || saving) return;
@@ -53,27 +57,27 @@ export default function AddHealthLogScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Log Reading</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyHealth.logReadingTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyHealth.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
         <View style={styles.typeRow}>
-          {(['bp', 'sugar', 'weight'] as const).map((t) => (
+          {(['bp', 'sugar', 'weight'] as const).map((mt) => (
             <Pressable
-              key={t}
-              onPress={() => setLogType(t)}
+              key={mt}
+              onPress={() => setLogType(mt)}
               style={[
                 styles.typeChip,
                 { backgroundColor: colors.inputBg, borderColor: colors.border },
-                logType === t && { backgroundColor: colors.accent, borderColor: colors.accent },
+                logType === mt && { backgroundColor: colors.accent, borderColor: colors.accent },
               ]}
             >
-              <Text style={[styles.typeChipText, { color: logType === t ? '#FFF' : colors.textSecondary }]}>{HEALTH_METRIC_LABELS[t].label}</Text>
+              <Text style={[styles.typeChipText, { color: logType === mt ? '#FFF' : colors.textSecondary }]}>{metricLabel(mt)}</Text>
             </Pressable>
           ))}
         </View>
@@ -83,17 +87,17 @@ export default function AddHealthLogScreen() {
             picked it shows a neutral label and prompt instead. */}
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
           {!logType
-            ? 'Value'
+            ? t('familyHealth.valueLabel')
             : logType === 'bp'
-              ? 'Reading (e.g. 120/80)'
-              : `Value (${HEALTH_METRIC_LABELS[logType].unit})`}
+              ? t('familyHealth.readingLabelBp')
+              : t('familyHealth.valueLabelWithUnit', { unit: HEALTH_METRIC_LABELS[logType].unit })}
         </Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={value}
           onChangeText={setValue}
           placeholder={
-            !logType ? 'Select what you are logging above' : logType === 'bp' ? '120/80' : logType === 'sugar' ? '98' : '72'
+            !logType ? t('familyHealth.selectMetricPrompt') : logType === 'bp' ? '120/80' : logType === 'sugar' ? '98' : '72'
           }
           placeholderTextColor={colors.textTertiary}
           // The numeric keyboard is wrong for BP ("120/80"), so it can only be
@@ -102,22 +106,22 @@ export default function AddHealthLogScreen() {
           editable={!!logType}
         />
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyHealth.dateLabel')}</Text>
         <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
           <Text style={{ color: colors.text }}>{logDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
         </Pressable>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Notes (optional)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyHealth.notesLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={notes}
           onChangeText={setNotes}
-          placeholder="e.g. After morning walk"
+          placeholder={t('familyHealth.notesPlaceholder')}
           placeholderTextColor={colors.textTertiary}
         />
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>Save Reading</Text>
+          <Text style={styles.primaryBtnLabel}>{t('familyHealth.saveReading')}</Text>
         </Pressable>
       </ScrollView>
 

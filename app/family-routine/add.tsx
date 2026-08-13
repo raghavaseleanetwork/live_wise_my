@@ -5,17 +5,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { RoutineType, ROUTINE_TYPE_LABELS, addRoutine, loadRoutines, updateRoutine } from '@/lib/family-records';
-
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function AddRoutineScreen() {
   const router = useRouter();
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+
+  const routineTypeLabel = (type: RoutineType) => t(`familyRoutine.type.${type}`);
+  const DAY_LABELS = [t('common.dayShort.sun'), t('common.dayShort.mon'), t('common.dayShort.tue'), t('common.dayShort.wed'), t('common.dayShort.thu'), t('common.dayShort.fri'), t('common.dayShort.sat')];
 
   const [showTimePicker, setShowTimePicker] = useState(false);
   // Nothing preselected on a new routine; editing seeds it from the record.
@@ -61,11 +64,11 @@ export default function AddRoutineScreen() {
 
   const handleSave = async () => {
     if (!routineType) {
-      setError('Please select a routine type');
+      setError(t('familyRoutine.errorSelectType'));
       return;
     }
     if (routineType === 'custom' && !customLabel.trim()) {
-      setError('Please name this custom routine');
+      setError(t('familyRoutine.errorNameCustom'));
       return;
     }
     if (!memberId || saving) return;
@@ -94,10 +97,10 @@ export default function AddRoutineScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Routine Reminder' : 'New Routine Reminder'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyRoutine.editHeaderTitle') : t('familyRoutine.newHeaderTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyRoutine.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -109,42 +112,42 @@ export default function AddRoutineScreen() {
           style={styles.typeScroll}
           contentContainerStyle={styles.typeGrid}
         >
-          {(['wakeup', 'sleep', 'walk', 'custom'] as const).map((t) => (
+          {(['wakeup', 'sleep', 'walk', 'custom'] as const).map((rt) => (
             <Pressable
-              key={t}
-              onPress={() => setRoutineType(t)}
+              key={rt}
+              onPress={() => setRoutineType(rt)}
               style={[
                 styles.typeChip,
                 { backgroundColor: colors.inputBg, borderColor: colors.border },
-                routineType === t && { backgroundColor: colors.accent, borderColor: colors.accent },
+                routineType === rt && { backgroundColor: colors.accent, borderColor: colors.accent },
               ]}
             >
-              <Ionicons name={ROUTINE_TYPE_LABELS[t].icon as any} size={16} color={routineType === t ? '#FFF' : colors.textSecondary} />
-              <Text style={[styles.typeChipText, { color: routineType === t ? '#FFF' : colors.textSecondary }]}>{ROUTINE_TYPE_LABELS[t].label}</Text>
+              <Ionicons name={ROUTINE_TYPE_LABELS[rt].icon as any} size={16} color={routineType === rt ? '#FFF' : colors.textSecondary} />
+              <Text style={[styles.typeChipText, { color: routineType === rt ? '#FFF' : colors.textSecondary }]}>{routineTypeLabel(rt)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         {routineType === 'custom' && (
           <>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Routine Name</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyRoutine.routineNameLabel')}</Text>
             <TextInput
               style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
               value={customLabel}
               onChangeText={setCustomLabel}
-              placeholder="e.g. Evening Prayer"
+              placeholder={t('familyRoutine.routineNamePlaceholder')}
               placeholderTextColor={colors.textTertiary}
               autoFocus
             />
           </>
         )}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Time</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyRoutine.timeLabel')}</Text>
         <Pressable onPress={() => setShowTimePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
           <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
         </Pressable>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Repeat on (leave blank for every day)</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyRoutine.repeatOnLabel')}</Text>
         <View style={styles.dayRow}>
           {DAY_LABELS.map((d, idx) => (
             <Pressable
@@ -158,7 +161,7 @@ export default function AddRoutineScreen() {
         </View>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyRoutine.saveChanges') : t('common.save')}</Text>
         </Pressable>
       </ScrollView>
 

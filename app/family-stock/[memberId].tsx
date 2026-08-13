@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import {
@@ -21,6 +22,7 @@ export default function MedicationStockScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [items, setItems] = useState<MedicationStockItem[]>([]);
 
@@ -45,12 +47,12 @@ export default function MedicationStockScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Medication Stock</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyStock.headerTitle')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyStock.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
@@ -58,7 +60,7 @@ export default function MedicationStockScreen() {
           <View style={[styles.warningBanner, { backgroundColor: colors.warningDim, borderColor: colors.warning + '40' }]}>
             <Ionicons name="warning" size={18} color={colors.warning} />
             <Text style={[styles.warningText, { color: colors.warning }]}>
-              {lowStockItems.length} medicine{lowStockItems.length > 1 ? 's' : ''} running low — refill soon
+              {t('familyStock.runningLow', { count: lowStockItems.length })}
             </Text>
           </View>
         )}
@@ -66,8 +68,8 @@ export default function MedicationStockScreen() {
         {items.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cube-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No stock tracked yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to track medicine quantity and get refill alerts.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyStock.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyStock.emptyDesc')}</Text>
           </View>
         ) : (
           items.map((item) => {
@@ -79,12 +81,12 @@ export default function MedicationStockScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.cardTitle, { color: colors.text }]}>{item.medicineName}</Text>
                     <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                      {item.quantityRemaining} left{daysLeft !== null ? ` · ~${daysLeft} day${daysLeft === 1 ? '' : 's'} of stock` : ''}
+                      {t('familyStock.quantityLeft', { count: item.quantityRemaining })}{daysLeft !== null ? ` · ${t('familyStock.daysOfStock', { count: daysLeft })}` : ''}
                     </Text>
                   </View>
                   {low && (
                     <View style={[styles.lowBadge, { backgroundColor: colors.warningDim }]}>
-                      <Text style={[styles.lowBadgeText, { color: colors.warning }]}>Low</Text>
+                      <Text style={[styles.lowBadgeText, { color: colors.warning }]}>{t('familyStock.lowBadge')}</Text>
                     </View>
                   )}
                   <Pressable onPress={() => router.push({ pathname: '/family-stock/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
@@ -106,7 +108,7 @@ export default function MedicationStockScreen() {
                     style={[styles.stockBtn, styles.stockBtnWide, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' }]}
                   >
                     <Ionicons name="refresh" size={16} color={colors.accent} />
-                    <Text style={[styles.refillText, { color: colors.accent }]}>Refill +10</Text>
+                    <Text style={[styles.refillText, { color: colors.accent }]}>{t('familyStock.refillPlus10')}</Text>
                   </Pressable>
                   <Pressable
                     onPress={async () => { await adjustStock(String(memberId), item.id, 1); load(); }}

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { addFamilyTask, loadFamilyTasks, updateFamilyTask } from '@/lib/family-records';
@@ -14,6 +15,7 @@ export default function AddFamilyTaskScreen() {
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [title, setTitle] = useState('');
@@ -41,7 +43,7 @@ export default function AddFamilyTaskScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      setError('Please enter a task');
+      setError(t('familyTasks.errorEnterTask'));
       return;
     }
     if (!memberId || saving) return;
@@ -67,28 +69,28 @@ export default function AddFamilyTaskScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? 'Edit Task' : 'New Task'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEditing ? t('familyTasks.editHeaderTitle') : t('familyTasks.newHeaderTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyTasks.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Task</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTasks.taskLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={title}
           onChangeText={setTitle}
-          placeholder="e.g. Take Papa for a walk"
+          placeholder={t('familyTasks.taskPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
 
         <Pressable onPress={() => setHasDueDate(!hasDueDate)} style={styles.dueDateRow}>
           <Ionicons name={hasDueDate ? 'checkbox' : 'square-outline'} size={22} color={hasDueDate ? colors.accent : colors.textTertiary} />
-          <Text style={[styles.dueDateText, { color: colors.text }]}>Set a due date</Text>
+          <Text style={[styles.dueDateText, { color: colors.text }]}>{t('familyTasks.setDueDateCheckbox')}</Text>
         </Pressable>
 
         {hasDueDate && (
@@ -98,7 +100,7 @@ export default function AddFamilyTaskScreen() {
         )}
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
-          <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Add Task'}</Text>
+          <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyTasks.saveChanges') : t('familyTasks.addTask')}</Text>
         </Pressable>
       </ScrollView>
 

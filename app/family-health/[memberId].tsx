@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import {
@@ -20,6 +21,9 @@ export default function HealthMonitoringScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
+
+  const metricLabel = (type: HealthMetricType) => t(`familyHealth.metric.${type}`);
 
   const [items, setItems] = useState<HealthLog[]>([]);
   const [filterType, setFilterType] = useState<HealthMetricType | 'all'>('all');
@@ -45,18 +49,18 @@ export default function HealthMonitoringScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Health Monitoring</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyHealth.headerTitle')}</Text>
           <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
         </View>
-        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>For {memberName}</Text> : null}
+        {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyHealth.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
 
       <View style={styles.filterRow}>
         {(['all', 'bp', 'sugar', 'weight'] as const).map((f) => {
           const active = filterType === f;
-          const label = f === 'all' ? 'All' : HEALTH_METRIC_LABELS[f].label;
+          const label = f === 'all' ? t('common.all') : metricLabel(f);
           return (
             <Pressable
               key={f}
@@ -77,8 +81,8 @@ export default function HealthMonitoringScreen() {
         {filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="heart-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No entries yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>Tap + to log blood pressure, sugar, or weight.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyHealth.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t('familyHealth.emptyDesc')}</Text>
           </View>
         ) : (
           filtered.map((log) => {
@@ -91,7 +95,7 @@ export default function HealthMonitoringScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>{log.value} <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12 }}>{def.unit}</Text></Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                    {def.label} · {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {metricLabel(log.type)} · {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </Text>
                   {!!log.notes && <Text style={[styles.cardNotes, { color: colors.textSecondary }]}>{log.notes}</Text>}
                 </View>
