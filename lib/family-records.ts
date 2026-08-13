@@ -48,20 +48,44 @@ function generateId(): string {
  * locally. When the server cannot be reached the cache is returned untouched —
  * an offline user sees their records, not an empty screen.
  */
+/**
+ * Drop records sharing an `id`, keeping the first.
+ *
+ * The server can legitimately return two rows with the same id: a queued write
+ * that was retried (e.g. after the record-sync URLs were corrected) creates the
+ * same record twice. Screens key their lists on `item.id`, so a duplicate id
+ * raises React's "two children with the same key" error and can make rows
+ * vanish or double up. Filtering here fixes every screen at once rather than
+ * each list separately.
+ */
+function dedupeById<T>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of items) {
+    const id = (item as { id?: unknown })?.id;
+    const k = id == null ? '' : String(id);
+    if (k && seen.has(k)) continue;
+    if (k) seen.add(k);
+    out.push(item);
+  }
+  return out;
+}
+
 async function loadSynced<T>(memberId: string, kind: RecordKind, key: string): Promise<T[]> {
   const remote = await pullRecords<T>(memberId, kind);
   if (remote) {
+    const clean = dedupeById(remote);
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(remote));
+      await AsyncStorage.setItem(key, JSON.stringify(clean));
     } catch {
       // Cache write failure is not fatal; the data is already in hand.
     }
-    return remote;
+    return clean;
   }
 
   try {
     const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T[]) : [];
+    return raw ? dedupeById(JSON.parse(raw) as T[]) : [];
   } catch {
     return [];
   }
@@ -82,7 +106,9 @@ async function saveLocal<T>(key: string, items: T[]): Promise<void> {
 async function loadCached<T>(key: string): Promise<T[]> {
   try {
     const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T[]) : [];
+    // Deduped like `loadSynced`, so a cache written by an older build cannot
+    // reintroduce duplicate ids into a mutation's read-modify-write cycle.
+    return raw ? dedupeById(JSON.parse(raw) as T[]) : [];
   } catch {
     return [];
   }
@@ -318,6 +344,15 @@ export interface RoutineItem {
   label: string;
   /** "HH:MM AM/PM" */
   time: string;
+  /**
+   * Days of week this repeats on, 0=Sun..6=Sat. Empty = every day.
+   *
+   * Matches `CheckinItem.days` deliberately, so both kinds share one scheduling
+   * path in `family-reminders.ts`. Optional because records written by earlier
+   * builds have no such field; readers must treat `undefined` as "every day"
+   * rather than "no days", or every existing routine would stop firing.
+   */
+  days?: number[];
   enabled: boolean;
   createdAt: string;
 }

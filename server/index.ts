@@ -59,15 +59,21 @@ function setupCors(app: express.Application) {
 }
 
 function setupBodyParsing(app: express.Application) {
+  // express.json defaults to a 100kb body, which the SMS sync exceeds on a
+  // first scan: ~350 parsed transactions is already over the limit and the
+  // whole batch fails with HTTP 413. The client also chunks its uploads, but
+  // the server should not be the constraint — statement imports post large
+  // batches too.
   app.use(
     express.json({
+      limit: '10mb',
       verify: (req, _res, buf) => {
         req.rawBody = buf;
       },
     }),
   );
 
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 }
 
 function setupRequestLogging(app: express.Application) {

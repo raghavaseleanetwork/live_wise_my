@@ -15,6 +15,8 @@ import {
   deleteRoutine,
 } from '@/lib/family-records';
 
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export default function DailyRoutineScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
@@ -69,7 +71,9 @@ export default function DailyRoutineScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }, !item.enabled && { opacity: 0.4 }]}>{item.label}</Text>
-                  <Text style={[styles.cardSub, { color: colors.textTertiary }]}>{item.time}</Text>
+                  <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
+                    {item.time}{item.days && item.days.length > 0 ? ` · ${item.days.map((d) => DAY_LABELS[d]).join(', ')}` : ' · Every day'}
+                  </Text>
                 </View>
                 <Pressable onPress={async () => { await toggleRoutine(String(memberId), item.id); load(); }} hitSlop={10}>
                   <Ionicons name={item.enabled ? 'toggle' : 'toggle-outline'} size={32} color={item.enabled ? colors.accent : colors.textTertiary} />

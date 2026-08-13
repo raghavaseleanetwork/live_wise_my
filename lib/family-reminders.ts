@@ -1,7 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Bill, CategoryType, RepeatType } from '@/lib/data';
-import { scheduleLocalNotification } from '@/lib/notifications';
+import {
+  cancelScheduledNotifications,
+  scheduleLocalNotification,
+  scheduleRepeatingLocalNotification,
+} from '@/lib/notifications';
 import {
   loadAppointments,
   loadCheckins,
@@ -61,6 +65,23 @@ export interface FamilyReminder extends Bill {
   memberName: string;
   sourceKind: FamilyReminderKind;
   sourceId: string;
+  /**
+   * Recurrence, present only on kinds that repeat on a wall clock (routine,
+   * check-in).
+   *
+   * `dueDate` on those kinds is a *derived* value — "the next time this
+   * happens" — computed at projection time so the row can be sorted and
+   * rendered alongside dated reminders. It is not the schedule. Scheduling off
+   * `dueDate` is what made a daily routine fire exactly once; the schedule is
+   * this field, and it is what `scheduleFamilyReminderNotifications` uses.
+   *
+   * `weekdays` is 0=Sun..6=Sat; empty means every day.
+   */
+  recurrence?: {
+    hour: number;
+    minute: number;
+    weekdays: number[];
+  };
 }
 
 /** Marks a projected id so it can never be confused with a server bill id. */
@@ -103,7 +124,15 @@ const KIND_META: Record<
 };
 
 export function familyReminderLabel(kind: FamilyReminderKind): string {
-  return KIND_META[kind].label;
+  // Not `KIND_META[kind].label` — the server projects kinds this client may not
+  // know yet (it added 'insurance' and 'custom' ahead of the app), and an
+  // unknown key made this read `.label` of undefined and throw. A reminder from
+  // a newer server must degrade to a readable label, never crash the screen.
+  const meta = KIND_META[kind as keyof typeof KIND_META];
+  if (meta) return meta.label;
+  return String(kind)
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
@@ -137,7 +166,7 @@ const KIND_LEAD_DAYS: Record<FamilyReminderKind, number[]> = {
  * repeat daily. A reminder needs a concrete instant, so today's occurrence is
  * used while it is still ahead, otherwise tomorrow's.
  */
-function nextOccurrenceOfClockTime(time: string, from: Date = new Date()): Date | null {
+function parseClockTime(time: string): { hour: number; minute: number } | null {
   const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i.exec(time.trim());
   if (!match) return null;
 
@@ -152,9 +181,50 @@ function nextOccurrenceOfClockTime(time: string, from: Date = new Date()): Date 
   if (meridiem === 'AM' && hours === 12) hours = 0;
   if (hours > 23) return null;
 
+  return { hour: hours, minute: minutes };
+}
+
+/**
+ * Normalises a stored `days` array to the 0..6 values the schedulers expect.
+ *
+ * `undefined` (records written before routines had days) and `[]` both mean
+ * "every day" — the meaning the field already carries in storage. Treating
+ * `undefined` as "no days" would silently stop every pre-existing routine.
+ */
+function normaliseWeekdays(days: number[] | undefined): number[] {
+  if (!Array.isArray(days)) return [];
+  return [...new Set(days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+}
+
+/**
+ * Resolves a `"HH:MM AM/PM"` clock time to the next occurrence at or after now,
+ * restricted to `weekdays` when given.
+ *
+ * Used only for display and sorting — the actual notification schedule comes
+ * from the `recurrence` field, not from this date. Without the weekday filter a
+ * Monday-only check-in showed "due tomorrow" on a Thursday, which is simply
+ * false.
+ */
+function nextOccurrenceOfClockTime(
+  time: string,
+  weekdays: number[] = [],
+  from: Date = new Date(),
+): Date | null {
+  const parsed = parseClockTime(time);
+  if (!parsed) return null;
+
   const at = new Date(from);
-  at.setHours(hours, minutes, 0, 0);
+  at.setHours(parsed.hour, parsed.minute, 0, 0);
   if (at.getTime() <= from.getTime()) at.setDate(at.getDate() + 1);
+
+  if (weekdays.length === 0) return at;
+
+  // Walk forward to the first selected weekday. Seven steps is always enough:
+  // any non-empty subset of 0..6 is hit within a week.
+  for (let i = 0; i < 7; i += 1) {
+    if (weekdays.includes(at.getDay())) return at;
+    at.setDate(at.getDate() + 1);
+  }
   return at;
 }
 
@@ -190,10 +260,15 @@ interface ProjectionInput {
   amount?: number;
   repeatType?: RepeatType;
   isDone?: boolean;
+  recurrence?: { hour: number; minute: number; weekdays: number[] };
 }
 
+/** Safe defaults for a kind this build does not know (e.g. added server-side first). */
+const FALLBACK_KIND_META = { category: 'others' as CategoryType, icon: 'notifications', label: 'Reminder' };
+const FALLBACK_LEAD_DAYS = [1, 0];
+
 function project(input: ProjectionInput): FamilyReminder {
-  const meta = KIND_META[input.kind];
+  const meta = KIND_META[input.kind] ?? FALLBACK_KIND_META;
   return {
     id: makeFamilyReminderId(input.memberId, input.kind, input.sourceId),
     // The member's name is carried in the title because the Bills tab renders
@@ -207,12 +282,13 @@ function project(input: ProjectionInput): FamilyReminder {
     reminderType: input.kind === 'subscription' ? 'subscription' : 'custom',
     repeatType: input.repeatType ?? 'none',
     status: input.isDone ? 'paid' : 'active',
-    reminderDaysBefore: KIND_LEAD_DAYS[input.kind],
+    reminderDaysBefore: KIND_LEAD_DAYS[input.kind] ?? FALLBACK_LEAD_DAYS,
     source: 'family',
     memberId: input.memberId,
     memberName: input.memberName,
     sourceKind: input.kind,
     sourceId: input.sourceId,
+    ...(input.recurrence ? { recurrence: input.recurrence } : {}),
   };
 }
 
@@ -321,7 +397,10 @@ export async function buildRemindersForMember(
 
   for (const r of routines) {
     if (!r.enabled) continue;
-    const at = nextOccurrenceOfClockTime(r.time);
+    const clock = parseClockTime(r.time);
+    if (!clock) continue;
+    const weekdays = normaliseWeekdays(r.days);
+    const at = nextOccurrenceOfClockTime(r.time, weekdays);
     if (!at) continue;
     out.push(
       project({
@@ -330,14 +409,18 @@ export async function buildRemindersForMember(
         sourceId: r.id,
         title: r.label,
         dueDate: at,
-        repeatType: 'daily',
+        repeatType: weekdays.length ? 'weekly' : 'daily',
+        recurrence: { ...clock, weekdays },
       }),
     );
   }
 
   for (const c of checkins) {
     if (!c.enabled) continue;
-    const at = nextOccurrenceOfClockTime(c.time);
+    const clock = parseClockTime(c.time);
+    if (!clock) continue;
+    const weekdays = normaliseWeekdays(c.days);
+    const at = nextOccurrenceOfClockTime(c.time, weekdays);
     if (!at) continue;
     out.push(
       project({
@@ -346,7 +429,8 @@ export async function buildRemindersForMember(
         sourceId: c.id,
         title: c.label,
         dueDate: at,
-        repeatType: 'daily',
+        repeatType: weekdays.length ? 'weekly' : 'daily',
+        recurrence: { ...clock, weekdays },
       }),
     );
   }
@@ -376,9 +460,22 @@ export async function buildAllFamilyReminders(
   const perMember = await Promise.all(
     members.map((m) => buildRemindersForMember(m.id, m.name)),
   );
-  return perMember
-    .flat()
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+  // Collapse by reminder id before returning.
+  //
+  // The id is deterministic — `fam:<kind>:<memberId>:<sourceId>` — so two
+  // reminders can only collide when the same source record was projected twice:
+  // a duplicated source row, or the same member arriving from both the owned
+  // and shared lists. Screens key their lists on this id, so a collision raises
+  // React's "two children with the same key" error and can drop or double rows.
+  const byId = new Map<string, FamilyReminder>();
+  for (const reminder of perMember.flat()) {
+    if (!byId.has(reminder.id)) byId.set(reminder.id, reminder);
+  }
+
+  return [...byId.values()].sort(
+    (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -433,6 +530,33 @@ async function saveScheduled(map: Record<string, string>): Promise<void> {
 }
 
 /**
+ * OS notification ids for repeating reminders, keyed by reminder id.
+ *
+ * Repeating triggers never expire on their own, so unlike one-shot reminders
+ * they must be explicitly cancellable. Without this map, deleting a routine or
+ * changing its time would leave the original notification firing forever with
+ * nothing in the app able to stop it — the ids would be lost on reload.
+ */
+const REPEATING_IDS_KEY = '@lifewise_family_reminder_repeating_ids';
+
+async function loadRepeatingIds(): Promise<Record<string, string[]>> {
+  try {
+    const raw = await AsyncStorage.getItem(REPEATING_IDS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+async function saveRepeatingIds(map: Record<string, string[]>): Promise<void> {
+  try {
+    await AsyncStorage.setItem(REPEATING_IDS_KEY, JSON.stringify(map));
+  } catch {
+    // Same trade-off as `saveScheduled`: never fatal.
+  }
+}
+
+/**
  * Schedules local notifications for reminders that don't have one yet.
  *
  * Keyed on reminder id + due date, so editing a record's date re-schedules it
@@ -450,10 +574,60 @@ export async function scheduleFamilyReminderNotifications(
   if (await isServerSchedulingActive()) return;
 
   const scheduled = await loadScheduled();
+  const repeating = await loadRepeatingIds();
   let changed = false;
+  let repeatingChanged = false;
 
   for (const reminder of reminders) {
     if (reminder.isPaid) continue;
+
+    // Recurring kinds (routine, check-in) take the repeating path.
+    //
+    // These must NOT be scheduled from `dueDate`: that is only "the next
+    // occurrence", so a one-shot trigger built from it fires once and the
+    // reminder never repeats again. An OS-level DAILY/WEEKLY trigger keeps
+    // firing without the app being opened, which is the whole point.
+    if (reminder.recurrence) {
+      const { hour, minute } = reminder.recurrence;
+      // Re-normalised rather than trusted: this projection may have come from
+      // the server (`/api/reminders/family`), which could omit `weekdays` or
+      // send values outside 0..6. A bad value here would either throw or
+      // schedule a reminder on the wrong day.
+      const weekdays = normaliseWeekdays(reminder.recurrence.weekdays);
+      if (!Number.isInteger(hour) || hour < 0 || hour > 23) continue;
+      if (!Number.isInteger(minute) || minute < 0 || minute > 59) continue;
+
+      const stamp = `repeat|${hour}:${minute}|${weekdays.join(',')}|${reminder.name}`;
+      if (scheduled[reminder.id] === stamp) continue;
+
+      // The time or selected days changed, so the old triggers are wrong.
+      // Cancel before re-arming or the user gets both the old and new times.
+      await cancelScheduledNotifications(repeating[reminder.id] ?? []);
+
+      const label = reminder.name.split(' · ')[0];
+      const ids = await scheduleRepeatingLocalNotification({
+        title: `${familyReminderLabel(reminder.sourceKind)} · ${reminder.memberName}`,
+        body:
+          reminder.sourceKind === 'checkin'
+            ? `Time to check in with ${reminder.memberName}`
+            : `${label} — it's time`,
+        hour,
+        minute,
+        weekdays,
+        data: {
+          type: 'family-reminder',
+          memberId: reminder.memberId,
+          sourceKind: reminder.sourceKind,
+          sourceId: reminder.sourceId,
+        },
+      });
+
+      repeating[reminder.id] = ids;
+      repeatingChanged = true;
+      scheduled[reminder.id] = stamp;
+      changed = true;
+      continue;
+    }
 
     const due = new Date(reminder.dueDate);
     if (Number.isNaN(due.getTime())) continue;
@@ -486,7 +660,27 @@ export async function scheduleFamilyReminderNotifications(
     changed = true;
   }
 
+  // Cancel repeats whose source record is gone.
+  //
+  // A repeating trigger outlives the record that created it: deleting a routine
+  // or switching it off removes it from the projection, but the OS keeps firing
+  // the notification forever. Anything in the ledger that is no longer a live
+  // recurring reminder is an orphan and must be cancelled here — this is the
+  // only place that can still see its notification ids.
+  const liveRepeating = new Set(
+    reminders.filter((r) => r.recurrence && !r.isPaid).map((r) => r.id),
+  );
+  for (const [reminderId, ids] of Object.entries(repeating)) {
+    if (liveRepeating.has(reminderId)) continue;
+    await cancelScheduledNotifications(ids);
+    delete repeating[reminderId];
+    delete scheduled[reminderId];
+    repeatingChanged = true;
+    changed = true;
+  }
+
   if (changed) await saveScheduled(scheduled);
+  if (repeatingChanged) await saveRepeatingIds(repeating);
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,9 +36,16 @@ import { LoadingIndicator } from '@/components/PremiumLoader';
  * whatever comes back. React Native cannot extract PDF text on-device, which is
  * why this always had to be a server job.
  *
- * PDF (and anything else that isn't CSV) currently gets a 422 from the same
- * endpoint — "CSV only for now" per the backend note — so the UI shows that
- * message rather than guessing by file extension itself.
+ * PDF goes through the SAME endpoint and the same review flow — the server
+ * decides what it can read, so this screen never gates on file extension. If a
+ * given format isn't supported the server answers 422 and we surface its
+ * message verbatim; that way support for a new bank/format goes live without
+ * shipping an app update.
+ *
+ * Password-protected statements (SBI mails these routinely) come back as 401
+ * with `needsPassword: true`, which opens a prompt and retries the same upload
+ * with a `password` field. The full contract this screen implements is written
+ * up in `backend-team/BANK-STATEMENT-IMPORT-backend-requirements.md`.
  *
  * Nothing is written until the user reviews the rows and taps Import (doc Method
  * 4, Step 4): §5's endpoint is preview-only, and the actual commit goes through
@@ -61,6 +69,34 @@ interface ImportRow extends PreviewRow {
 }
 
 type Stage = 'pick' | 'review' | 'saving';
+
+/** The file being uploaded, kept so a password retry can re-send it. */
+interface PickedFile {
+  uri: string;
+  name: string;
+  mime: string;
+}
+
+/**
+ * MIME type by extension rather than whatever the picker reported. On Android,
+ * DocumentPicker commonly reports files from Downloads as
+ * `application/octet-stream`, which a server that gates on content-type will
+ * reject outright even when the bytes are a perfectly good CSV or PDF.
+ */
+function mimeForFile(name: string, fallback?: string | null): string {
+  switch (name.split('.').pop()?.toLowerCase()) {
+    case 'csv':
+      return 'text/csv';
+    case 'pdf':
+      return 'application/pdf';
+    case 'xls':
+      return 'application/vnd.ms-excel';
+    case 'xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    default:
+      return fallback || 'application/octet-stream';
+  }
+}
 
 /** Categories offered when correcting a row. */
 const EDIT_CATEGORIES: CategoryType[] = [
@@ -86,6 +122,13 @@ export default function ImportStatementScreen() {
   const [skippedCount, setSkippedCount] = useState(0);
   const [editingRow, setEditingRow] = useState<ImportRow | null>(null);
   const [savedCount, setSavedCount] = useState(0);
+  const [sourceBank, setSourceBank] = useState('');
+
+  // Password-protected PDF retry state.
+  const [pendingFile, setPendingFile] = useState<PickedFile | null>(null);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   /** Debits only — a statement's credits are income, not expenses. */
   const debitRows = useMemo(() => rows.filter((r) => r.isDebit), [rows]);
@@ -100,11 +143,147 @@ export default function ImportStatementScreen() {
     [selectedRows],
   );
 
+  /**
+   * Upload one file to the preview endpoint and move to the review stage.
+   *
+   * Split out from the picker so the password retry can re-send the exact same
+   * file without making the user choose it a second time.
+   */
+  const uploadFile = useCallback(
+    async (file: PickedFile, password?: string) => {
+      if (!token) return;
+      try {
+        setIsParsing(true);
+        setFileName(file.name);
+
+        const form = new FormData();
+        form.append('file', {
+          uri: file.uri,
+          name: file.name,
+          type: file.mime,
+        } as any);
+        if (password) form.append('password', password);
+
+        const baseUrl = getApiUrl();
+        const res = await fetch(new URL('/api/transactions/import/preview', baseUrl).toString(), {
+          method: 'POST',
+          // Do NOT set Content-Type manually — fetch needs to generate the
+          // multipart boundary itself (same rule as receipt/avatar upload).
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+
+        setIsParsing(false);
+
+        // 401 is overloaded: an expired session AND a locked PDF. `needsPassword`
+        // is what tells them apart — without it we'd sign the user out over an
+        // encrypted statement.
+        if (res.status === 401) {
+          const json = await res.json().catch(() => null);
+          if (json?.needsPassword) {
+            setPendingFile(file);
+            setPasswordError(password ? 'That password did not work. Please try again.' : '');
+            setPasswordInput('');
+            setPasswordVisible(true);
+            return;
+          }
+          showAlert({
+            title: 'Session expired',
+            message: 'Your session has expired. Please sign out and sign in again.',
+            type: 'error',
+          });
+          return;
+        }
+
+        if (res.status === 422) {
+          const json = await res.json().catch(() => null);
+          // Log the detail so a rejected file can actually be diagnosed — the
+          // server's user-facing message doesn't say WHY it was rejected.
+          console.warn('[Import] 422 rejected:', file.name, file.mime, JSON.stringify(json));
+          showAlert({
+            title: 'Could not read this statement',
+            message:
+              json?.message ||
+              'This statement could not be read. Try your bank\'s CSV export, which is more accurate.',
+            type: 'info',
+          });
+          return;
+        }
+
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '');
+          console.error(`[Import] HTTP ${res.status}:`, detail.slice(0, 300));
+          showAlert({
+            title: 'Could not read this file',
+            message:
+              res.status === 413
+                ? 'This file is too large to upload. Try exporting a shorter date range.'
+                : `Upload failed (error ${res.status}). Please try again.`,
+            type: 'error',
+          });
+          return;
+        }
+
+        const { rows: previewRows, meta } = (await res.json()) as {
+          rows: PreviewRow[];
+          meta: { rowsFound: number; rowsSkipped: number; bank?: string; format?: string };
+        };
+
+        if (!previewRows || previewRows.length === 0) {
+          showAlert({
+            title: 'No transactions found',
+            message:
+              file.mime === 'application/pdf'
+                ? 'No transactions could be read from this PDF. Your bank\'s CSV export is more reliable.'
+                : 'This file did not contain any readable transactions.',
+            type: 'error',
+          });
+          return;
+        }
+
+        const importRows: ImportRow[] = previewRows.map((r, i) => ({
+          ...r,
+          id: `imp_${i}_${r.dedupeKey}`,
+          category: r.suggestedCategory || 'others',
+        }));
+
+        // Clear the retry state — a successful parse means the password (if any)
+        // did its job and the file no longer needs holding on to.
+        setPendingFile(null);
+        setPasswordVisible(false);
+        setPasswordInput('');
+
+        setRows(importRows);
+        setSkippedCount(meta?.rowsSkipped || 0);
+        setSourceBank(meta?.bank || '');
+        // Pre-select every debit — the doc's flow is "uncheck what you don't want".
+        setSelected(new Set(importRows.filter((r) => r.isDebit).map((r) => r.id)));
+        setStage('review');
+      } catch (err) {
+        setIsParsing(false);
+        showAlert({
+          title: 'Could not open the file',
+          message: 'Please check your connection and try again.',
+          type: 'error',
+        });
+      }
+    },
+    [token, showAlert],
+  );
+
   const handlePickFile = useCallback(async () => {
     if (!token) return;
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/csv', 'text/comma-separated-values', 'text/plain', 'application/pdf', '*/*'],
+        type: [
+          'text/csv',
+          'text/comma-separated-values',
+          'text/plain',
+          'application/pdf',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          '*/*',
+        ],
         copyToCacheDirectory: true,
         multiple: false,
       });
@@ -112,106 +291,22 @@ export default function ImportStatementScreen() {
 
       const asset = result.assets[0];
       const name = asset.name || 'statement.csv';
-
-      setIsParsing(true);
-      setFileName(name);
-
-      // Derive the MIME type from the extension rather than trusting the
-      // picker. On Android, DocumentPicker commonly reports files from
-      // Downloads as `application/octet-stream`, which a server that gates on
-      // content-type will reject outright even when the bytes are valid CSV.
-      const ext = name.split('.').pop()?.toLowerCase();
-      const mime =
-        ext === 'csv'
-          ? 'text/csv'
-          : ext === 'pdf'
-            ? 'application/pdf'
-            : ext === 'xls'
-              ? 'application/vnd.ms-excel'
-              : ext === 'xlsx'
-                ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                : asset.mimeType || 'text/csv';
-
-      const form = new FormData();
-      form.append('file', {
-        uri: asset.uri,
-        name,
-        type: mime,
-      } as any);
-
-      const baseUrl = getApiUrl();
-      const res = await fetch(new URL('/api/transactions/import/preview', baseUrl).toString(), {
-        method: 'POST',
-        // Do NOT set Content-Type manually — fetch needs to generate the
-        // multipart boundary itself (same rule as receipt/avatar upload).
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
-
-      setIsParsing(false);
-
-      if (res.status === 422) {
-        const json = await res.json().catch(() => null);
-        // Log the detail so a rejected file can actually be diagnosed — the
-        // server's user-facing message doesn't say WHY it was rejected.
-        console.warn('[Import] 422 rejected:', name, mime, JSON.stringify(json));
-        showAlert({
-          title: 'Could not read this file',
-          message:
-            json?.message ||
-            'This format is not supported yet. Please use your bank\'s CSV export instead.',
-          type: 'info',
-        });
-        return;
-      }
-      if (!res.ok) {
-        const detail = await res.text().catch(() => '');
-        console.error(`[Import] HTTP ${res.status}:`, detail.slice(0, 300));
-        showAlert({
-          title: 'Could not read this file',
-          message:
-            res.status === 401
-              ? 'Your session has expired. Please sign out and sign in again.'
-              : `Upload failed (error ${res.status}). Please try again.`,
-          type: 'error',
-        });
-        return;
-      }
-
-      const { rows: previewRows, meta } = (await res.json()) as {
-        rows: PreviewRow[];
-        meta: { rowsFound: number; rowsSkipped: number };
-      };
-
-      if (!previewRows || previewRows.length === 0) {
-        showAlert({
-          title: 'No transactions found',
-          message: 'This file did not contain any readable transactions.',
-          type: 'error',
-        });
-        return;
-      }
-
-      const importRows: ImportRow[] = previewRows.map((r, i) => ({
-        ...r,
-        id: `imp_${i}_${r.dedupeKey}`,
-        category: r.suggestedCategory || 'others',
-      }));
-
-      setRows(importRows);
-      setSkippedCount(meta?.rowsSkipped || 0);
-      // Pre-select every debit — the doc's flow is "uncheck what you don't want".
-      setSelected(new Set(importRows.filter((r) => r.isDebit).map((r) => r.id)));
-      setStage('review');
+      await uploadFile({ uri: asset.uri, name, mime: mimeForFile(name, asset.mimeType) });
     } catch (err) {
-      setIsParsing(false);
       showAlert({
         title: 'Could not open the file',
-        message: 'Please check your connection and try again.',
+        message: 'The file could not be opened. Please try again.',
         type: 'error',
       });
     }
-  }, [token, showAlert]);
+  }, [token, uploadFile, showAlert]);
+
+  const submitPassword = useCallback(() => {
+    const pw = passwordInput.trim();
+    if (!pw || !pendingFile) return;
+    setPasswordVisible(false);
+    void uploadFile(pendingFile, pw);
+  }, [passwordInput, pendingFile, uploadFile]);
 
   const toggleRow = useCallback((id: string) => {
     setSelected((prev) => {
@@ -284,7 +379,7 @@ export default function ImportStatementScreen() {
       </View>
       <Text style={[styles.heroTitle, { color: colors.text }]}>Import a bank statement</Text>
       <Text style={[styles.heroText, { color: colors.textSecondary }]}>
-        Download a CSV export from your bank app or net banking, then pick it here. One import fills
+        Download a statement from your bank app or net banking, then pick it here. One import fills
         in a whole month at once.
       </Text>
 
@@ -298,17 +393,28 @@ export default function ImportStatementScreen() {
         ) : (
           <>
             <Ionicons name="folder-open-outline" size={17} color="#FFFFFF" />
-            <Text style={styles.primaryBtnText}>Choose CSV file</Text>
+            <Text style={styles.primaryBtnText}>Choose statement file</Text>
           </>
         )}
       </Pressable>
 
+      <View style={styles.formatRow}>
+        {['PDF', 'CSV', 'Excel'].map((fmt) => (
+          <View
+            key={fmt}
+            style={[styles.formatChip, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}
+          >
+            <Text style={[styles.formatChipText, { color: colors.textSecondary }]}>{fmt}</Text>
+          </View>
+        ))}
+      </View>
+
       <View style={[styles.infoCard, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
-        <Text style={[styles.infoTitle, { color: colors.text }]}>Where to find your CSV</Text>
+        <Text style={[styles.infoTitle, { color: colors.text }]}>Where to find your statement</Text>
         {[
-          'HDFC / ICICI / Axis — net banking → Account Statement → download as CSV or Excel',
-          'SBI — YONO or net banking → Account Statement → choose CSV',
-          'Any bank — if only PDF is offered, ask for the "delimited" or "Excel" export',
+          'HDFC / ICICI / Axis — net banking → Account Statement → download as PDF, CSV or Excel',
+          'SBI — YONO or net banking → Account Statement → PDF or CSV',
+          'Emailed statements — the monthly PDF your bank sends works too',
         ].map((line) => (
           <View key={line} style={styles.bullet}>
             <Text style={[styles.bulletDot, { color: colors.textTertiary }]}>•</Text>
@@ -317,11 +423,11 @@ export default function ImportStatementScreen() {
         ))}
       </View>
 
-      <View style={[styles.noteCard, { borderColor: colors.warning + '44', backgroundColor: colors.warning + '10' }]}>
-        <Ionicons name="information-circle-outline" size={16} color={colors.warning} />
+      <View style={[styles.noteCard, { borderColor: colors.border, backgroundColor: colors.bgSecondary }]}>
+        <Ionicons name="lock-closed-outline" size={16} color={colors.textTertiary} />
         <Text style={[styles.noteText, { color: colors.textSecondary }]}>
-          PDF statements are not supported yet — they need server-side parsing. Use your bank's CSV
-          export, which is also more accurate.
+          Password-protected PDFs are fine — we&rsquo;ll ask for the password. If a PDF can&rsquo;t
+          be read, your bank&rsquo;s CSV export is the most accurate option.
         </Text>
       </View>
     </View>
@@ -334,6 +440,7 @@ export default function ImportStatementScreen() {
           {fileName}
         </Text>
         <Text style={[styles.summaryLine, { color: colors.textSecondary }]}>
+          {sourceBank ? `${sourceBank} · ` : ''}
           {debitRows.length} expense{debitRows.length === 1 ? '' : 's'} found
           {creditCount > 0 ? ` · ${creditCount} credit${creditCount === 1 ? '' : 's'} ignored` : ''}
           {skippedCount > 0 ? ` · ${skippedCount} row${skippedCount === 1 ? '' : 's'} unreadable` : ''}
@@ -475,6 +582,71 @@ export default function ImportStatementScreen() {
         </View>
       )}
 
+      {/* Password prompt for encrypted PDFs */}
+      <CustomModal
+        visible={passwordVisible}
+        onClose={() => {
+          setPasswordVisible(false);
+          setPendingFile(null);
+        }}
+        showCloseButton={false}
+      >
+        <Text style={[styles.modalTitle, { color: colors.text }]}>This PDF is protected</Text>
+        <Text style={[styles.modalSub, { color: colors.textTertiary }]}>
+          Enter the password your bank uses for this statement. It&rsquo;s often your date of birth
+          as DDMMYYYY, or your PAN in lower case.
+        </Text>
+
+        <TextInput
+          value={passwordInput}
+          onChangeText={(t) => {
+            setPasswordInput(t);
+            if (passwordError) setPasswordError('');
+          }}
+          placeholder="Statement password"
+          placeholderTextColor={colors.textTertiary}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoFocus
+          onSubmitEditing={submitPassword}
+          returnKeyType="done"
+          style={[
+            styles.pwInput,
+            {
+              color: colors.text,
+              backgroundColor: colors.bgSecondary,
+              borderColor: passwordError ? colors.danger : colors.border,
+            },
+          ]}
+        />
+        {!!passwordError && (
+          <Text style={[styles.pwError, { color: colors.danger }]}>{passwordError}</Text>
+        )}
+
+        <View style={styles.pwActions}>
+          <Pressable
+            onPress={() => {
+              setPasswordVisible(false);
+              setPendingFile(null);
+            }}
+            style={[styles.pwBtn, { backgroundColor: colors.bgSecondary }]}
+          >
+            <Text style={[styles.pwBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            onPress={submitPassword}
+            disabled={!passwordInput.trim()}
+            style={[
+              styles.pwBtn,
+              { backgroundColor: passwordInput.trim() ? colors.accent : colors.border },
+            ]}
+          >
+            <Text style={[styles.pwBtnText, { color: '#FFFFFF' }]}>Unlock</Text>
+          </Pressable>
+        </View>
+      </CustomModal>
+
       {/* Category picker */}
       <CustomModal
         visible={!!editingRow}
@@ -543,6 +715,12 @@ const styles = StyleSheet.create({
     minHeight: 50, alignSelf: 'stretch', borderRadius: 14, paddingHorizontal: 20,
   },
   primaryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  formatRow: { flexDirection: 'row', gap: 7, marginTop: 12 },
+  formatChip: {
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 11, borderWidth: 1,
+  },
+  formatChipText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
   infoCard: {
     alignSelf: 'stretch', borderRadius: 14, borderWidth: 1,
     padding: 14, marginTop: 22, gap: 7,
@@ -598,7 +776,19 @@ const styles = StyleSheet.create({
   importBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 
   modalTitle: { fontSize: 16, fontWeight: '700' },
-  modalSub: { fontSize: 12, marginTop: 4, marginBottom: 14 },
+  modalSub: { fontSize: 12, marginTop: 4, marginBottom: 14, lineHeight: 17 },
+
+  pwInput: {
+    minHeight: 48, borderRadius: 12, borderWidth: 1,
+    paddingHorizontal: 14, fontSize: 15,
+  },
+  pwError: { fontSize: 12, marginTop: 7 },
+  pwActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  pwBtn: {
+    flex: 1, minHeight: 46, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pwBtnText: { fontSize: 14, fontWeight: '700' },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   catGridItem: {
     flexDirection: 'row', alignItems: 'center', gap: 5,

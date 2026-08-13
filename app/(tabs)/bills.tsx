@@ -431,10 +431,17 @@ export default function BillsScreen() {
   // read-only views of records owned by Family Hub — see lib/family-reminders.ts.
   const { familyReminders } = useFamilyReminders();
 
-  const bills = useMemo(
-    () => [...ownBills, ...familyReminders],
-    [ownBills, familyReminders],
-  );
+  // Merged by id, not concatenated. The rows below key on `bill.id`, so any
+  // repeated id — a duplicated source record, or a family reminder that also
+  // exists as an own bill — would trigger React's duplicate-key error and can
+  // silently drop rows. Own bills win when an id appears in both lists.
+  const bills = useMemo(() => {
+    const byId = new Map<string, (typeof ownBills)[number]>();
+    for (const bill of [...ownBills, ...familyReminders]) {
+      if (!byId.has(bill.id)) byId.set(bill.id, bill);
+    }
+    return [...byId.values()];
+  }, [ownBills, familyReminders]);
 
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 

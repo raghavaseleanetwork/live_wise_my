@@ -536,6 +536,9 @@ const styles = StyleSheet.create({
   },
   toggle: {
     flexDirection: 'row',
+    // Stretch both halves to the tallest one, so the single-line "Monthly" pill
+    // is the same height as the two-line "Yearly · Save up to 37%" pill.
+    alignItems: 'stretch',
     borderWidth: 1,
     borderRadius: 16,
     padding: 4,
@@ -544,6 +547,9 @@ const styles = StyleSheet.create({
   toggleOpt: {
     flex: 1,
     alignItems: 'center',
+    // Vertical centring is what puts "Monthly" in the middle of its pill —
+    // without it the label sits at the top, misaligned with "Yearly" opposite.
+    justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 12,
   },

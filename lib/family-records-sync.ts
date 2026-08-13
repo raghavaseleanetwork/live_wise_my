@@ -46,8 +46,9 @@ import { apiRequest } from '@/lib/query-client';
  * `FAMILY_RECORDS_SYNC_FRONTEND_GUIDE.md` — which would settle it — is not in
  * this repo.
  *
- * The spec form is used here because it is the contract actually checked into
- * this repository. If the deployed API differs, change `RECORD_PATH` and
+ * RESOLVED 2026-08-07 by probing the deployed API directly: the verification
+ * reply was correct and the spec was wrong. See `RECORD_PATH` below. If the API
+ * changes again, change `RECORD_PATH` and
  * `recordUrl` below and nothing else: no caller builds a URL itself.
  */
 export type RecordKind =
@@ -64,23 +65,38 @@ export type RecordKind =
   | 'expenses'
   | 'custom';
 
+/**
+ * Segment names as the DEPLOYED API actually exposes them.
+ *
+ * These were probed against the live backend rather than taken from a spec: the
+ * two backend documents disagreed, and the form this file previously used
+ * (`/api/family/:id/records/:kind`) 404s on every kind. That meant every family
+ * record write failed silently, the server stored nothing, and
+ * `GET /api/reminders/family` had no data to project — which is why Family Hub
+ * reminders never arrived while ordinary reminders worked.
+ *
+ * Verified (401 = route exists and needs auth, 404 = no such route):
+ *   /api/family/:id/records/documents  -> 404
+ *   /api/family/:id/documents          -> 401
+ */
 const RECORD_PATH: Record<RecordKind, string> = {
   appointments: 'appointments',
-  stock: 'stock',
-  bills: 'bills',
+  stock: 'medicationStock',
+  bills: 'familyBills',
   subscriptions: 'subscriptions',
-  tasks: 'tasks',
+  tasks: 'familyTasks',
   routines: 'routines',
   checkins: 'checkins',
-  travel: 'travel',
-  health: 'health',
+  travel: 'travelItems',
+  health: 'healthLogs',
   documents: 'documents',
-  expenses: 'expenses',
-  custom: 'custom',
+  expenses: 'familyExpenses',
+  custom: 'customItems',
 };
 
 function recordUrl(memberId: string, kind: RecordKind, id?: string): string {
-  const base = `/api/family/${memberId}/records/${RECORD_PATH[kind]}`;
+  // No `/records/` segment — the deployed API is `/api/family/:memberId/:kind`.
+  const base = `/api/family/${memberId}/${RECORD_PATH[kind]}`;
   return id ? `${base}/${encodeURIComponent(id)}` : base;
 }
 

@@ -145,6 +145,13 @@ Use `bulkWrite` with `ordered: false` and the §2 upsert semantics, exactly like
 
 ## 4. PDF statement parsing (Method 4 — blocked on you)
 
+> **⚠️ SUPERSEDED 2026-08-06 by `backend-team/BANK-STATEMENT-IMPORT-backend-requirements.md`.**
+> The frontend no longer refuses PDFs — the picker accepts PDF, CSV and Excel and
+> uploads all of them to `/api/transactions/import/preview`, so **PDF uploads are
+> reaching the endpoint now**. The full, current contract (including the
+> `needsPassword` retry flow) is in that document. Read it instead of this
+> section; the rest of this file is still accurate.
+
 The import UI is **built and shipped** (`app/import-statement.tsx`). CSV works today. PDF is detected and politely refused, because the client physically cannot parse it. This section is what turns that refusal into a working feature.
 
 ### 4.1 Recommendation: do this server-side, and CSV is already done

@@ -214,7 +214,7 @@ export default function AddFamilyMemberScreen() {
     }
   };
 
-  const headerHeight = 142 + insets.top;
+  const headerHeight = 150 + insets.top;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -229,7 +229,7 @@ export default function AddFamilyMemberScreen() {
           {/* Header */}
           <LinearGradient
             colors={colors.heroGradient as any}
-            style={[styles.header, { height: headerHeight, paddingTop: insets.top + 20 }]}
+            style={[styles.header, { height: headerHeight, paddingTop: insets.top + 36 }]}
           >
             <View style={styles.headerTop}>
               <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={15}>
@@ -277,7 +277,7 @@ export default function AddFamilyMemberScreen() {
               </Animated.View>
             ) : null}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Relationship <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <View style={styles.relGrid}>
@@ -307,7 +307,7 @@ export default function AddFamilyMemberScreen() {
 
             {relationship === 'other' && (
               <Animated.View entering={FadeInDown}>
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   Specify relationship <Text style={{ color: colors.danger }}>*</Text>
                 </Text>
                 <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}>
@@ -332,10 +332,10 @@ export default function AddFamilyMemberScreen() {
               </Animated.View>
             )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Date of birth</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Date of birth</Text>
             <Pressable
               onPress={() => setShowDatePicker(true)}
-              style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}
+              style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 14 }]}
             >
               <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
               <Text style={{ flex: 1, color: dateOfBirth ? colors.text : colors.textTertiary, fontFamily: 'Inter_500Medium' }}>
@@ -360,7 +360,7 @@ export default function AddFamilyMemberScreen() {
               />
             )}
 
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Select what you want to manage <Text style={{ color: colors.danger }}>*</Text>
             </Text>
             <Text style={[styles.sectionHint, { color: colors.textTertiary }]}>
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     height: 44,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   backBtn: {
     position: 'absolute',
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 6,
     gap: 16,
   },
   avatarSection: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   form: {
-    paddingTop: 24,
+    paddingTop: 28,
     paddingHorizontal: 20,
   },
   errorBox: {
@@ -513,24 +513,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   sectionTitle: {
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
     marginBottom: 6,
-    marginTop: 8,
-    letterSpacing: 1,
+    marginTop: 0,
+    letterSpacing: 0,
   },
   sectionHint: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
     lineHeight: 17,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   relGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     rowGap: 10,
     columnGap: 10,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   relCard: {
     // Three per row with the 10px columnGap between them. `space-between` is

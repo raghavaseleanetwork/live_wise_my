@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking, Platform } from 'react-native';
 import { router } from 'expo-router';
@@ -141,6 +141,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const [leaks, setLeaks] = useState<MoneyLeak[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncingSms, setIsSyncingSms] = useState(false);
+  /** Guards against overlapping syncs. See `syncSmsFromDevice`. */
+  const smsSyncInFlight = useRef(false);
   const [smsSyncPhase, setSmsSyncPhase] = useState<SmsSyncPhase>('idle');
   const [smsSyncStatus, setSmsSyncStatus] = useState<string | null>(null);
   const [smsSyncProgressCurrent, setSmsSyncProgressCurrent] = useState<number | null>(null);
@@ -219,6 +221,13 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
 
   const syncSmsFromDevice = useCallback(async () => {
     if (!token) return;
+    // Re-entrancy guard. Auto-sync-on-open, the foreground listener and
+    // pull-to-refresh can all fire within a few hundred ms of each other; two
+    // concurrent runs would read the same window and race on the sync
+    // watermark. A ref, not `isSyncingSms` — state isn't updated in time to
+    // block a second call made in the same tick.
+    if (smsSyncInFlight.current) return;
+    smsSyncInFlight.current = true;
     setIsSyncingSms(true);
     setSmsSyncStatus('Preparing SMS sync...');
     setSmsSyncProgressCurrent(null);
@@ -310,20 +319,24 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         setSmsSyncPhase('completed');
         setSmsSyncStatus(`Sync complete. ${syncResult.synced} transactions synced.`);
         
-        // Trigger AI Categorization for 'others' if something was synced
-        if (syncResult.synced > 0) {
-          try {
-            setSmsSyncStatus('Polishing categories with AI...');
-            await fetchWithAuth(token, '/api/transactions/categorize-others', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-            });
-          } catch (e) {
-            console.error('[AI] categorization trigger error:', e);
-          }
-        }
-
+        // Show the new transactions FIRST. AI categorization re-labels hundreds
+        // of rows and can take a long time (or stall); awaiting it before
+        // loadData() left the screen showing the pre-sync state — ₹0 and an
+        // empty list — while the banner said hundreds had been added.
         await loadData();
+
+        // Then refine categories in the background and refresh again when done.
+        // Not awaited: the data is already correct on screen, only the category
+        // labels improve.
+        if (syncResult.synced > 0) {
+          setSmsSyncStatus('Polishing categories with AI...');
+          fetchWithAuth(token, '/api/transactions/categorize-others', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+            .then(() => loadData())
+            .catch((e) => console.error('[AI] categorization trigger error:', e));
+        }
         // Reset phase after delay if synced something, or keep idle
         setTimeout(() => setSmsSyncPhase('idle'), 5000);
       } else {
@@ -332,12 +345,22 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         // valid (e.g. the app was pointed at a different backend), which has
         // nothing to do with SMS permissions — blaming permissions here sent
         // real debugging down the wrong path.
-        const status = (syncResult as { status?: number }).status;
+        const { status, error: readError } = syncResult;
         if (status === 401 || status === 403) {
           setSmsSyncStatus('Your session has expired. Please sign out and sign in again.');
           showAlert({
             title: 'Session expired',
             message: 'Please sign out and sign in again, then retry Auto Track.',
+            type: 'warning',
+          });
+        } else if (readError) {
+          // The inbox could not be read at all — a missing native module (Expo
+          // Go) or a revoked permission. Say so, instead of the generic
+          // "check your connection", which points at the wrong thing entirely.
+          setSmsSyncStatus(readError);
+          showAlert({
+            title: 'Could not read SMS',
+            message: readError,
             type: 'warning',
           });
         } else {
@@ -347,13 +370,19 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
               : 'Auto Track failed. Please check your connection and try again.',
           );
         }
+        // Clear the error banner too. Without this the failure state was never
+        // reset, so a single failed sync left the banner pinned to the home
+        // screen until the app was restarted.
+        setTimeout(() => setSmsSyncPhase('idle'), 6000);
       }
     } catch (err) {
       console.error('SMS sync error:', err);
       setSmsSyncPhase('error');
       setSmsSyncStatus('SMS sync failed unexpectedly.');
+      setTimeout(() => setSmsSyncPhase('idle'), 6000);
       await loadData();
     } finally {
+      smsSyncInFlight.current = false;
       setIsSyncingSms(false);
     }
   }, [token, loadData]);

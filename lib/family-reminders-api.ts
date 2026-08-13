@@ -37,6 +37,14 @@ const SERVER_SCHEDULING_KEY = '@lifewise_family_reminders_server_scheduling';
 /** The local scheduling ledger, cleared once at cutover. */
 const LOCAL_SCHEDULED_KEY = '@lifewise_family_reminder_scheduled';
 
+/**
+ * Notification ids for repeating routine/check-in triggers. Mirrors
+ * `REPEATING_IDS_KEY` in `lib/family-reminders.ts`; duplicated as a constant
+ * rather than imported so the network path keeps no runtime dependency on the
+ * offline path (the same reason `SERVER_SCHEDULING_KEY` is duplicated there).
+ */
+const LOCAL_REPEATING_IDS_KEY = '@lifewise_family_reminder_repeating_ids';
+
 export async function isServerSchedulingActive(): Promise<boolean> {
   try {
     return (await AsyncStorage.getItem(SERVER_SCHEDULING_KEY)) === 'true';
@@ -69,6 +77,10 @@ export async function clearStaleServerScheduling(): Promise<void> {
       // Drop the ledger too, so the local scheduler treats every reminder as
       // new and re-arms notifications the cutover had cancelled.
       [LOCAL_SCHEDULED_KEY, JSON.stringify({})],
+      // The repeating ids were cancelled at cutover, so these are stale. Clear
+      // them alongside, or the next sync would try to cancel ids the OS may
+      // have reassigned.
+      [LOCAL_REPEATING_IDS_KEY, JSON.stringify({})],
     ]);
   } catch {
     // Leaves the flag as-is; retried on the next fetch.
@@ -92,6 +104,10 @@ async function markServerSchedulingActive(): Promise<void> {
       // later rollback re-schedules from a clean slate rather than believing
       // stale entries are still live.
       [LOCAL_SCHEDULED_KEY, JSON.stringify({})],
+      // Repeating routine/check-in triggers are cancelled by the call above;
+      // drop their id ledger too so it cannot later cancel ids the OS has
+      // since reissued to unrelated notifications.
+      [LOCAL_REPEATING_IDS_KEY, JSON.stringify({})],
     ]);
   } catch {
     // Falls through to the local path, which is safe: worst case the cutover

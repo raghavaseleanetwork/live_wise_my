@@ -216,7 +216,7 @@ export default function FamilyMemberDetailScreen() {
     })();
   };
 
-  const headerHeight = 110 + insets.top;
+  const headerHeight = 88 + insets.top;
 
   if (isLoading) {
     return (
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingTop: 20,
+    paddingTop: 12,
   },
   emptyTitle: {
     fontFamily: 'Inter_700Bold',

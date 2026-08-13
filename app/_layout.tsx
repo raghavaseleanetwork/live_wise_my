@@ -41,6 +41,8 @@ import {
 import { emitCaregiverSync } from "@/lib/caregiver-sync";
 import { registerSmsSyncTask } from "@/lib/sms-sync-task";
 import { SeniorProvider } from "@/lib/senior-context";
+import { AppLockProvider, useAppLock } from "@/lib/app-lock-context";
+import LockScreen from "@/components/LockScreen";
 import { AlertProvider } from "@/lib/alert-context";
 import { makeFamilyReminderId } from "@/lib/family-reminders";
 import CustomAlert from "@/components/CustomAlert";
@@ -143,6 +145,7 @@ function AuthGate() {
   const segments = useSegments();
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true);
+  const { isLocked, isLoading: lockLoading } = useAppLock();
 
   // Pull the server's rate history once, so amounts from before this install
   // convert at their own date's rate rather than today's. Needs a token, and
@@ -327,8 +330,24 @@ function AuthGate() {
     };
   }, []);
 
-  if (isLoading || showSplash) {
+  if (isLoading || showSplash || lockLoading) {
     return <AnimatedSplash />;
+  }
+
+  // App Lock gate. Rendered INSTEAD OF the <Stack>, so while locked there is no
+  // mounted screen behind it — nothing to capture, and a notification tap or
+  // deep link has no route to land on until the user authenticates.
+  //
+  // Only gates authenticated users: showing this over the login screen would be
+  // a dead end, since the lock protects local data that only exists once signed
+  // in, and a locked-out user could not even reach "log in as someone else".
+  if (isAuthenticated && isLocked) {
+    return (
+      <>
+        <StatusBar style={colors.statusBarStyle} />
+        <LockScreen />
+      </>
+    );
   }
 
   return (
@@ -427,7 +446,9 @@ export default function RootLayout() {
                       <SubscriptionProvider>
                         <PaywallProvider>
                           <ExpenseProvider>
-                            <AuthGate />
+                            <AppLockProvider>
+                              <AuthGate />
+                            </AppLockProvider>
                           </ExpenseProvider>
                         </PaywallProvider>
                       </SubscriptionProvider>

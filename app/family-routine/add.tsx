@@ -9,6 +9,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '@/lib/theme-context';
 import { RoutineType, ROUTINE_TYPE_LABELS, addRoutine, loadRoutines, updateRoutine } from '@/lib/family-records';
 
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export default function AddRoutineScreen() {
   const router = useRouter();
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
@@ -20,8 +22,13 @@ export default function AddRoutineScreen() {
   const [routineType, setRoutineType] = useState<RoutineType | null>(null);
   const [customLabel, setCustomLabel] = useState('');
   const [time, setTime] = useState(new Date());
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const toggleDay = (d: number) => {
+    setSelectedDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
+  };
 
   const isEditing = !!editId;
 
@@ -35,6 +42,9 @@ export default function AddRoutineScreen() {
       if (!found || cancelled) return;
       setRoutineType(found.type);
       if (found.type === 'custom') setCustomLabel(found.label);
+      // Absent on routines saved before day selection existed; those mean
+      // "every day", which is the empty array.
+      setSelectedDays(found.days ?? []);
       // Stored as "HH:MM AM/PM"; the picker needs a Date, so parse it back
       // or editing would silently reset the time to now.
       const parts = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(found.time?.trim() ?? '');
@@ -65,6 +75,7 @@ export default function AddRoutineScreen() {
       type: routineType,
       label: routineType === 'custom' ? customLabel.trim() : ROUTINE_TYPE_LABELS[routineType].label,
       time: timeStr,
+      days: selectedDays,
     };
     if (isEditing) {
       await updateRoutine(String(memberId), String(editId), data);
@@ -133,6 +144,19 @@ export default function AddRoutineScreen() {
           <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
         </Pressable>
 
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Repeat on (leave blank for every day)</Text>
+        <View style={styles.dayRow}>
+          {DAY_LABELS.map((d, idx) => (
+            <Pressable
+              key={d}
+              onPress={() => toggleDay(idx)}
+              style={[styles.dayChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.includes(idx) && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.dayChipText, { color: selectedDays.includes(idx) ? '#FFF' : colors.textSecondary }]}>{d}</Text>
+            </Pressable>
+          ))}
+        </View>
+
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
           <Text style={styles.primaryBtnLabel}>{isEditing ? 'Save Changes' : 'Save'}</Text>
         </Pressable>
@@ -172,4 +196,7 @@ const styles = StyleSheet.create({
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
+  dayRow: { flexDirection: 'row', gap: 6 },
+  dayChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
+  dayChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
 });

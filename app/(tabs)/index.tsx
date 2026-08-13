@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
+  AppState,
   StyleSheet,
   Text,
   View,
@@ -33,7 +34,7 @@ import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useExpenses } from '@/lib/expense-context';
 import { useAuth } from '@/lib/auth-context';
-import { hasSmsPermission } from '@/lib/sms-reader';
+import { hasSmsPermission, requestSmsPermission } from '@/lib/sms-reader';
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import { useTabBarContentInset } from '@/lib/tab-bar';
@@ -54,6 +55,13 @@ import {
   CategoryType,
   type GreetingPeriod,
 } from '@/lib/data';
+
+/**
+ * Set once we have shown the SMS permission prompt on first launch, so a user
+ * who declines is never asked again automatically. Not cleared on logout —
+ * "we already asked this person" is a property of the device, not the session.
+ */
+const ASKED_SMS_PERMISSION_KEY = '@lifewise_asked_sms_permission';
 
 function SpendingScoreRing({ score, colors, isDark, onPress, isSeniorMode }: { score: number; colors: any; isDark: boolean; onPress?: () => void; isSeniorMode: boolean }) {
   const clampedScore = Math.min(100, Math.max(0, score));
@@ -128,9 +136,21 @@ const InsightCard = React.memo(({ icon, iconColor, bgColor, title, value, subtit
       <View style={[styles.insightIconWrap, { backgroundColor: bgColor }, isSeniorMode && { width: 44, height: 44, borderRadius: 16 }]}>
         <Ionicons name={icon as any} size={isSeniorMode ? 24 : 18} color={iconColor} />
       </View>
-      <Text style={[styles.insightTitle, { color: colors.textSecondary }, isSeniorMode && { fontSize: 13 }]}>{title}</Text>
-      <Text style={[styles.insightValue, { color: colors.text }, isSeniorMode && { fontSize: 24 }]}>{value}</Text>
-      <Text style={[styles.insightSubtitle, { color: colors.textTertiary }, isSeniorMode && { fontSize: 12 }]}>{subtitle}</Text>
+      <Text style={[styles.insightTitle, { color: colors.textSecondary }, isSeniorMode && { fontSize: 13 }]} numberOfLines={1}>{title}</Text>
+      {/* `Money`, not `Text`: a plain Text wraps, and "₹30,080" broke across two
+          lines with "0" alone on the second. Money keeps it on one line and
+          shrinks the font to fit instead — never truncating, so no "…" and no
+          digits are ever hidden. */}
+      {/* These cards are a third of the screen wide, so they need more headroom
+          than Money's 0.7 default: a long figure like "₹10,34,567" or
+          "£12,345.67" sits at ~0.72 and would clip on a narrower device. */}
+      <Money
+        style={[styles.insightValue, { color: colors.text }, isSeniorMode && { fontSize: 24 }]}
+        minimumFontScale={0.5}
+      >
+        {value}
+      </Money>
+      <Text style={[styles.insightSubtitle, { color: colors.textTertiary }, isSeniorMode && { fontSize: 12 }]} numberOfLines={1}>{subtitle}</Text>
     </View>
   );
 });
@@ -153,7 +173,7 @@ const CategoryPill = React.memo(({ category, total, index, colors, formatAmount,
   );
 });
 
-const TransactionRow = React.memo(({ merchant, amount, category, date, colors, formatAmount, isSeniorMode }: { merchant: string; amount: number; category: CategoryType; date: string; colors: any; formatAmount: (n: number) => string; isSeniorMode: boolean }) => {
+const TransactionRow = React.memo(({ merchant, amount, category, date, colors, formatAmount, isSeniorMode, isDebit = true }: { merchant: string; amount: number; category: CategoryType; date: string; colors: any; formatAmount: (n: number) => string; isSeniorMode: boolean; isDebit?: boolean }) => {
   const safeCat = (category || 'others').toLowerCase() as CategoryType;
   const cat = CATEGORIES[safeCat] || CATEGORIES.others;
   return (
@@ -165,7 +185,18 @@ const TransactionRow = React.memo(({ merchant, amount, category, date, colors, f
         <Text style={[styles.txMerchant, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>{merchant}</Text>
         <Text style={[styles.txTime, { color: colors.textTertiary }, isSeniorMode && { fontSize: 13 }]}>{formatTime(date)}</Text>
       </View>
-      <Money style={[styles.txAmount, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>- {formatAmount(amount)}</Money>
+      {/* Sign and colour follow the direction of the money. This was hardcoded
+          to "-" in the app's own text colour, so a credit (salary, refund,
+          money received) was rendered as if it were spending. */}
+      <Money
+        style={[
+          styles.txAmount,
+          { color: isDebit ? colors.text : (colors.accentMint || colors.success || colors.text) },
+          isSeniorMode && { fontSize: 16 },
+        ]}
+      >
+        {isDebit ? '- ' : '+ '}{formatAmount(amount)}
+      </Money>
     </View>
   );
 });
@@ -271,15 +302,29 @@ function MustSmsSyncBanner({
       ? colors.accentMint 
       : colors.accent;
 
-  const statusText = isError 
-    ? 'Sync Failed' 
-    : isDone 
-      ? `Successfully synced ${lastSmsSyncCount ?? 0} new transactions`
-      : smsSyncPhase === 'fetching' 
+  const statusText = isError
+    ? 'Sync Failed'
+    : isDone
+      // "0 new transactions" is the normal result of a re-scan with nothing new,
+      // but phrased as a failure it reads like the scan broke. Say what actually
+      // happened instead.
+      ? (lastSmsSyncCount ?? 0) > 0
+        ? `Added ${lastSmsSyncCount} new ${lastSmsSyncCount === 1 ? 'transaction' : 'transactions'}`
+        : 'You are up to date'
+      : smsSyncPhase === 'fetching'
         ? 'Scanning SMS inbox...'
         : smsSyncPhase === 'parsing'
-          ? `Searching... (${smsSyncProgressTotal ?? 0} found)`
-          : `Syncing ${smsSyncDetail ? smsSyncDetail + ' ' : ''}(${smsSyncProgressCurrent ?? 0}/${smsSyncProgressTotal ?? 0})`;
+          // This count is the number of MESSAGES being read, not transactions
+          // found — labelling it "found" implied every SMS was a transaction.
+          ? `Checking ${smsSyncProgressTotal ?? 0} messages...`
+          : smsSyncPhase === 'uploading'
+            // Only show the x/y counter once there is a real total. Before the
+            // first progress callback both values are null, which rendered the
+            // meaningless "Syncing (0/0)".
+            ? smsSyncProgressTotal
+              ? `Syncing ${smsSyncDetail ? smsSyncDetail + ' ' : ''}(${smsSyncProgressCurrent ?? 0}/${smsSyncProgressTotal})`
+              : 'Syncing to cloud...'
+            : 'Starting sync...';
 
   return (
     <Animated.View 
@@ -674,39 +719,121 @@ export default function HomeScreen() {
   /**
    * Scan for new bank SMS as soon as the home screen opens.
    *
-   * Previously the only trigger was pull-to-refresh, so a user who opened the
-   * app and never pulled down saw stale data and assumed Auto Track was
-   * broken — the messages were there, nothing had read them yet.
+   * **Why this asks for permission rather than only checking it.** The Auto
+   * Track button that used to do the asking no longer exists on this screen, so
+   * for a while pull-to-refresh was the *only* code path in the app that could
+   * ever prompt for READ_SMS. On a fresh install auto-sync therefore checked,
+   * found no permission, and went quiet — and the feature appeared dead until
+   * the user happened to pull down once. That is the "I have to reload the page
+   * once" bug.
    *
-   * Two constraints shape this:
+   * So on Android the first launch now prompts once, which is the moment the
+   * request actually makes sense to a user: they opened a spending tracker.
    *
-   * 1. **Never prompt.** `syncSmsFromDevice` asks for SMS permission and, on
-   *    iOS, opens an explanatory alert. Firing that automatically would greet
-   *    every user with a popup on launch, so this runs only when permission is
-   *    *already* granted. Asking still happens from the Auto Track button.
-   * 2. **Once per app session.** The ref guard means switching tabs and coming
-   *    back does not re-scan; pull-to-refresh remains the way to force one.
+   * Constraints that still hold:
+   *
+   * 1. **Android only, and only once.** `ASKED_SMS_PERMISSION_KEY` persists the
+   *    fact that we prompted, so a user who declines is never nagged again on
+   *    subsequent launches. iOS cannot read SMS at all (doc §1), so it is
+   *    skipped entirely — no pointless alert on launch.
+   * 2. **Once per mount.** The ref guard means switching tabs and coming back
+   *    does not re-scan. Catching up later is the foreground listener's job
+   *    (below); pull-to-refresh still forces one on demand. Overlap between the
+   *    three is handled by the in-flight guard inside `syncSmsFromDevice`.
    */
   const didAutoSyncSms = useRef(false);
+  // `syncSmsFromDevice` is rebuilt whenever `loadData` is, so the effect below
+  // must not call it through a dependency — that re-runs the effect mid-sync.
+  // Reading it from a ref keeps the effect keyed on `token` alone.
+  const syncSmsRef = useRef(syncSmsFromDevice);
+  useEffect(() => { syncSmsRef.current = syncSmsFromDevice; }, [syncSmsFromDevice]);
 
   useEffect(() => {
+    // No token yet means auth is still rehydrating from storage on a cold
+    // start. Return WITHOUT setting the ref so the effect runs again the moment
+    // the token lands — this is the path that made auto-sync look dead on a
+    // fresh launch while working fine after a hot reload.
     if (!token || didAutoSyncSms.current) return;
 
     let cancelled = false;
-    (async () => {
-      if (!(await hasSmsPermission())) return;
-      // Re-check after the await: the guard above ran before it, and a
-      // pull-to-refresh could have started a sync in the meantime.
-      if (cancelled || didAutoSyncSms.current || isSyncingSms) return;
-      didAutoSyncSms.current = true;
-      await syncSmsFromDevice();
-    })();
+    let timer: ReturnType<typeof setTimeout>;
 
-    return () => { cancelled = true; };
-    // `isSyncingSms` is deliberately not a dependency — it flips during the
-    // sync this effect starts, which would re-run it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, syncSmsFromDevice]);
+    const runSync = async () => {
+      if (cancelled || didAutoSyncSms.current) return;
+      didAutoSyncSms.current = true;
+      try {
+        await syncSmsRef.current();
+      } catch (e) {
+        // Let a failed run be retried on the next launch rather than latching
+        // the guard on permanently.
+        didAutoSyncSms.current = false;
+        console.error('[SMS] auto-sync on open failed:', e);
+      }
+    };
+
+    /**
+     * `PermissionsAndroid.check` can report false immediately after launch
+     * while the native bridge is still coming up, and this effect is keyed on
+     * `token` — which never changes again — so a single miss would mean no scan
+     * until the user pulled to refresh. Retry briefly before concluding that
+     * permission is genuinely absent.
+     */
+    const attempt = async (tries: number) => {
+      if (cancelled || didAutoSyncSms.current) return;
+
+      if (await hasSmsPermission()) {
+        await runSync();
+        return;
+      }
+
+      if (tries > 0) {
+        timer = setTimeout(() => void attempt(tries - 1), 700);
+        return;
+      }
+
+      // Permission really isn't granted. Ask once, ever — then sync if allowed.
+      if (Platform.OS !== 'android' || cancelled) return;
+      try {
+        const alreadyAsked = await AsyncStorage.getItem(ASKED_SMS_PERMISSION_KEY);
+        if (alreadyAsked || cancelled) return;
+        // Recorded BEFORE the prompt: if the user dismisses it or the app is
+        // killed mid-dialog, we still must not ask again on every launch.
+        await AsyncStorage.setItem(ASKED_SMS_PERMISSION_KEY, '1');
+        const granted = await requestSmsPermission();
+        if (granted && !cancelled) await runSync();
+      } catch (e) {
+        console.error('[SMS] permission request on first launch failed:', e);
+      }
+    };
+
+    void attempt(3);
+
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [token]);
+
+  /**
+   * Re-scan when the app returns to the foreground.
+   *
+   * The effect above only fires once per mount, so an app left open in the
+   * background for hours — exactly when new bank SMS arrive — never re-scanned
+   * until the user pulled to refresh. Android delivers no wake-up for this
+   * build (background fetch is disabled in `sms-sync-task.ts`), so resuming is
+   * the only reliable moment to catch up.
+   */
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active' || !token) return;
+      (async () => {
+        if (!(await hasSmsPermission())) return;
+        try {
+          await syncSmsRef.current();
+        } catch (e) {
+          console.error('[SMS] foreground re-sync failed:', e);
+        }
+      })();
+    });
+    return () => sub.remove();
+  }, [token]);
 
   const fetchUnreadCount = useCallback(async () => {
     if (!token) return;
@@ -874,16 +1001,14 @@ export default function HomeScreen() {
     [categoryTotals]
   );
 
-    const currM = new Date().getMonth();
-    const currY = new Date().getFullYear();
-    const recentTxs = useMemo(() => {
-      return transactions
-        .filter(tx => {
-          const d = new Date(tx.date);
-          return d.getMonth() === currM && d.getFullYear() === currY;
-        })
-        .slice(0, 5);
-    }, [transactions, currM, currY]);
+  // Newest first, across every month — the old version filtered to the current
+  // calendar month and never sorted, so older activity disappeared entirely and
+  // what did show up was in whatever order the store happened to return.
+  const recentTxs = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [transactions]);
   const unpaidBills = useMemo(() => bills.filter(b => b.status !== 'paid' && !b.isPaid).length, [bills]);
   const totalLeakAmount = useMemo(() => leaks.reduce((s, l) => s + l.monthlyEstimate, 0), [leaks]);
   const userName = user?.name?.split(' ')[0] || 'User';
@@ -955,7 +1080,11 @@ export default function HomeScreen() {
           />
           <MustSmsSyncBanner
             colors={colors}
-            isSyncingSms={isSyncingSms || isLoading}
+            // Only the SMS sync drives this banner. It used to be
+            // `isSyncingSms || isLoading`, so an ordinary data refresh showed
+            // the sync banner with phase still 'idle' — which fell through to
+            // the default label and sat there reading "Syncing (0/0)" forever.
+            isSyncingSms={isSyncingSms}
             smsSyncPhase={smsSyncPhase}
             smsSyncDetail={smsSyncDetail}
             smsSyncStatus={smsSyncStatus}
@@ -1128,7 +1257,9 @@ export default function HomeScreen() {
         />
         <MustSmsSyncBanner
           colors={colors}
-          isSyncingSms={isSyncingSms || isLoading}
+          // Same fix as the standard layout above — data loading must not
+          // trigger the SMS sync banner.
+          isSyncingSms={isSyncingSms}
           smsSyncPhase={smsSyncPhase}
           smsSyncDetail={smsSyncDetail}
           smsSyncStatus={smsSyncStatus}
@@ -1397,7 +1528,8 @@ export default function HomeScreen() {
               <View style={styles.emptyTextWrap}>
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>No activity recorded</Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>
-                  Tap Auto Track or add a transaction to see your latest spending here.
+                  Add a transaction, or pull down to scan your bank SMS, to see your latest
+                  spending here.
                 </Text>
               </View>
             </View>
@@ -1413,6 +1545,7 @@ export default function HomeScreen() {
                     colors={colors}
                     formatAmount={formatAmount}
                     isSeniorMode={isSeniorMode}
+                    isDebit={tx.isDebit !== false}
                   />
                   {idx < recentTxs.length - 1 && <View style={[styles.txDivider, { backgroundColor: colors.border }]} />}
                 </React.Fragment>
@@ -1735,7 +1868,10 @@ const styles = StyleSheet.create({
   reminderPillDue: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   reminderPillAmount: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   insightsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  insightCard: { flex: 1, borderRadius: 16, padding: 14, gap: 6, borderWidth: 1 },
+  // `minWidth: 0` is what lets a flex child shrink below its content's natural
+  // width. Without it the card refuses to narrow, and long amounts push the
+  // text into wrapping instead of scaling down.
+  insightCard: { flex: 1, minWidth: 0, borderRadius: 16, padding: 14, gap: 6, borderWidth: 1 },
   insightIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   insightTitle: { fontFamily: 'Inter_500Medium', fontSize: 11 },
   insightValue: { fontFamily: 'Inter_700Bold', fontSize: 18 },

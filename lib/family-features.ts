@@ -53,7 +53,9 @@ export const FAMILY_FEATURES: FamilyFeatureDef[] = [
   { key: 'routine', label: 'Daily Routine', emoji: '🕒', icon: 'time', description: 'Wake-up, sleep & walking schedule', built: true },
   { key: 'subscriptions', label: 'Subscription Tracking', emoji: '📺', icon: 'tv', description: 'OTT subscriptions & renewals', built: true },
   { key: 'expenses', label: 'Expense Tracking', emoji: '💰', icon: 'wallet', description: 'Personal spending & alerts', built: true },
-  { key: 'tasks', label: 'Reminder Tasks', emoji: '📋', icon: 'list', description: 'Daily tasks & custom reminders', built: true },
+  // `list` is three hairline rules — at 18px in the accent tint it reads as an
+  // empty tile. `list-circle` carries enough mass to match the other icons.
+  { key: 'tasks', label: 'Reminder Tasks', emoji: '📋', icon: 'list-circle', description: 'Daily tasks & custom reminders', built: true },
   { key: 'checkin', label: 'Call & Check-in', emoji: '📞', icon: 'call', description: 'Call reminders & daily check-ins', built: true },
   { key: 'travel', label: 'Travel & Visits', emoji: '✈️', icon: 'airplane', description: 'Doctor visits & family visit reminders', built: true },
   { key: 'stock', label: 'Medication Stock', emoji: '📦', icon: 'cube', description: 'Refill reminders & low-stock alerts', built: true },

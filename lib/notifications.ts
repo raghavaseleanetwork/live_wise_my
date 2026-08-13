@@ -348,3 +348,93 @@ export async function scheduleLocalNotification(opts: {
   });
 }
 
+/**
+ * Schedules a notification that repeats at a wall-clock time, forever.
+ *
+ * `scheduleLocalNotification` schedules a one-shot DATE trigger, which is wrong
+ * for anything recurring: a "daily" 12:30 routine armed with a DATE trigger
+ * fires once, at the next 12:30, and is then gone. Nothing re-arms it, so the
+ * user gets exactly one notification for a reminder they asked to repeat every
+ * day. That was the reported "my wake-up reminder doesn't notify me" bug.
+ *
+ * `weekdays` is 0=Sun..6=Sat, matching `CheckinItem.days` / `RoutineItem.days`.
+ * Empty or omitted means every day, which is the meaning those fields already
+ * carry in storage.
+ *
+ * Returns the OS identifiers created. A weekly repeat cannot express "these N
+ * days" in one trigger, so one WEEKLY trigger is registered per selected day —
+ * hence an array rather than a single id.
+ *
+ * expo-notifications takes weekday as 1=Sun..7=Sat, one off from our storage
+ * convention; the `+ 1` below is that conversion and not an off-by-one.
+ */
+export async function scheduleRepeatingLocalNotification(opts: {
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+  hour: number;
+  minute: number;
+  weekdays?: number[];
+}): Promise<string[]> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return [];
+
+  const prefs = await getAlertPrefs();
+  const content = {
+    title: opts.title,
+    body: opts.body,
+    data: opts.data || {},
+    sound: prefs.sound ? 'default' : false,
+  } as const;
+  const channelId = channelIdFor(prefs);
+
+  const days = (opts.weekdays ?? []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
+
+  // No specific days selected → a single DAILY trigger. Using seven WEEKLY
+  // triggers here would work but burns seven of the OS's limited scheduled-
+  // notification slots per reminder for no benefit.
+  if (days.length === 0) {
+    const id = await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: opts.hour,
+        minute: opts.minute,
+        channelId,
+      },
+    });
+    return [id];
+  }
+
+  const ids: string[] = [];
+  for (const day of days) {
+    const id = await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: day + 1,
+        hour: opts.hour,
+        minute: opts.minute,
+        channelId,
+      },
+    });
+    ids.push(id);
+  }
+  return ids;
+}
+
+/** Cancels scheduled notifications by id, ignoring ones already gone. */
+export async function cancelScheduledNotifications(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return;
+  await Promise.all(
+    ids.map((id) =>
+      Notifications.cancelScheduledNotificationAsync(id).catch(() => {
+        // Already fired, already cancelled, or unknown to the OS. Cancelling is
+        // best-effort cleanup; a failure here must not break rescheduling.
+      }),
+    ),
+  );
+}
+

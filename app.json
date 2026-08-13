@@ -28,8 +28,8 @@
         "POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#1E1B4B",
-        "foregroundImage": "./logo.png"
+        "backgroundColor": "#B45CE8",
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png"
       }
     },
     "web": {
@@ -51,6 +51,12 @@
         }
       ],
       "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow LifeWise to use Face ID to unlock the app."
+        }
+      ],
       "expo-web-browser",
       "./app.plugin.js",
       "@react-native-community/datetimepicker",

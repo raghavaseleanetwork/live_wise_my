@@ -1445,7 +1445,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ----- Transactions -----
   app.get('/api/transactions', authMiddleware, async (req, res) => {
     try {
-      const list = await transactions.find({ userId: (req as any).userId }).sort({ date: -1 }).limit(500).toArray();
+      // A first SMS scan can save well over a thousand transactions. The old
+      // 500 cap silently truncated the list, so totals computed on the client
+      // (This Month, category breakdown) were wrong — and could read ₹0 while
+      // the sync had just reported hundreds saved.
+      const limit = Math.min(Number((req as any).query?.limit) || 5000, 20000);
+      const list = await transactions
+        .find({ userId: (req as any).userId })
+        .sort({ date: -1 })
+        .limit(limit)
+        .toArray();
       const out = list.map((t: any) => ({
         id: t._id.toString(),
         merchant: t.merchant,
@@ -1519,11 +1528,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: new Date(),
         };
 
-        // If smsId is provided, we use it for atomic upsert to prevent duplicates
+        // Deduplicate on the CONTENT of the transaction, not on smsId alone.
+        //
+        // smsId is the Android inbox row id. It is per-device and Android
+        // reuses it after messages are deleted, so two genuinely different
+        // transactions can arrive with the same smsId — and with a
+        // {userId, smsId} filter the second one is treated as a duplicate and
+        // silently never saved. That is a real transaction the user scanned,
+        // parsed and uploaded, that never appears in the app.
+        //
+        // Including amount/date/merchant makes the key describe the actual
+        // transaction, so re-sent overlaps still dedupe (same content => same
+        // key) while distinct transactions always persist.
         if (smsId) {
           return {
             updateOne: {
-              filter: { userId, smsId },
+              filter: { userId, smsId, amount, date, merchant },
               update: { $setOnInsert: doc },
               upsert: true,
             },
@@ -1536,10 +1556,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      const result = await (transactions as any).bulkWrite(ops, { ordered: false });
-      
-      const synced = (result.upsertedCount || 0) + (result.insertedCount || 0);
-      const skipped = txs.length - synced;
+      // A duplicate-key error means the client re-sent an SMS we already have,
+      // which is expected with incremental sync — not a failure. With
+      // `ordered: false` the rest of the batch still commits, and the write
+      // result is carried on the error, so use it rather than 500-ing the
+      // whole request.
+      let result: any;
+      try {
+        result = await (transactions as any).bulkWrite(ops, { ordered: false });
+      } catch (err: any) {
+        if (err?.code === 11000 || err?.writeErrors) {
+          result = err.result ?? err;
+        } else {
+          throw err;
+        }
+      }
+
+      const synced = (result?.upsertedCount || 0) + (result?.insertedCount || 0);
+      const skipped = Math.max(0, txs.length - synced);
 
       return res.json({ 
         synced, 

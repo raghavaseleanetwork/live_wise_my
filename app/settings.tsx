@@ -21,6 +21,7 @@ import { useExpenses } from '@/lib/expense-context';
 import { useSeniorMode } from '@/lib/senior-context';
 import { useAlert } from '@/lib/alert-context';
 import { useSubscription } from '@/lib/subscription-context';
+import { useAppLock, biometricIcon, biometricLabel } from '@/lib/app-lock-context';
 import CustomModal from '@/components/CustomModal';
 import PlanBadge from '@/components/PlanBadge';
 import Money from '@/components/Money';
@@ -68,6 +69,12 @@ export default function SettingsScreen() {
   const { isSeniorMode, setSeniorMode } = useSeniorMode();
   const { showAlert } = useAlert();
   const { currentPlan, isTrialProvidingPlan } = useSubscription();
+  const {
+    isSupported: lockSupported,
+    isEnabled: lockEnabled,
+    biometricKind,
+    setEnabled: setLockEnabled,
+  } = useAppLock();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget || ''));
@@ -77,6 +84,21 @@ export default function SettingsScreen() {
 
   const toggleSeniorMode = (val: boolean) => {
     setSeniorMode(val);
+  };
+
+  // The switch is driven by `lockEnabled` from the provider, not local state, so
+  // a cancelled or failed authentication simply leaves it where it was — there
+  // is no optimistic flip to roll back.
+  const toggleAppLock = async (val: boolean) => {
+    const ok = await setLockEnabled(val);
+    if (!ok) {
+      showAlert({
+        title: val ? "Couldn't turn on App Lock" : "Couldn't turn off App Lock",
+        message:
+          'Authentication was cancelled or failed. Your App Lock setting has not been changed.',
+        type: 'error',
+      });
+    }
   };
 
   const handleBack = () => {
@@ -226,6 +248,39 @@ export default function SettingsScreen() {
             }
           />
         </View>
+
+        {/*
+          Hidden entirely when the device can't do this — no biometric hardware,
+          nothing enrolled, or the web build. A visible toggle that cannot work
+          reads as a broken feature, so there simply isn't one.
+        */}
+        {lockSupported && (
+          <>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Security</Text>
+            <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <SettingRow
+                icon={biometricIcon(biometricKind)}
+                label="App Lock"
+                colors={colors}
+                rightElement={
+                  <Switch
+                    value={lockEnabled}
+                    onValueChange={toggleAppLock}
+                    trackColor={{ false: colors.inputBorder, true: colors.accent + '50' }}
+                    thumbColor={lockEnabled ? colors.accent : '#ccc'}
+                  />
+                }
+              />
+              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+                  Require {biometricLabel(biometricKind).toLowerCase()} or your device PIN to open
+                  LifeWise. Applies when you open the app and after it has been in the
+                  background for a while.
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
 
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>General</Text>
         <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
