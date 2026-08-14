@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, TextInput, Modal, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -57,13 +58,7 @@ const TIME_OPTIONS: { id: string; label: string; hour?: number; minute?: number 
   { id: 'custom', label: 'Custom…' },
 ];
 
-const REPEAT_OPTIONS: { id: RepeatType; label: string }[] = [
-  { id: 'none', label: 'One-time' },
-  { id: 'daily', label: 'Daily' },
-  { id: 'weekly', label: 'Weekly' },
-  { id: 'monthly', label: 'Monthly' },
-  { id: 'yearly', label: 'Yearly' },
-];
+const REPEAT_OPTION_IDS: RepeatType[] = ['none', 'daily', 'weekly', 'monthly', 'yearly'];
 
 function extractAmountFromText(text: string): number | null {
   const t = String(text || '');
@@ -286,6 +281,14 @@ function policyForIntent(intent: ReminderIntent): {
   }
 }
 
+const REPEAT_LABEL_KEYS: Record<RepeatType, string> = {
+  none: 'voiceReminder.repeatOneTime',
+  daily: 'voiceReminder.repeatDaily',
+  weekly: 'voiceReminder.repeatWeekly',
+  monthly: 'voiceReminder.repeatMonthly',
+  yearly: 'voiceReminder.repeatYearly',
+};
+
 function parsedFromServer(p: {
   title: string;
   isoDate: string;
@@ -310,6 +313,7 @@ function parsedFromServer(p: {
 }
 
 export default function VoiceReminderScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   /**
    * `?mode=expense` means the user arrived via "Speak an expense" (the FAB), so
@@ -422,7 +426,7 @@ export default function VoiceReminderScreen() {
     try {
       const perm = await Audio.requestPermissionsAsync();
       if (!perm.granted) {
-        setError('Microphone permission is required.');
+        setError(t('voiceReminder.errorMicPermission'));
         setState('idle');
         return;
       }
@@ -448,7 +452,7 @@ export default function VoiceReminderScreen() {
       await rec.startAsync();
       setRecording(rec);
     } catch {
-      setError('Microphone not available right now.');
+      setError(t('voiceReminder.errorMicUnavailable'));
       setState('idle');
     }
   }
@@ -466,13 +470,13 @@ export default function VoiceReminderScreen() {
       await rec.stopAndUnloadAsync();
       const uri = rec.getURI();
       if (!uri) {
-        setError('Could not read recorded audio. Please try again.');
+        setError(t('voiceReminder.errorNoAudio'));
         setState('idle');
         return;
       }
 
       if (!token) {
-        setError('Please login to use voice reminders.');
+        setError(t('voiceReminder.errorPleaseLogin'));
         setState('idle');
         return;
       }
@@ -501,7 +505,7 @@ export default function VoiceReminderScreen() {
         // Truncating it hid exactly the detail that identifies the cause.
         console.error(`[Voice] Transcribe failed HTTP ${res.status}`);
         console.error('[Voice] Server said:', body);
-        let msg = 'Voice processing failed. Please try again.';
+        let msg = t('voiceReminder.errorGenericProcessing');
         try {
           msg = JSON.parse(body)?.message || msg;
         } catch {
@@ -512,10 +516,9 @@ export default function VoiceReminderScreen() {
         // OpenAI key, or no credit) — telling the user to sign in again for
         // that is wrong and sends them chasing a problem they cannot fix.
         if (res.status === 401) {
-          msg = 'Your session has expired. Please sign out and sign in again.';
+          msg = t('voiceReminder.errorSessionExpired');
         } else if (res.status === 403 || res.status === 500) {
-          msg =
-            'Voice transcription is unavailable on the server right now. This needs a backend fix — please report it.';
+          msg = t('voiceReminder.errorServerUnavailable');
         }
         setError(msg);
         setState('idle');
@@ -538,7 +541,7 @@ export default function VoiceReminderScreen() {
 
       const text = (json.text || '').trim();
       if (!text) {
-        setError("Sorry, I couldn't understand. Please try again.");
+        setError(t('voiceReminder.errorNotUnderstood'));
         setState('idle');
         return;
       }
@@ -558,11 +561,9 @@ export default function VoiceReminderScreen() {
     } catch (e: any) {
       const msg = String(e?.message || '');
       if (/network request failed/i.test(msg)) {
-        setError(
-          'Backend not reachable. Start backend and set EXPO_PUBLIC_DOMAIN to your PC IP (e.g. 192.168.1.9:5001).',
-        );
+        setError(t('voiceReminder.errorBackendUnreachable'));
       } else {
-        setError('Microphone or network error. Please try again.');
+        setError(t('voiceReminder.errorMicOrNetwork'));
       }
       setState('idle');
     } finally {
@@ -617,7 +618,7 @@ export default function VoiceReminderScreen() {
 
     const guess = parseVoiceExpense(spoken, (c) => CATEGORIES[c].label);
     if (guess.amount == null || guess.amount <= 0) {
-      setError('Could not hear an amount. Please edit the text to include it.');
+      setError(t('voiceReminder.errorNoAmountHeard'));
       return;
     }
 
@@ -643,7 +644,7 @@ export default function VoiceReminderScreen() {
 
     if (!created) {
       setState('review');
-      setError('Could not save the expense. Please check your connection.');
+      setError(t('voiceReminder.errorCouldNotSaveExpense'));
       return;
     }
 
@@ -654,7 +655,7 @@ export default function VoiceReminderScreen() {
     setError(null);
     setState('idle');
     showAlert({
-      title: 'Expense saved',
+      title: t('voiceReminder.expenseSavedTitle'),
       message: `₹${guess.amount.toLocaleString('en-IN')} · ${CATEGORIES[guess.category].label}${
         matchedMember ? ` · ${matchedMember.name}` : ''
       }`,
@@ -676,7 +677,7 @@ export default function VoiceReminderScreen() {
         : null);
 
     if (!effective) {
-      setError('Could not understand this reminder. Please edit the text.');
+      setError(t('voiceReminder.errorCouldNotUnderstandReminder'));
       return;
     }
     setState('confirming');
@@ -729,7 +730,7 @@ export default function VoiceReminderScreen() {
       if (effective.date) {
         const dueDate = new Date(dueDateIso);
         await scheduleLocalNotification({
-          title: 'Reminder',
+          title: t('voiceReminder.notificationTitle'),
           body: effective.title,
           data: { type: 'reminder', billId: created?.id },
           triggerAt: dueDate,
@@ -750,19 +751,19 @@ export default function VoiceReminderScreen() {
         router.back();
       }
     } catch {
-      setError('Could not create this reminder. Please try again.');
+      setError(t('voiceReminder.errorCouldNotCreateReminder'));
       setState('review');
     }
   }
 
   const titleLine =
     state === 'recording'
-      ? 'Recording...'
+      ? t('voiceReminder.stageRecording')
       : state === 'transcribing'
-        ? 'Processing...'
+        ? t('voiceReminder.stageProcessing')
       : state === 'review'
-        ? 'Here’s what I heard'
-        : 'What should I remind you about?';
+        ? t('voiceReminder.stageReview')
+        : t('voiceReminder.stageIdle');
 
   const showTranscript = state === 'review' && !!(isEditing ? draftText.trim() : spokenText.trim());
   const heroText = (isEditing ? draftText : spokenText).trim();
@@ -812,10 +813,10 @@ export default function VoiceReminderScreen() {
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { paddingTop: headerTop }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} disabled={!canInteract}>
-          <Text style={[styles.headerCancel, { color: colors.textSecondary }]}>Cancel</Text>
+          <Text style={[styles.headerCancel, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {isExpenseMode ? 'Speak an Expense' : 'Voice Reminder'}
+          {isExpenseMode ? t('voiceReminder.titleExpense') : t('voiceReminder.titleReminder')}
         </Text>
         <View style={{ width: 56 }} />
       </View>
@@ -851,7 +852,7 @@ export default function VoiceReminderScreen() {
               <TextInput
                 value={draftText}
                 onChangeText={setDraftText}
-                placeholder="Type your reminder…"
+                placeholder={t('voiceReminder.typePlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 style={[styles.transcriptInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
                 multiline
@@ -863,19 +864,19 @@ export default function VoiceReminderScreen() {
                 numberOfLines={5}
               >
                 {state === 'recording'
-                  ? 'Listening…'
+                  ? t('voiceReminder.listening')
                   : state === 'transcribing'
-                    ? 'Transcribing…'
+                    ? t('voiceReminder.transcribing')
                     : showTranscript
                       ? heroText
-                      : 'Tap the mic and speak.'}
+                      : t('voiceReminder.tapMicPrompt')}
               </Text>
             )}
           </View>
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
           {state === 'review' && detectedLanguage && (
-            <Text style={[styles.langPill, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40', color: colors.accent }]}>Detected: {detectedLanguage.toUpperCase()}</Text>
+            <Text style={[styles.langPill, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40', color: colors.accent }]}>{t('voiceReminder.detectedLanguage', { language: detectedLanguage.toUpperCase() })}</Text>
           )}
         </View>
 
@@ -896,11 +897,11 @@ export default function VoiceReminderScreen() {
                     >
                       <View style={styles.scheduleLeft}>
                         <Ionicons name="time" size={16} color={colors.accent} />
-                        <Text style={[styles.scheduleLabel, { color: colors.accent }]}>Time</Text>
+                        <Text style={[styles.scheduleLabel, { color: colors.accent }]}>{t('voiceReminder.scheduleTime')}</Text>
                       </View>
                       <View style={styles.scheduleRight}>
                         <Text style={[styles.scheduleValue, { color: colors.text }]}>
-                          {effectiveParsedForUI.timeLabel || 'Select time'}
+                          {effectiveParsedForUI.timeLabel || t('voiceReminder.scheduleSelectTime')}
                         </Text>
                         <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
                       </View>
@@ -913,7 +914,7 @@ export default function VoiceReminderScreen() {
                     <View style={styles.scheduleRow}>
                       <View style={styles.scheduleLeft}>
                         <Ionicons name="cash" size={16} color={colors.accent} />
-                        <Text style={[styles.scheduleLabel, { color: colors.accent }]}>Amount</Text>
+                        <Text style={[styles.scheduleLabel, { color: colors.accent }]}>{t('voiceReminder.scheduleAmount')}</Text>
                       </View>
                       <View style={styles.scheduleRight}>
                         <Text style={[styles.scheduleValue, { color: '#10B981', fontWeight: '700' }]}>
@@ -937,14 +938,11 @@ export default function VoiceReminderScreen() {
                       >
                         <View style={styles.scheduleLeft}>
                           <Ionicons name="repeat" size={16} color={colors.accent} />
-                          <Text style={[styles.scheduleLabel, { color: colors.accent }]}>Repeat</Text>
+                          <Text style={[styles.scheduleLabel, { color: colors.accent }]}>{t('voiceReminder.scheduleRepeat')}</Text>
                         </View>
                         <View style={styles.scheduleRight}>
                           <Text style={[styles.scheduleValue, { color: colors.text }]}>
-                            {effectiveParsedForUI.repeatType === 'none'
-                              ? 'One-time'
-                              : effectiveParsedForUI.repeatType.charAt(0).toUpperCase() +
-                                effectiveParsedForUI.repeatType.slice(1)}
+                            {t(REPEAT_LABEL_KEYS[effectiveParsedForUI.repeatType])}
                           </Text>
                           <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
                         </View>
@@ -974,7 +972,7 @@ export default function VoiceReminderScreen() {
                 disabled={!showTranscript || !canInteract}
               >
                 <Ionicons name={isEditing ? 'checkmark' : 'pencil'} size={16} color="#FFFFFF" />
-                <Text style={styles.secondaryBtnText}>{isEditing ? 'Done' : 'Edit'}</Text>
+                <Text style={styles.secondaryBtnText}>{isEditing ? t('voiceReminder.actionDone') : t('voiceReminder.actionEdit')}</Text>
               </Pressable>
 
               <Pressable
@@ -992,7 +990,7 @@ export default function VoiceReminderScreen() {
                 disabled={!canInteract}
               >
                 <Ionicons name="refresh" size={16} color="#FFFFFF" />
-                <Text style={styles.ghostBtnText}>Reset</Text>
+                <Text style={styles.ghostBtnText}>{t('voiceReminder.actionReset')}</Text>
               </Pressable>
             </View>
           )}
@@ -1016,10 +1014,10 @@ export default function VoiceReminderScreen() {
               >
                 <Text style={styles.primaryBtnText}>
                   {state === 'confirming'
-                    ? 'Saving…'
+                    ? t('voiceReminder.saving')
                     : voiceExpenseGuess
-                      ? `Save expense (₹${voiceExpenseGuess.amount!.toLocaleString('en-IN')})`
-                      : 'Say an amount to save'}
+                      ? t('voiceReminder.saveExpenseWithAmount', { amount: `₹${voiceExpenseGuess.amount!.toLocaleString('en-IN')}` })
+                      : t('voiceReminder.sayAmountToSave')}
                 </Text>
               </Pressable>
 
@@ -1031,7 +1029,7 @@ export default function VoiceReminderScreen() {
                 >
                   <Ionicons name="notifications-outline" size={15} color={colors.text} />
                   <Text style={[styles.expenseAltText, { color: colors.text }]}>
-                    Not spent yet — save as reminder
+                    {t('voiceReminder.notSpentYetSaveReminder')}
                   </Text>
                 </Pressable>
               )}
@@ -1048,7 +1046,7 @@ export default function VoiceReminderScreen() {
                 ]}
               >
                 <Text style={styles.primaryBtnText}>
-                  {state === 'confirming' ? 'Saving…' : 'Save reminder'}
+                  {state === 'confirming' ? t('voiceReminder.saving') : t('voiceReminder.saveReminder')}
                 </Text>
               </Pressable>
 
@@ -1065,8 +1063,7 @@ export default function VoiceReminderScreen() {
                 >
                   <Ionicons name="wallet-outline" size={15} color={colors.text} />
                   <Text style={[styles.expenseAltText, { color: colors.text }]}>
-                    Already spent — save as expense (₹
-                    {voiceExpenseGuess.amount!.toLocaleString('en-IN')})
+                    {t('voiceReminder.alreadySpentSaveExpense', { amount: `₹${voiceExpenseGuess.amount!.toLocaleString('en-IN')}` })}
                   </Text>
                 </Pressable>
               )}
@@ -1079,7 +1076,7 @@ export default function VoiceReminderScreen() {
       <DatePickerModal
         visible={showTimePicker}
         onClose={() => setShowTimePicker(false)}
-        title="Select time"
+        title={t('voiceReminder.selectTimeTitle')}
         mode="time"
         value={tempTime ?? new Date()}
         onConfirm={(picked) => {
@@ -1106,18 +1103,18 @@ export default function VoiceReminderScreen() {
 
       {/* Repeat picker dropdown */}
       <CustomModal visible={showRepeatPicker} onClose={() => setShowRepeatPicker(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Repeat</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('voiceReminder.repeatModalTitle')}</Text>
         <ScrollView style={{ maxHeight: 260 }}>
-          {REPEAT_OPTIONS.map((opt) => {
-            const isActive = tempRepeat === opt.id;
+          {REPEAT_OPTION_IDS.map((id) => {
+            const isActive = tempRepeat === id;
             return (
               <Pressable
-                key={opt.id}
-                onPress={() => setTempRepeat(opt.id)}
+                key={id}
+                onPress={() => setTempRepeat(id)}
                 style={[styles.repeatRow, isActive && { backgroundColor: `${colors.accent}15` }]}
               >
                 <Text style={[styles.repeatLabel, { color: isActive ? colors.accent : colors.text }, isActive && { fontFamily: 'Inter_600SemiBold' }]}>
-                  {opt.label}
+                  {t(REPEAT_LABEL_KEYS[id])}
                 </Text>
                 {isActive ? <Ionicons name="checkmark" size={16} color={colors.accent} /> : null}
               </Pressable>
@@ -1126,7 +1123,7 @@ export default function VoiceReminderScreen() {
         </ScrollView>
         <View style={styles.modalActionsRow}>
           <Pressable onPress={() => setShowRepeatPicker(false)} style={styles.modalTextButton}>
-            <Text style={[styles.modalTextButtonLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            <Text style={[styles.modalTextButtonLabel, { color: colors.textTertiary }]}>{t('common.cancel')}</Text>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -1147,7 +1144,7 @@ export default function VoiceReminderScreen() {
             }}
             style={[styles.modalPrimaryButton, { backgroundColor: colors.accent }]}
           >
-            <Text style={[styles.modalPrimaryButtonLabel, { color: '#FFFFFF' }]}>Save</Text>
+            <Text style={[styles.modalPrimaryButtonLabel, { color: '#FFFFFF' }]}>{t('common.save')}</Text>
           </Pressable>
         </View>
       </CustomModal>

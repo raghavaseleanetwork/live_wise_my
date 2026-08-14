@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
@@ -46,6 +47,7 @@ export default function MedicineDetailsScreen() {
   const { colors, isDark } = useTheme();
   const { token } = useAuth();
   const { isSeniorMode } = useSeniorMode();
+  const { t } = useTranslation();
   const { memberId, medId } = useLocalSearchParams<{ memberId: string; medId: string }>();
 
   const [member, setMember] = useState<FamilyMember | null>(null);
@@ -68,18 +70,18 @@ export default function MedicineDetailsScreen() {
         if (foundMed) {
           setMedicine(foundMed);
         } else {
-          setError('Medicine not found.');
+          setError(t('medicineDetails.errorMedicineNotFound'));
         }
       } else {
-        setError('Family member not found.');
+        setError(t('medicineDetails.errorMemberNotFound'));
       }
     } catch (e) {
       console.error('Load medicine detail error:', e);
-      setError('Failed to load data.');
+      setError(t('medicineDetails.errorLoadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [token, memberId, medId]);
+  }, [token, memberId, medId, t]);
 
   useEffect(() => {
     loadData();
@@ -114,10 +116,10 @@ export default function MedicineDetailsScreen() {
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.textTertiary} />
         <Text style={[styles.errorText, { color: colors.textSecondary }]}>
-          {error || 'Something went wrong.'}
+          {error || t('medicineDetails.errorGeneric')}
         </Text>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={{ color: colors.accent }}>Go Back</Text>
+          <Text style={{ color: colors.accent }}>{t('medicineDetails.goBack')}</Text>
         </Pressable>
       </View>
     );
@@ -126,9 +128,9 @@ export default function MedicineDetailsScreen() {
   const pillColor = medicine.color || '#10B981';
   const slots = medicine.slots || {};
   const parts: string[] = [];
-  if (slots.morning) parts.push(`Morning: ${slots.morning}`);
-  if (slots.noon) parts.push(`Noon: ${slots.noon}`);
-  if (slots.evening) parts.push(`Evening: ${slots.evening}`);
+  if (slots.morning) parts.push(`${t('addMedicine.slotMorning')}: ${slots.morning}`);
+  if (slots.noon) parts.push(`${t('addMedicine.slotNoon')}: ${slots.noon}`);
+  if (slots.evening) parts.push(`${t('addMedicine.slotEvening')}: ${slots.evening}`);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -136,7 +138,7 @@ export default function MedicineDetailsScreen() {
         <Pressable onPress={() => router.back()} hitSlop={15}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Medicine Detail</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('medicineDetails.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -157,13 +159,13 @@ export default function MedicineDetailsScreen() {
             )}
             <View style={[styles.memberBadge, { backgroundColor: colors.accentDim }]}>
               <Text style={[styles.memberBadgeText, { color: colors.accent }]}>
-                For {member.name}
+                {t('familyHealth.forMember', { name: member.name })}
               </Text>
             </View>
           </LinearGradient>
 
           <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>Schedule</Text>
+            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t('medicineDetails.schedule')}</Text>
             {parts.map((p, i) => (
               <View key={i} style={styles.slotRow}>
                 <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
@@ -174,7 +176,7 @@ export default function MedicineDetailsScreen() {
               <View style={styles.instructionBox}>
                 <Ionicons name="information-circle-outline" size={16} color={colors.accent} />
                 <Text style={[styles.instructionText, { color: colors.accent }]}>
-                  {medicine.instruction === 'before_meal' ? 'Take before meal' : 'Take after meal'}
+                  {medicine.instruction === 'before_meal' ? t('medicineDetails.takeBeforeMeal') : t('medicineDetails.takeAfterMeal')}
                 </Text>
               </View>
             )}
@@ -184,40 +186,40 @@ export default function MedicineDetailsScreen() {
             <View style={[styles.statsRow]}>
               <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={[styles.statValue, { color: colors.text }]}>{medicine.adherenceScore}%</Text>
-                <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Adherence</Text>
+                <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t('medicineDetails.adherence')}</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={[styles.statValue, { color: colors.text }]}>{medicine.streak || 0}</Text>
-                <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Day Streak</Text>
+                <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t('medicineDetails.dayStreak')}</Text>
               </View>
             </View>
           )}
 
           <View style={styles.actionContainer}>
-            <Text style={[styles.takeActionTitle, { color: colors.text }]}>Actions</Text>
+            <Text style={[styles.takeActionTitle, { color: colors.text }]}>{t('medicineDetails.actions')}</Text>
             <View style={styles.actionGrid}>
               <Pressable
                 onPress={() => markMedicine('taken')}
                 style={[styles.bigActionBtn, { backgroundColor: '#10B981' }]}
               >
                 <Ionicons name="checkmark-circle" size={24} color="#FFF" />
-                <Text style={styles.bigActionText}>Mark Taken</Text>
+                <Text style={styles.bigActionText}>{t('medicineDetails.markTaken')}</Text>
               </Pressable>
-              
+
               <View style={styles.actionRowSmall}>
                 <Pressable
                   onPress={() => markMedicine('snooze')}
                   style={[styles.smallActionBtn, { backgroundColor: colors.warning }]}
                 >
                   <Ionicons name="time" size={20} color="#FFF" />
-                  <Text style={styles.smallActionText}>Later</Text>
+                  <Text style={styles.smallActionText}>{t('medicineDetails.later')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => markMedicine('skip')}
                   style={[styles.smallActionBtn, { backgroundColor: colors.danger }]}
                 >
                   <Ionicons name="close-circle" size={20} color="#FFF" />
-                  <Text style={styles.smallActionText}>Skip</Text>
+                  <Text style={styles.smallActionText}>{t('medicineDetails.skip')}</Text>
                 </Pressable>
               </View>
             </View>

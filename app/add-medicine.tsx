@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
@@ -37,6 +38,7 @@ export default function AddMedicineScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
 
   // Form State
   const [medName, setMedName] = useState('');
@@ -68,21 +70,21 @@ export default function AddMedicineScreen() {
 
   const handleSave = async () => {
     if (!medName.trim()) {
-      setError('Please enter medicine name');
+      setError(t('addMedicine.errorEnterName'));
       return;
     }
     if (!medAppearance) {
-      setError('Please select what this medicine looks like');
+      setError(t('addMedicine.errorSelectAppearance'));
       return;
     }
     // No slot is preselected, so an unanswered schedule has to be caught here —
     // saving with an empty `slots` would create a medicine that never reminds.
     if (!slotMorning && !slotNoon && !slotEvening) {
-      setError('Select at least one time to take this medicine');
+      setError(t('addMedicine.errorSelectSlot'));
       return;
     }
     if (!medScheduleType) {
-      setError('Please select how long to take this medicine');
+      setError(t('addMedicine.errorSelectDuration'));
       return;
     }
     if (!token || !memberId) return;
@@ -115,11 +117,11 @@ export default function AddMedicineScreen() {
       if (res.ok) {
         router.back();
       } else {
-        setError('Failed to add medicine. Please try again.');
+        setError(t('addMedicine.errorAddFailed'));
       }
     } catch (e) {
       console.error('Add medicine error:', e);
-      setError('An unexpected error occurred.');
+      setError(t('familyMember.errorUnexpected'));
     } finally {
       setIsSaving(false);
     }
@@ -157,17 +159,17 @@ export default function AddMedicineScreen() {
               <Pressable onPress={() => router.back()} style={styles.backBtn}>
                 <Ionicons name="chevron-back" size={24} color={colors.text} />
               </Pressable>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Add Medicine</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('addMedicine.title')}</Text>
               <View style={{ width: 40 }} />
             </View>
 
             <View style={styles.headerNameBlock}>
-              <Text style={[styles.memberContext, { color: colors.textSecondary }]}>For {memberName}</Text>
+              <Text style={[styles.memberContext, { color: colors.textSecondary }]}>{t('familyHealth.forMember', { name: memberName })}</Text>
               <TextInput
                 style={[styles.nameInput, { color: colors.text }]}
                 value={medName}
                 onChangeText={setMedName}
-                placeholder="Medicine Name"
+                placeholder={t('addMedicine.namePlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 autoFocus
               />
@@ -186,25 +188,25 @@ export default function AddMedicineScreen() {
             {/* Basic Info Card */}
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
                <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Dosage</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('addMedicine.dosage')}</Text>
                   <TextInput
                     style={[styles.valueInput, { color: colors.text }]}
                     value={medDosage}
                     onChangeText={setMedDosage}
-                    placeholder="e.g. 40mg or 1 Pill"
+                    placeholder={t('addMedicine.dosagePlaceholder')}
                     placeholderTextColor={colors.textTertiary}
                   />
                </View>
             </View>
 
             {/* Appearance & Color */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Appearance</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('addMedicine.appearance')}</Text>
             <View style={styles.appearanceGrid}>
               {[
-                { key: 'capsule', label: 'Capsule', icon: 'ellipse-outline' },
-                { key: 'tablet', label: 'Tablet', icon: 'square-outline' },
-                { key: 'round', label: 'Round', icon: 'radio-button-on' },
-                { key: 'liquid', label: 'Liquid', icon: 'water' },
+                { key: 'capsule', label: t('addMedicine.appearanceCapsule'), icon: 'ellipse-outline' },
+                { key: 'tablet', label: t('addMedicine.appearanceTablet'), icon: 'square-outline' },
+                { key: 'round', label: t('addMedicine.appearanceRound'), icon: 'radio-button-on' },
+                { key: 'liquid', label: t('addMedicine.appearanceLiquid'), icon: 'water' },
               ].map(opt => (
                 <Pressable
                   key={opt.key}
@@ -232,7 +234,7 @@ export default function AddMedicineScreen() {
             </View>
 
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 20 }]}>
-              <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 12 }]}>Medicine Color</Text>
+              <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 12 }]}>{t('addMedicine.medicineColor')}</Text>
               <View style={styles.colorRow}>
                 {['#10B981', '#3B82F6', '#F97316', '#EF4444', '#8B5CF6', '#EC4899'].map(c => (
                   <Pressable
@@ -249,12 +251,12 @@ export default function AddMedicineScreen() {
             </View>
 
             {/* Timing Selection */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Timing & slots</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('addMedicine.timingSlots')}</Text>
             <View style={styles.slotContainer}>
               {[
-                { key: 'morning', label: 'Morning', time: slotMorningTime, active: slotMorning, set: setSlotMorning },
-                { key: 'noon', label: 'Noon', time: slotNoonTime, active: slotNoon, set: setSlotNoon },
-                { key: 'evening', label: 'Evening', time: slotEveningTime, active: slotEvening, set: setSlotEvening },
+                { key: 'morning', label: t('addMedicine.slotMorning'), time: slotMorningTime, active: slotMorning, set: setSlotMorning },
+                { key: 'noon', label: t('addMedicine.slotNoon'), time: slotNoonTime, active: slotNoon, set: setSlotNoon },
+                { key: 'evening', label: t('addMedicine.slotEvening'), time: slotEveningTime, active: slotEvening, set: setSlotEvening },
               ].map(slot => (
                 <View key={slot.key} style={[styles.slotRow, { borderBottomColor: colors.border }]}>
                   <Pressable 
@@ -283,12 +285,12 @@ export default function AddMedicineScreen() {
             </View>
 
             {/* Instructions */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Instructions</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('addMedicine.instructions')}</Text>
             <View style={styles.instructionRow}>
               {[
-                { key: 'before_meal', label: 'Before Meal' },
-                { key: 'after_meal', label: 'After Meal' },
-                { key: 'any', label: 'Any Time' },
+                { key: 'before_meal', label: t('addMedicine.instructionBeforeMeal') },
+                { key: 'after_meal', label: t('addMedicine.instructionAfterMeal') },
+                { key: 'any', label: t('addMedicine.instructionAnyTime') },
               ].map(opt => (
                 <Pressable
                   key={opt.key}
@@ -311,7 +313,7 @@ export default function AddMedicineScreen() {
             </View>
 
             {/* Duration */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Duration</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('addMedicine.duration')}</Text>
             <View style={styles.durationCard}>
               <Pressable
                 onPress={() => setMedScheduleType('continuous')}
@@ -322,8 +324,8 @@ export default function AddMedicineScreen() {
                 ]}
               >
                 <View style={styles.durationInfo}>
-                  <Text style={[styles.durationTitle, { color: colors.text }]}>Continuous</Text>
-                  <Text style={[styles.durationSubtitle, { color: colors.textTertiary }]}>No end date (lifetime)</Text>
+                  <Text style={[styles.durationTitle, { color: colors.text }]}>{t('addMedicine.continuous')}</Text>
+                  <Text style={[styles.durationSubtitle, { color: colors.textTertiary }]}>{t('addMedicine.continuousSubtitle')}</Text>
                 </View>
                 {medScheduleType === 'continuous' && <Ionicons name="checkmark-circle" size={20} color={colors.accent} />}
               </Pressable>
@@ -337,8 +339,8 @@ export default function AddMedicineScreen() {
                 ]}
               >
                 <View style={styles.durationInfo}>
-                  <Text style={[styles.durationTitle, { color: colors.text }]}>Custom Duration</Text>
-                  <Text style={[styles.durationSubtitle, { color: colors.textTertiary }]}>Select start and end dates</Text>
+                  <Text style={[styles.durationTitle, { color: colors.text }]}>{t('addMedicine.customDuration')}</Text>
+                  <Text style={[styles.durationSubtitle, { color: colors.textTertiary }]}>{t('addMedicine.customDurationSubtitle')}</Text>
                 </View>
                 {medScheduleType === 'custom' && <Ionicons name="checkmark-circle" size={20} color={colors.accent} />}
               </Pressable>
@@ -347,7 +349,7 @@ export default function AddMedicineScreen() {
             {medScheduleType === 'custom' && (
               <Animated.View entering={FadeInDown} style={styles.dateInputs}>
                 <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Start Date</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('addMedicine.startDate')}</Text>
                   <TextInput
                     style={[styles.dateInput, { color: colors.text, borderBottomColor: colors.border }]}
                     value={medStartDate}
@@ -357,7 +359,7 @@ export default function AddMedicineScreen() {
                   />
                 </View>
                 <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>End Date</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('addMedicine.endDate')}</Text>
                   <TextInput
                     style={[styles.dateInput, { color: colors.text, borderBottomColor: colors.border }]}
                     value={medEndDate}
@@ -381,7 +383,7 @@ export default function AddMedicineScreen() {
               end={{ x: 1, y: 0 }}
             >
               <Ionicons name="medkit-outline" size={24} color="#FFF" />
-              <Text style={styles.saveBtnText}>{isSaving ? 'Adding...' : 'Add Medicine'}</Text>
+              <Text style={styles.saveBtnText}>{isSaving ? t('addMedicine.adding') : t('addMedicine.addMedicineButton')}</Text>
             </LinearGradient>
           </Pressable>
         </View>

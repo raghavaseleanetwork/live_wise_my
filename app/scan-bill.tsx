@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown, FadeIn, SlideInUp } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -39,6 +40,7 @@ import Money from '@/components/Money';
 type ScanStep = 'guide' | 'preview' | 'processing';
 
 export default function ScanBillScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { billId, mode } = useLocalSearchParams<{ billId?: string; mode?: string }>();
   /**
@@ -85,13 +87,13 @@ export default function ScanBillScreen() {
 
   const PROCESS_MESSAGES = useMemo(
     () => [
-      'Scanning your bill...',
-      'Extracting bill details...',
-      'Detecting bill format...',
-      'Reading bill text...',
-      'Checking due date...',
+      t('scanBill.processingMsg1'),
+      t('scanBill.processingMsg2'),
+      t('scanBill.processingMsg3'),
+      t('scanBill.processingMsg4'),
+      t('scanBill.processingMsg5'),
     ],
-    [],
+    [t],
   );
 
   useEffect(() => {
@@ -156,8 +158,8 @@ export default function ScanBillScreen() {
     if (!guardScan()) return;
     if (Platform.OS === 'web') {
       showAlert({
-        title: 'Not supported',
-        message: 'Camera capture is not supported on web in this flow.',
+        title: t('scanBill.notSupportedTitle'),
+        message: t('scanBill.notSupportedCameraWeb'),
         type: 'info',
       });
       return;
@@ -167,8 +169,8 @@ export default function ScanBillScreen() {
       const res = await requestCameraPermission();
       if (!res.granted) {
         showAlert({
-          title: 'Permission needed',
-          message: 'Camera permission is required to scan bills.',
+          title: t('scanBill.permissionNeededTitle'),
+          message: t('scanBill.permissionNeededCamera'),
           type: 'warning',
         });
         return;
@@ -179,8 +181,8 @@ export default function ScanBillScreen() {
       const pic = await cameraRef.current?.takePictureAsync({ quality: 1.0 });
       if (!pic?.uri) {
         showAlert({
-          title: 'Scan failed',
-          message: 'Could not capture the photo. Please try again.',
+          title: t('scanBill.scanFailedTitle'),
+          message: t('scanBill.scanFailedCapture'),
           type: 'error',
         });
         return;
@@ -194,12 +196,12 @@ export default function ScanBillScreen() {
       });
     } catch {
       showAlert({
-        title: 'Scan failed',
-        message: 'Unexpected error while taking photo.',
+        title: t('scanBill.scanFailedTitle'),
+        message: t('scanBill.scanFailedUnexpected'),
         type: 'error',
       });
     }
-  }, [cameraPermission, requestCameraPermission, guardScan]);
+  }, [cameraPermission, requestCameraPermission, guardScan, t]);
 
   const openGallery = useCallback(async () => {
     if (!guardScan()) return;
@@ -236,8 +238,8 @@ export default function ScanBillScreen() {
   const scanPreview = useCallback(async () => {
     if (!photo || !token) {
       showAlert({
-        title: 'Not ready',
-        message: 'Please login again and try scanning.',
+        title: t('scanBill.notReadyTitle'),
+        message: t('scanBill.notReadyMessage'),
         type: 'warning',
       });
       return;
@@ -265,14 +267,14 @@ export default function ScanBillScreen() {
 
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        const msg = json?.message ?? 'This does not look like a bill photo.';
+        const msg = json?.message ?? t('scanBill.invalidScanDefault');
         showAlert({
-          title: 'Invalid Scan',
+          title: t('scanBill.invalidScanTitle'),
           message: msg,
           type: 'error',
           buttons: [
             {
-              text: 'Try Again',
+              text: t('scanBill.tryAgain'),
               onPress: () => {
                 setStep('guide');
                 setPhoto(null);
@@ -283,22 +285,22 @@ export default function ScanBillScreen() {
         setStep('preview');
         return;
       }
-      
+
       const resJson = await res.json();
       setEditingData(resJson.preview);
       setConfidence(resJson.metadata?.confidence || null);
       setShowSuccessModal(true);
     } catch {
       showAlert({
-        title: 'Error',
-        message: 'Network error while scanning bill. Please try again.',
+        title: t('scanBill.scanErrorTitle'),
+        message: t('scanBill.scanErrorNetwork'),
         type: 'error',
       });
       setStep('preview');
     } finally {
       stopRotation();
     }
-  }, [photo, token, startRotation, stopRotation]);
+  }, [photo, token, startRotation, stopRotation, t]);
 
   /**
    * Save the scanned receipt as an EXPENSE rather than a future bill — Method 2
@@ -314,15 +316,15 @@ export default function ScanBillScreen() {
     if (!Number.isFinite(amount) || amount <= 0) {
       setIsSavingExpense(false);
       showAlert({
-        title: 'Amount missing',
-        message: 'Could not read an amount from this receipt. Tap Edit to enter it.',
+        title: t('scanBill.amountMissingTitle'),
+        message: t('scanBill.amountMissingExpense'),
         type: 'warning',
       });
       return;
     }
 
     const created = await addTransaction({
-      merchant: editingData.name || 'Scanned receipt',
+      merchant: editingData.name || t('scanBill.scannedReceiptFallback'),
       amount,
       category: (editingData.category as CategoryType) || 'others',
       // OCR reads the receipt's own date into `dueDate`; for an expense that is
@@ -336,8 +338,8 @@ export default function ScanBillScreen() {
 
     if (!created) {
       showAlert({
-        title: 'Could not save',
-        message: 'The expense was not saved. Please check your connection and try again.',
+        title: t('scanBill.couldNotSaveTitle'),
+        message: t('scanBill.couldNotSaveExpense'),
         type: 'error',
       });
       return;
@@ -349,13 +351,14 @@ export default function ScanBillScreen() {
     showAlert({
       // Name the record type explicitly. These two flows differ only by a
       // secondary tap, so a vague "Saved!" hides a wrong-type save entirely.
-      title: 'Expense saved',
-      message: `${formatAmount(amount)} · ${
-        editingData.name || 'Scanned receipt'
-      }\n\nAdded to your expenses.`,
+      title: t('scanBill.expenseSavedTitle'),
+      message: t('scanBill.expenseSavedMessage', {
+        amount: formatAmount(amount),
+        name: editingData.name || t('scanBill.scannedReceiptFallback'),
+      }),
       type: 'success',
     });
-  }, [editingData, token, addTransaction, showAlert, formatAmount, isSavingExpense]);
+  }, [editingData, token, addTransaction, showAlert, formatAmount, isSavingExpense, t]);
 
   const commitReminder = useCallback(async () => {
     if (!editingData || !token || isSavingReminder) return;
@@ -365,8 +368,8 @@ export default function ScanBillScreen() {
     // instead of silently saving a reminder the user can't act on.
     if (!Number.isFinite(Number(editingData.amount)) || Number(editingData.amount) <= 0) {
       showAlert({
-        title: 'Amount missing',
-        message: 'Could not read an amount from this bill. Tap "Modify Details" to enter it.',
+        title: t('scanBill.amountMissingTitle'),
+        message: t('scanBill.amountMissingReminder'),
         type: 'warning',
       });
       return;
@@ -422,13 +425,13 @@ export default function ScanBillScreen() {
         
         if (created?.dueDate) {
           await scheduleLocalNotification({
-            title: `${created.name || 'Bill'} Due Soon`,
+            title: t('scanBill.dueSoonNotificationTitle', { name: created.name || t('scanBill.billFallback') }),
             body: `₹${created.amount ?? 0} due on ${new Date(created.dueDate).toLocaleDateString('en-IN')}`,
             data: { type: 'reminder', billId: created.id },
             triggerAt: new Date(created.dueDate),
           }).catch(() => {});
         }
-        
+
         // Only jump to the bill detail screen when the user actually asked for
         // a bill. In expense mode the reminder is the secondary choice, so
         // hijacking navigation there is disorienting — confirm and stay put.
@@ -436,12 +439,13 @@ export default function ScanBillScreen() {
           router.replace(`/bill-details/${created.id}`);
         } else {
           showAlert({
-            title: 'Bill reminder saved',
-            message: `${created.name || 'Bill'}${
-              created.dueDate
-                ? ` · due ${new Date(created.dueDate).toLocaleDateString('en-IN')}`
-                : ''
-            }\n\nAdded to Reminders — not to your expenses.`,
+            title: t('scanBill.billReminderSavedTitle'),
+            message: t('scanBill.billReminderSavedMessage', {
+              name: created.name || t('scanBill.billFallback'),
+              dueDatePart: created.dueDate
+                ? t('scanBill.dueSuffix', { date: new Date(created.dueDate).toLocaleDateString('en-IN') })
+                : '',
+            }),
             type: 'success',
           });
         }
@@ -453,8 +457,8 @@ export default function ScanBillScreen() {
       setPhoto(null);
     } catch (e) {
       showAlert({
-        title: 'Could not save bill',
-        message: 'Please check your connection and try again.',
+        title: t('scanBill.couldNotSaveBillTitle'),
+        message: t('scanBill.couldNotSaveBillMessage'),
         type: 'error',
       });
     } finally {
@@ -471,6 +475,7 @@ export default function ScanBillScreen() {
     showAlert,
     isSavingReminder,
     handlePlanLimit,
+    t,
   ]);
 
   /**
@@ -501,7 +506,7 @@ export default function ScanBillScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Scan Bill</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('scanBill.headerTitle')}</Text>
         <View style={styles.headerSpacer} />
       </Animated.View>
 
@@ -519,10 +524,10 @@ export default function ScanBillScreen() {
                   <View style={styles.cameraTop}>
                     <BlurView intensity={30} tint={isDark ? 'dark' : 'light'} style={styles.topInfoBlur}>
                       <Text style={[styles.guideTitle, { color: '#FFFFFF' }]}>
-                        {billId ? 'Updating bill' : 'Scan Your Bill'}
+                        {billId ? t('scanBill.guideTitleUpdate') : t('scanBill.guideTitleScan')}
                       </Text>
                       <Text style={[styles.guideSubtitle, { color: 'rgba(255,255,255,0.7)' }]}>
-                        Keep bill flat & within corner marks
+                        {t('scanBill.guideSubtitle')}
                       </Text>
                     </BlurView>
                   </View>
@@ -538,19 +543,19 @@ export default function ScanBillScreen() {
                   <View style={styles.cameraBottomBar}>
                     <Pressable onPress={openGallery} style={styles.sideActionBtn}>
                       <Ionicons name="images" size={24} color="#FFFFFF" />
-                      <Text style={styles.sideActionText}>Gallery</Text>
+                      <Text style={styles.sideActionText}>{t('scanBill.galleryButton')}</Text>
                     </Pressable>
 
                     <Pressable onPress={takePictureFromCamera} style={styles.mainCaptureBtn}>
                       <View style={styles.captureInner} />
                     </Pressable>
 
-                    <Pressable 
-                      onPress={() => setFlashOn(!flashOn)} 
+                    <Pressable
+                      onPress={() => setFlashOn(!flashOn)}
                       style={[styles.sideActionBtn, flashOn && { backgroundColor: 'rgba(245,158,11,0.3)' }]}
                     >
                       <Ionicons name={flashOn ? "flash" : "flash-off"} size={24} color={flashOn ? "#F59E0B" : "#FFFFFF"} />
-                      <Text style={[styles.sideActionText, flashOn && { color: "#F59E0B" }]}>Flash</Text>
+                      <Text style={[styles.sideActionText, flashOn && { color: "#F59E0B" }]}>{t('scanBill.flashButton')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -564,11 +569,11 @@ export default function ScanBillScreen() {
                   <View style={[styles.fallbackIconWrap, { backgroundColor: colors.accentMintDim }]}>
                     <Ionicons name="camera" size={32} color={colors.accentMint} />
                   </View>
-                  <Text style={[styles.fallbackTitle, { color: colors.text }]}>Camera Access Required</Text>
+                  <Text style={[styles.fallbackTitle, { color: colors.text }]}>{t('scanBill.cameraAccessTitle')}</Text>
                   <Text style={[styles.fallbackSubtitle, { color: colors.textSecondary }]}>
-                    Scan your physical bills to automatically extract details like amount, date, and items with AI.
+                    {t('scanBill.cameraAccessSubtitle')}
                   </Text>
-                  
+
                   <View style={styles.fallbackActions}>
                     <Pressable
                       style={[styles.primaryActionBtn, { backgroundColor: colors.accent }]}
@@ -576,16 +581,16 @@ export default function ScanBillScreen() {
                     >
                       <Ionicons name={Platform.OS === 'web' ? "images" : "camera"} size={20} color="#FFFFFF" />
                       <Text style={styles.primaryActionBtnText}>
-                        {Platform.OS === 'web' ? 'Choose from Gallery' : 'Allow Camera'}
+                        {Platform.OS === 'web' ? t('scanBill.chooseFromGallery') : t('scanBill.allowCamera')}
                       </Text>
                     </Pressable>
 
-                    <Pressable 
-                      onPress={openGallery} 
+                    <Pressable
+                      onPress={openGallery}
                       style={[styles.galleryActionBtn, { backgroundColor: colors.accentMintDim }]}
                     >
                       <Ionicons name="images-outline" size={20} color={colors.accentMint} />
-                      <Text style={[styles.galleryActionBtnText, { color: colors.accentMint }]}>Upload from Gallery</Text>
+                      <Text style={[styles.galleryActionBtnText, { color: colors.accentMint }]}>{t('scanBill.uploadFromGallery')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -597,7 +602,7 @@ export default function ScanBillScreen() {
         {step === 'preview' && photo && (
           <View style={styles.guideStepWrap}>
             <Text style={[styles.previewHint, { color: colors.textSecondary }]}>
-              Make sure the amount and due date are clearly visible
+              {t('scanBill.previewHint')}
             </Text>
             <Image source={{ uri: photo.uri }} style={styles.previewImage} resizeMode="contain" />
             <View style={styles.actionsRow}>
@@ -606,7 +611,7 @@ export default function ScanBillScreen() {
                 onPress={() => { setPhoto(null); setStep('guide'); }}
               >
                 <Ionicons name="camera-reverse-outline" size={18} color={colors.textSecondary} />
-                <Text style={[styles.actionBtnText, { color: colors.textSecondary }]}>Retake</Text>
+                <Text style={[styles.actionBtnText, { color: colors.textSecondary }]}>{t('scanBill.retake')}</Text>
               </Pressable>
 
               <Pressable
@@ -614,7 +619,7 @@ export default function ScanBillScreen() {
                 onPress={scanPreview}
               >
                 <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-                <Text style={styles.actionBtnText}>Extract Details</Text>
+                <Text style={styles.actionBtnText}>{t('scanBill.extractDetails')}</Text>
               </Pressable>
             </View>
           </View>
@@ -624,16 +629,16 @@ export default function ScanBillScreen() {
           <View style={styles.center}>
             <PremiumLoader size={100} text={PROCESS_MESSAGES[processingMsgIdx]} />
             <Text style={[styles.processingTitle, { color: colors.textSecondary }]}>{PROCESS_MESSAGES[processingMsgIdx]}</Text>
-            <Text style={[styles.processingSubtitle, { color: colors.textTertiary }]}>Extracting details with AI magic...</Text>
+            <Text style={[styles.processingSubtitle, { color: colors.textTertiary }]}>{t('scanBill.processingSubtitle')}</Text>
           </View>
         )}
       </View>
 
       <CustomModal visible={showSuccessModal} onClose={() => setShowSuccessModal(false)} showCloseButton={false}>
         <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>{isEditing ? 'Edit Details' : 'Extraction Success'}</Text>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{isEditing ? t('scanBill.editDetailsTitle') : t('scanBill.extractionSuccessTitle')}</Text>
           <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
-            {isEditing ? "Verify and correct details." : "AI successfully read your bill!"}
+            {isEditing ? t('scanBill.editDetailsSubtitle') : t('scanBill.extractionSuccessSubtitle')}
           </Text>
         </View>
 
@@ -645,50 +650,50 @@ export default function ScanBillScreen() {
                   <Ionicons name={editingData?.icon || 'receipt'} size={28} color={colors.accent} />
                 </View>
                 <View style={styles.brandInfo}>
-                  <Text style={[styles.brandName, { color: colors.text }]} numberOfLines={1}>{editingData?.name || 'Bill Detected'}</Text>
-                  <Text style={[styles.brandCategory, { color: colors.textTertiary }]}>{(() => { const c = editingData?.category || 'Utility'; return c.charAt(0).toUpperCase() + c.slice(1).toLowerCase(); })()}</Text>
+                  <Text style={[styles.brandName, { color: colors.text }]} numberOfLines={1}>{editingData?.name || t('scanBill.billDetectedFallback')}</Text>
+                  <Text style={[styles.brandCategory, { color: colors.textTertiary }]}>{(() => { const c = editingData?.category; if (!c) return t('scanBill.categoryFallback'); return c.charAt(0).toUpperCase() + c.slice(1).toLowerCase(); })()}</Text>
                 </View>
                 {confidence !== null && (
                   <View style={[styles.statusTag, { backgroundColor: confidence >= 90 ? '#10B98115' : '#F59E0B15' }]}>
-                    <Text style={[styles.statusTagText, { color: confidence >= 90 ? '#10B981' : '#F59E0B' }]}>{confidence}% Score</Text>
+                    <Text style={[styles.statusTagText, { color: confidence >= 90 ? '#10B981' : '#F59E0B' }]}>{t('scanBill.scoreSuffix', { confidence })}</Text>
                   </View>
                 )}
               </View>
               <View style={[styles.modernDivider, { backgroundColor: colors.border }]} />
               <View style={styles.modernSummaryGrid}>
                 <View style={styles.modernGridItem}>
-                  <Text style={styles.modernGridLabel}>Amount due</Text>
+                  <Text style={styles.modernGridLabel}>{t('scanBill.amountDue')}</Text>
                   <Money style={[styles.modernGridValue, { color: colors.text }]}>{formatAmount(editingData?.amount || 0)}</Money>
                 </View>
                 <View style={[styles.modernGridItem, { alignItems: 'flex-end' }]}>
-                  <Text style={styles.modernGridLabel}>Due date</Text>
+                  <Text style={styles.modernGridLabel}>{t('scanBill.dueDate')}</Text>
                   <Text style={[styles.modernGridValue, { color: colors.textSecondary }]}>
-                    {editingData?.dueDate ? new Date(editingData.dueDate).toLocaleDateString('en-IN') : 'N/A'}
+                    {editingData?.dueDate ? new Date(editingData.dueDate).toLocaleDateString('en-IN') : t('scanBill.notAvailable')}
                   </Text>
                 </View>
               </View>
             </View>
             <Pressable style={[styles.modernEditBtn, { borderColor: colors.border }]} onPress={() => setIsEditing(true)}>
               <Ionicons name="create-outline" size={18} color={colors.accent} />
-              <Text style={[styles.modernEditBtnText, { color: colors.accent }]}>Modify Details</Text>
+              <Text style={[styles.modernEditBtnText, { color: colors.accent }]}>{t('scanBill.modifyDetails')}</Text>
             </Pressable>
           </View>
         ) : (
           <ScrollView style={styles.editScroll}>
             <View style={styles.editingForm}>
               <View style={styles.formSection}>
-                <Text style={[styles.formSectionTitle, { color: colors.textTertiary }]}>Primary details</Text>
-                <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Bill Name</Text>
+                <Text style={[styles.formSectionTitle, { color: colors.textTertiary }]}>{t('scanBill.primaryDetails')}</Text>
+                <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{t('scanBill.billName')}</Text>
                 <TextInput
                   style={[styles.formInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.card }]}
                   value={editingData?.name}
-                  placeholder="e.g. Electricity Board"
+                  placeholder={t('scanBill.billNamePlaceholder')}
                   placeholderTextColor={colors.textTertiary}
-                  onChangeText={(t) => setEditingData((prev: any) => ({ ...prev, name: t }))}
+                  onChangeText={(text) => setEditingData((prev: any) => ({ ...prev, name: text }))}
                 />
                 <View style={styles.formRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Amount</Text>
+                    <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{t('scanBill.amount')}</Text>
                     <View style={[styles.amountFieldWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
                       <Text style={[styles.amountFieldPrefix, { color: colors.textSecondary }]}>₹</Text>
                       <TextInput
@@ -697,18 +702,18 @@ export default function ScanBillScreen() {
                         placeholder="0"
                         placeholderTextColor={colors.textTertiary}
                         keyboardType="numeric"
-                        onChangeText={(t) => setEditingData((prev: any) => ({ ...prev, amount: parseFloat(t) || 0 }))}
+                        onChangeText={(text) => setEditingData((prev: any) => ({ ...prev, amount: parseFloat(text) || 0 }))}
                       />
                     </View>
                   </View>
                   <View style={{ flex: 1.2 }}>
-                    <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Due Date</Text>
+                    <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{t('scanBill.dueDate')}</Text>
                     <Pressable
                       style={[styles.formInput, { borderColor: colors.border, backgroundColor: colors.card, justifyContent: 'center' }]}
                       onPress={() => setShowDatePicker(true)}
                     >
                       <Text style={{ color: editingData?.dueDate ? colors.text : colors.textTertiary }}>
-                        {editingData?.dueDate ? new Date(editingData.dueDate).toLocaleDateString('en-IN') : 'Select date'}
+                        {editingData?.dueDate ? new Date(editingData.dueDate).toLocaleDateString('en-IN') : t('scanBill.selectDate')}
                       </Text>
                     </Pressable>
                   </View>
@@ -716,7 +721,7 @@ export default function ScanBillScreen() {
               </View>
             </View>
             <Pressable style={[styles.doneEditingBtn, { backgroundColor: colors.accentDim }]} onPress={() => setIsEditing(false)}>
-              <Text style={[styles.doneEditingText, { color: colors.accent }]}>Apply Changes</Text>
+              <Text style={[styles.doneEditingText, { color: colors.accent }]}>{t('scanBill.applyChanges')}</Text>
             </Pressable>
           </ScrollView>
         )}
@@ -732,7 +737,7 @@ export default function ScanBillScreen() {
             onPress={() => setShowSuccessModal(false)}
             disabled={isBusy}
           >
-            <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Discard</Text>
+            <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>{t('scanBill.discard')}</Text>
           </Pressable>
           <Pressable
             onPress={isExpenseMode ? saveAsExpense : saveAsBillReminder}
@@ -751,7 +756,7 @@ export default function ScanBillScreen() {
                     color="#FFFFFF"
                   />
                   <Text style={styles.confirmBtnText}>
-                    {isExpenseMode ? 'Save Expense' : billId ? 'Update Bill' : 'Save Bill'}
+                    {isExpenseMode ? t('scanBill.saveExpense') : billId ? t('scanBill.updateBill') : t('scanBill.saveBill')}
                   </Text>
                 </>
               )}
@@ -777,8 +782,8 @@ export default function ScanBillScreen() {
                 />
                 <Text style={[styles.expenseAltText, { color: colors.accent }]}>
                   {isExpenseMode
-                    ? 'Not paid yet — save as bill reminder'
-                    : 'Already paid — save as expense'}
+                    ? t('scanBill.notPaidYetSaveReminder')
+                    : t('scanBill.alreadyPaidSaveExpense')}
                 </Text>
               </>
             )}
