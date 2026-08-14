@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import { useExpenses } from '@/lib/expense-context';
@@ -19,7 +20,7 @@ import { CATEGORIES, MoneyLeak } from '@/lib/data';
 import Money from '@/components/Money';
 import { ThemeColors } from '@/constants/colors';
 
-function LeakCard({ leak, index, colors, formatAmount }: { leak: MoneyLeak; index: number; colors: ThemeColors; formatAmount: (n: number) => string }) {
+function LeakCard({ leak, index, colors, formatAmount, t }: { leak: MoneyLeak; index: number; colors: ThemeColors; formatAmount: (n: number) => string; t: (key: string, opts?: Record<string, unknown>) => string }) {
   const cat = CATEGORIES[leak.category] || CATEGORIES.others;
 
   return (
@@ -36,19 +37,19 @@ function LeakCard({ leak, index, colors, formatAmount }: { leak: MoneyLeak; inde
                 <Ionicons name="time-outline" size={10} color={colors.warning} style={{ marginRight: 3 }} />
                 <Text style={[styles.freqText, { color: colors.warning }]}>{leak.frequency}</Text>
               </View>
-              <Text style={[styles.leakCount, { color: colors.textTertiary }]}>{leak.transactionCount} times</Text>
+              <Text style={[styles.leakCount, { color: colors.textTertiary }]}>{t('leaks.timesCount', { count: leak.transactionCount })}</Text>
             </View>
           </View>
           <View style={styles.leakAmountBox}>
             <Money style={[styles.leakAmount, { color: colors.danger }]}>{formatAmount(leak.monthlyEstimate)}</Money>
-            <Text style={[styles.leakAmountLabel, { color: colors.textTertiary }]}>per month</Text>
+            <Text style={[styles.leakAmountLabel, { color: colors.textTertiary }]}>{t('leaks.perMonth')}</Text>
           </View>
         </View>
 
         <View style={[styles.savingsPotentialRow, { backgroundColor: colors.accentMintDim }]}>
           <Ionicons name="leaf-outline" size={14} color={colors.accentMint} />
           <Text style={[styles.savingsPotentialText, { color: colors.accentMint }]}>
-            Save up to {formatAmount(leak.yearlyPrediction)}/year
+            {t('leaks.saveUpToPerYear', { amount: formatAmount(leak.yearlyPrediction) })}
           </Text>
         </View>
 
@@ -64,6 +65,7 @@ function LeakCard({ leak, index, colors, formatAmount }: { leak: MoneyLeak; inde
 }
 
 export default function LeaksScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarContentInset();
   const { leaks, isLoading } = useExpenses();
@@ -77,7 +79,7 @@ export default function LeaksScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <PremiumLoader size={60} text="Scanning for leaks..." />
+        <PremiumLoader size={60} text={t('leaks.scanningForLeaks')} />
       </View>
     );
   }
@@ -92,9 +94,9 @@ export default function LeaksScreen() {
         ]}
       >
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.duration(500) : undefined}>
-          <Text style={[styles.screenTitle, { color: colors.text }]}>Money Leaks</Text>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>{t('leaks.title')}</Text>
           <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
-            Smart insights on recurring expenses
+            {t('leaks.subtitle')}
           </Text>
         </Animated.View>
 
@@ -110,18 +112,18 @@ export default function LeaksScreen() {
                 <Ionicons name="shield-checkmark" size={26} color={colors.accentMint} />
               </View>
               <View style={styles.savingsContent}>
-                <Text style={[styles.savingsLabel, { color: colors.textSecondary }]}>Potential Savings</Text>
+                <Text style={[styles.savingsLabel, { color: colors.textSecondary }]}>{t('leaks.potentialSavings')}</Text>
                 <Money style={[styles.savingsAmount, { color: colors.accentMint }]}>
                   {formatAmount(totalLeaks)}
                 </Money>
-                <Text style={[styles.savingsAmountSuffix, { color: colors.textTertiary }]}>per month</Text>
+                <Text style={[styles.savingsAmountSuffix, { color: colors.textTertiary }]}>{t('leaks.perMonth')}</Text>
               </View>
             </View>
 
             <View style={[styles.yearlySavingsRow, { backgroundColor: colors.surfaceGlow }]}>
               <Ionicons name="trending-up" size={16} color={colors.accentMint} />
               <Text style={[styles.yearlyText, { color: colors.accentMint }]}>
-                {formatAmount(potentialYearlySavings)} potential yearly savings
+                {t('leaks.potentialYearlySavings', { amount: formatAmount(potentialYearlySavings) })}
               </Text>
             </View>
           </LinearGradient>
@@ -134,30 +136,30 @@ export default function LeaksScreen() {
           <View style={[styles.howItWorks, { backgroundColor: colors.surfaceGlow, borderColor: colors.border }]}>
             <View style={styles.howItWorksHeader}>
               <Ionicons name="help-circle-outline" size={18} color={colors.accent} />
-              <Text style={[styles.howItWorksTitle, { color: colors.text }]}>How it works?</Text>
+              <Text style={[styles.howItWorksTitle, { color: colors.text }]}>{t('leaks.howItWorksTitle')}</Text>
             </View>
             <Text style={[styles.howItWorksText, { color: colors.textSecondary }]}>
-              We scan your spending for patterns that quietly drain money. A leak is flagged when:
+              {t('leaks.howItWorksIntro')}
             </Text>
             <View style={styles.howItWorksList}>
-              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• A merchant is paid 3+ times — frequent, avoidable spending</Text>
-              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• A recurring charge suddenly increases in price</Text>
-              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>• A subscription is billed but hasn't been used in 45+ days</Text>
+              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>{t('leaks.howItWorksBullet1')}</Text>
+              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>{t('leaks.howItWorksBullet2')}</Text>
+              <Text style={[styles.howItWorksItem, { color: colors.textTertiary }]}>{t('leaks.howItWorksBullet3')}</Text>
             </View>
             <View style={[styles.howItWorksDivider, { backgroundColor: colors.border }]} />
             <View style={styles.howItWorksHeader}>
               <Ionicons name="shield-checkmark-outline" size={16} color={colors.accentMint} />
-              <Text style={[styles.howItWorksTitle, { color: colors.text, fontSize: 13 }]}>What's never counted as a leak</Text>
+              <Text style={[styles.howItWorksTitle, { color: colors.text, fontSize: 13 }]}>{t('leaks.neverCountedTitle')}</Text>
             </View>
             <Text style={[styles.howItWorksText, { color: colors.textSecondary }]}>
-              Essential and important payments are always excluded — bills, EMIs/loans, insurance, medical/health, education, rent, taxes, and investments or savings. Only unnecessary or extra spending is considered.
+              {t('leaks.neverCountedText')}
             </Text>
           </View>
 
           <View style={[styles.sectionBadge, { backgroundColor: colors.warningDim, marginTop: 24 }]}>
             <Ionicons name="alert-circle-outline" size={14} color={colors.warning} />
             <Text style={[styles.sectionTitle, { color: colors.warning }]}>
-              {leaks.length} leak{leaks.length !== 1 ? 's' : ''} detected
+              {t('leaks.leaksDetectedCount', { count: leaks.length })}
             </Text>
           </View>
         </Animated.View>
@@ -167,14 +169,14 @@ export default function LeaksScreen() {
             <View style={[styles.emptyIconWrap, { backgroundColor: colors.accentMintDim }]}>
               <Ionicons name="shield-checkmark" size={40} color={colors.accentMint} />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>All clear!</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('leaks.allClearTitle')}</Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              No spending leaks detected. Your finances look healthy.
+              {t('leaks.allClearSubtitle')}
             </Text>
           </View>
         ) : (
           leaks.map((leak, idx) => (
-            <LeakCard key={leak.id} leak={leak} index={idx} colors={colors} formatAmount={formatAmount} />
+            <LeakCard key={leak.id} leak={leak} index={idx} colors={colors} formatAmount={formatAmount} t={t} />
           ))
         )}
       </ScrollView>

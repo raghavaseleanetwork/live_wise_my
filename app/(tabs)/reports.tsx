@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import Colors, { ThemeColors } from '@/constants/colors';
@@ -74,7 +75,28 @@ function CategoryBar({ category, total, percentage, maxPercentage, colors, isDar
   );
 }
 
+// DATE_FILTER_CHIPS keys line up 1:1 with the time-filter chips already
+// translated for Transactions — reused here instead of duplicating labels.
+const FILTER_CHIP_LABEL_KEYS: Record<string, string> = {
+  all: 'transactions.timeAll',
+  today: 'transactions.timeToday',
+  week: 'transactions.timeWeek',
+  month: 'transactions.timeMonth',
+  threeMonths: 'transactions.time3M',
+  sixMonths: 'transactions.time6M',
+  year: 'transactions.timeYear',
+  multiMonth: 'transactions.timeMultiMonth',
+  custom: 'transactions.timeCustom',
+};
+
+const MONTH_LABEL_KEYS = [
+  'transactions.monthJan', 'transactions.monthFeb', 'transactions.monthMar', 'transactions.monthApr',
+  'transactions.monthMay', 'transactions.monthJun', 'transactions.monthJul', 'transactions.monthAug',
+  'transactions.monthSep', 'transactions.monthOct', 'transactions.monthNov', 'transactions.monthDec',
+];
+
 export default function ReportsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarContentInset();
   const { colors, isDark } = useTheme();
@@ -624,49 +646,49 @@ export default function ReportsScreen() {
             <div class="container">
               <div class="header">
                 <div class="header-left">
-                  <h1>LifeWise Intelligence</h1>
-                  <p>Financial Experience Report • ${rangeInfo.label}</p>
+                  <h1>${t('reports.pdfBrandTitle')}</h1>
+                  <p>${t('reports.pdfReportSubtitle', { range: rangeInfo.label })}</p>
                 </div>
                 <div class="header-right">
-                  Generated ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  ${t('reports.pdfGenerated', { date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                 </div>
               </div>
 
               <div class="grid">
                 <div class="score-card">
-                  <div class="score-label">Active Life Score</div>
+                  <div class="score-label">${t('reports.pdfActiveLifeScore')}</div>
                   <div class="score-value">${lifeScoreDisplay}</div>
-                  <div class="score-desc">Based on spending patterns, bill compliance, and health habit consistency for the selected period.</div>
+                  <div class="score-desc">${t('reports.pdfScoreDesc')}</div>
                 </div>
 
                 <div class="stat-card">
-                  <div class="stat-label">Total Outflow</div>
+                  <div class="stat-label">${t('reports.pdfTotalOutflow')}</div>
                   <div class="stat-value">${formatAmount(totalSpent)}</div>
-                  <div class="stat-sub">Across ${reportTxs.filter(t => t.isDebit).length} transactions</div>
+                  <div class="stat-sub">${t('reports.pdfAcrossTransactions', { count: reportTxs.filter(tx => tx.isDebit).length })}</div>
                 </div>
 
                 <div class="stat-card">
-                  <div class="stat-label">Total Inflow</div>
+                  <div class="stat-label">${t('reports.pdfTotalInflow')}</div>
                   <div class="stat-value">${formatAmount(totalIncome)}</div>
-                  <div class="stat-sub">From ${reportTxs.filter(t => !t.isDebit).length} sources</div>
+                  <div class="stat-sub">${t('reports.pdfFromSources', { count: reportTxs.filter(tx => !tx.isDebit).length })}</div>
                 </div>
 
                 <div class="stat-card">
-                  <div class="stat-label">Bill Adherence</div>
+                  <div class="stat-label">${t('reports.pdfBillAdherence')}</div>
                   <div class="stat-value">${paidBills.length} / ${reportBills.length}</div>
-                  <div class="stat-sub">${reportBills.length > 0 ? Math.round((paidBills.length / reportBills.length) * 100) : 100}% compliance rate</div>
+                  <div class="stat-sub">${t('reports.pdfComplianceRate', { pct: reportBills.length > 0 ? Math.round((paidBills.length / reportBills.length) * 100) : 100 })}</div>
                 </div>
 
                 <div class="stat-card">
-                  <div class="stat-label">Habit Consistency</div>
+                  <div class="stat-label">${t('reports.pdfHabitConsistency')}</div>
                   <div class="stat-value">${Math.round(habitsConsistency * 100)}%</div>
-                  <div class="stat-sub">${medicinesTaken} medicines logged</div>
+                  <div class="stat-sub">${t('reports.pdfMedicinesLogged', { count: medicinesTaken })}</div>
                 </div>
               </div>
 
               <div class="section">
                 <div class="section-header">
-                  <div class="section-title">Spending Architecture</div>
+                  <div class="section-title">${t('reports.pdfSpendingArchitecture')}</div>
                   <div class="section-line"></div>
                 </div>
                 <div class="chart-container">
@@ -684,17 +706,17 @@ export default function ReportsScreen() {
 
               <div class="section">
                 <div class="section-header">
-                  <div class="section-title">Velocity Analysis (Top Merchants)</div>
+                  <div class="section-title">${t('reports.pdfVelocityAnalysis')}</div>
                   <div class="section-line"></div>
                 </div>
                 <div class="stat-card" style="padding: 0; overflow: hidden;">
                   <table>
                     <thead>
                       <tr>
-                        <th>Merchant / Service</th>
-                        <th>Category</th>
-                        <th style="text-align: center;">Frequency</th>
-                        <th style="text-align: right;">Volume</th>
+                        <th>${t('reports.pdfMerchantService')}</th>
+                        <th>${t('reports.pdfCategory')}</th>
+                        <th style="text-align: center;">${t('reports.pdfFrequency')}</th>
+                        <th style="text-align: right;">${t('reports.pdfVolume')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -702,7 +724,7 @@ export default function ReportsScreen() {
                         <tr>
                           <td class="tr-merchant">${name}</td>
                           <td><span class="tr-category">${data.category}</span></td>
-                          <td style="text-align: center;">${data.count} tx</td>
+                          <td style="text-align: center;">${t('reports.pdfTxAbbrev', { count: data.count })}</td>
                           <td style="text-align: right; font-weight: 700;">${formatAmount(data.total)}</td>
                         </tr>
                       `).join('')}
@@ -712,8 +734,8 @@ export default function ReportsScreen() {
               </div>
 
               <div class="footer">
-                <p>This is a system-generated financial intelligence report from LifeWise App.</p>
-                <p>© ${new Date().getFullYear()} LifeWise • Secure Financial Companion</p>
+                <p>${t('reports.pdfFooterGenerated')}</p>
+                <p>${t('reports.pdfFooterCopyright', { year: new Date().getFullYear() })}</p>
               </div>
             </div>
           </body>
@@ -730,7 +752,7 @@ export default function ReportsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <PremiumLoader size={60} text="Generating Report..." />
+        <PremiumLoader size={60} text={t('reports.generatingReport')} />
       </View>
     );
   }
@@ -747,12 +769,12 @@ export default function ReportsScreen() {
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.duration(500) : undefined}>
           <View style={styles.reportsTitleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.screenTitle, { color: colors.text }]}>Reports</Text>
+              <Text style={[styles.screenTitle, { color: colors.text }]}>{t('reports.title')}</Text>
               <Text style={[styles.screenSubtitle, { color: colors.textTertiary }]} numberOfLines={2}>
-                {rangeInfo.label} • vs {rangeInfo.prevShortLabel}
+                {t('reports.rangeVsPrev', { range: rangeInfo.label, prev: rangeInfo.prevShortLabel })}
               </Text>
             </View>
-            <Pressable 
+            <Pressable
               onPress={handleExportPDF}
               style={({ pressed }) => [
                 styles.exportBtnHeader,
@@ -766,7 +788,7 @@ export default function ReportsScreen() {
                 style={styles.exportBtnGradient}
               >
                 <Ionicons name="document-text" size={18} color="#FFF" />
-                <Text style={styles.exportBtnText}>PDF Report</Text>
+                <Text style={styles.exportBtnText}>{t('reports.pdfReport')}</Text>
               </LinearGradient>
             </Pressable>
           </View>
@@ -788,7 +810,7 @@ export default function ReportsScreen() {
           <DatePickerModal
             visible={showCustomStartPicker}
             onClose={() => setShowCustomStartPicker(false)}
-            title="Select Start Date"
+            title={t('transactions.selectStartDate')}
             value={draftCustomStart}
             onConfirm={(d) => {
               const fixedStart = new Date(d);
@@ -807,7 +829,7 @@ export default function ReportsScreen() {
           <DatePickerModal
             visible={showCustomEndPicker}
             onClose={() => setShowCustomEndPicker(false)}
-            title="Select End Date"
+            title={t('transactions.selectEndDate')}
             value={draftCustomEnd}
             onConfirm={(d) => {
               const fixedEnd = new Date(d);
@@ -824,12 +846,13 @@ export default function ReportsScreen() {
 
         {/* Filter popup — all range filters live here, opened by the Filter button */}
         <CustomModal visible={showFilterModal} onClose={() => setShowFilterModal(false)}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Filter Reports</Text>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{t('reports.filterReports')}</Text>
 
-          <Text style={[styles.filterSectionLabel, { color: colors.textTertiary }]}>Time range</Text>
+          <Text style={[styles.filterSectionLabel, { color: colors.textTertiary }]}>{t('transactions.timeRange')}</Text>
           <View style={styles.filterModalChipsWrap}>
             {filterChips.map((chip) => {
               const active = filterKey === chip.key;
+              const labelKey = FILTER_CHIP_LABEL_KEYS[chip.key];
               return (
                 <Pressable
                   key={chip.key}
@@ -846,7 +869,7 @@ export default function ReportsScreen() {
                     color={active ? colors.accent : colors.textTertiary}
                   />
                   <Text style={[styles.filterChipText, { color: active ? colors.accent : colors.textSecondary }]}>
-                    {chip.label}
+                    {labelKey ? t(labelKey) : chip.label}
                   </Text>
                 </Pressable>
               );
@@ -865,7 +888,7 @@ export default function ReportsScreen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>Start date</Text>
+                  <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>{t('transactions.startDate')}</Text>
                   <Text style={[styles.customChipValue, { color: colors.text }]}>
                     {customStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </Text>
@@ -882,7 +905,7 @@ export default function ReportsScreen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>End Date</Text>
+                  <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>{t('transactions.endDate')}</Text>
                   <Text style={[styles.customChipValue, { color: colors.text }]}>
                     {customEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </Text>
@@ -898,7 +921,7 @@ export default function ReportsScreen() {
                 style={[styles.yearPill, { backgroundColor: colors.card, borderColor: colors.border }]}
               >
                 <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                <Text style={[styles.yearPillText, { color: colors.text }]}>Year: {selectedYear}</Text>
+                <Text style={[styles.yearPillText, { color: colors.text }]}>{t('transactions.yearLabel', { year: selectedYear })}</Text>
                 <Ionicons name="chevron-down" size={14} color={colors.textTertiary} />
               </Pressable>
               <ScrollView
@@ -938,7 +961,7 @@ export default function ReportsScreen() {
                           isSelected && { color: colors.accent, fontFamily: 'Inter_600SemiBold' },
                         ]}
                       >
-                        {m}
+                        {t(MONTH_LABEL_KEYS[idx])}
                       </Text>
                     </Pressable>
                   );
@@ -951,14 +974,14 @@ export default function ReportsScreen() {
             onPress={() => setShowFilterModal(false)}
             style={[styles.filterDoneBtn, { backgroundColor: colors.accent }]}
           >
-            <Text style={styles.filterDoneBtnText}>Apply</Text>
+            <Text style={styles.filterDoneBtnText}>{t('transactions.apply')}</Text>
           </Pressable>
         </CustomModal>
 
         <DatePickerModal
           visible={showYearPicker}
           onClose={() => setShowYearPicker(false)}
-          title="Pick year"
+          title={t('transactions.pickYear')}
           value={new Date(selectedYear, 0, 1)}
           onConfirm={(d) => setSelectedYear(d.getFullYear())}
         />
@@ -972,13 +995,20 @@ export default function ReportsScreen() {
           >
             <View style={styles.summaryTop }>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>Total Spending</Text>
+                <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>{t('reports.totalSpending')}</Text>
                 <Money style={[styles.summaryAmount, { color: colors.text }]}>{formatAmount(totalSpent)}</Money>
                 <Text style={[styles.deltaText, { color: colors.textTertiary, lineHeight: 18 }]}>
-                  Spent {comparison.spentDelta >= 0 ? '+' : '-'}
-                  {formatAmount(Math.abs(comparison.spentDelta))} vs {rangeInfo.prevLabel}{'\n'}
-                  Reminders {comparison.remindersDelta >= 0 ? '+' : ''}{comparison.remindersDelta} • 
-                  LifeScore {comparison.lifeScoreDelta >= 0 ? '+' : ''}{comparison.lifeScoreDelta}
+                  {t('reports.spentDeltaVsPrev', {
+                    sign: comparison.spentDelta >= 0 ? '+' : '-',
+                    amount: formatAmount(Math.abs(comparison.spentDelta)),
+                    prev: rangeInfo.prevLabel,
+                  })}{'\n'}
+                  {t('reports.remindersLifeScoreDelta', {
+                    remindersSign: comparison.remindersDelta >= 0 ? '+' : '',
+                    reminders: comparison.remindersDelta,
+                    scoreSign: comparison.lifeScoreDelta >= 0 ? '+' : '',
+                    score: comparison.lifeScoreDelta,
+                  })}
                 </Text>
               </View>
               <View style={[styles.scoreCircle, { borderColor: colors.accentDim, backgroundColor: colors.accentDim }]}>
@@ -995,7 +1025,7 @@ export default function ReportsScreen() {
                   <Ionicons name="checkmark-circle" size={16} color={colors.accentBlue} />
                 </View>
                 <Text style={[styles.summaryStatValue, { color: colors.text }]}>{remindersCompleted}</Text>
-                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>Reminders Done</Text>
+                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>{t('reports.remindersDone')}</Text>
               </View>
               <View style={styles.summaryStat}>
                 <View style={[styles.statIconWrap, { backgroundColor: colors.accentMintDim }]}>
@@ -1004,35 +1034,35 @@ export default function ReportsScreen() {
                 <Text style={[styles.summaryStatValue, { color: colors.text }]}>
                   {isMedicinesLoading ? '…' : medicinesTaken}
                 </Text>
-                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>Medicines Taken</Text>
+                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>{t('reports.medicinesTaken')}</Text>
               </View>
               <View style={styles.summaryStat}>
                 <View style={[styles.statIconWrap, { backgroundColor: colors.warningDim }]}>
                   <Ionicons name="notifications" size={16} color={colors.warning} />
                 </View>
                 <Text style={[styles.summaryStatValue, { color: colors.text }]}>{billsDue}</Text>
-                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>Bills Due</Text>
+                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>{t('reports.billsDue')}</Text>
               </View>
               <View style={styles.summaryStat}>
                 <View style={[styles.statIconWrap, { backgroundColor: colors.accentDim }]}>
                   <Ionicons name="water" size={16} color={colors.accent} />
                 </View>
                 <Text style={[styles.summaryStatValue, { color: colors.text }]}>{habitsCompleted}</Text>
-                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>Habits Done</Text>
+                <Text style={[styles.summaryStatLabel, { color: colors.textTertiary }]}>{t('reports.habitsDone')}</Text>
               </View>
             </View>
           </LinearGradient>
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(260).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Trend</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('reports.trend')}</Text>
           <View style={[styles.trendCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.trendSubtitle, { color: colors.textTertiary }]}>
               {trendBars.kind === 'hour'
-                ? 'Hourly activity'
+                ? t('reports.hourlyActivity')
                 : trendBars.kind === 'day'
-                  ? 'Daily spending'
-                  : 'Weekly spending'}
+                  ? t('reports.dailySpending')
+                  : t('reports.weeklySpending')}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendRow}>
                 {trendBars.values.map((v, idx) => {
@@ -1053,7 +1083,7 @@ export default function ReportsScreen() {
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(300).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Habits Performance</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('reports.habitsPerformance')}</Text>
           <View style={[styles.dataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.habitsHeaderRow}>
               <View style={[styles.statIconWrap, { backgroundColor: colors.accentDim }]}>
@@ -1064,7 +1094,7 @@ export default function ReportsScreen() {
                   {habitsCompleted}/{habitsTotal}
                 </Text>
                 <Text style={[styles.habitsSmallLabel, { color: colors.textTertiary }]}>
-                  Consistency: {habitConsistencyPct}%
+                  {t('reports.consistencyPct', { pct: habitConsistencyPct })}
                 </Text>
               </View>
               <Text style={[styles.habitsPctText, { color: colors.accent }]}>{habitConsistencyPct}%</Text>
@@ -1081,17 +1111,17 @@ export default function ReportsScreen() {
               />
             </View>
             <Text style={[styles.habitsFootnote, { color: colors.textSecondary, marginTop: 10 }]}>
-              Based on habit-type reminders completed in this selected period.
+              {t('reports.habitsFootnote')}
             </Text>
           </View>
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(340).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Bills Payment Timeline</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('reports.billsPaymentTimeline')}</Text>
           <View style={[styles.dataCard, { backgroundColor: colors.card, borderColor: colors.border, padding: 14 }]}>
             {billsTimeline.dueCounts.every((n) => n === 0) ? (
               <View style={styles.emptyState}>
-                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>No bills due in this period</Text>
+                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>{t('reports.noBillsDueThisPeriod')}</Text>
               </View>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.timelineRow}>
@@ -1112,7 +1142,7 @@ export default function ReportsScreen() {
                         {billsTimeline.labels[idx]}
                       </Text>
                       <Text style={[styles.timelineCounts, { color: colors.textSecondary }]}>
-                        {paid}/{due} paid
+                        {t('reports.paidOfDue', { paid, due })}
                       </Text>
                     </View>
                   );
@@ -1123,7 +1153,7 @@ export default function ReportsScreen() {
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(380).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Medicines Metrics</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('reports.medicinesMetrics')}</Text>
           <View style={[styles.dataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.medsHeaderRow}>
               <View style={[styles.statIconWrap, { backgroundColor: colors.accentMintDim }]}>
@@ -1131,10 +1161,10 @@ export default function ReportsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.medsBigValue, { color: colors.text }]}>
-                  {isMedicinesLoading ? 'Loading…' : `${medicinesTaken}/${medicines.length}`}
+                  {isMedicinesLoading ? t('reports.loadingEllipsis') : `${medicinesTaken}/${medicines.length}`}
                 </Text>
                 <Text style={[styles.medsSmallLabel, { color: colors.textTertiary }]}>
-                  Taken ratio: {medicinesTakenRatioPct}%
+                  {t('reports.takenRatioPct', { pct: medicinesTakenRatioPct })}
                 </Text>
               </View>
               <Text style={[styles.medsPctText, { color: colors.accentMint }]}>
@@ -1142,17 +1172,17 @@ export default function ReportsScreen() {
               </Text>
             </View>
             <Text style={[styles.habitsFootnote, { color: colors.textSecondary, marginTop: 10 }]}>
-              Intelligence-driven health adherence calculated from real-time medicine intake and status tracking.
+              {t('reports.medicinesFootnote')}
             </Text>
           </View>
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(300).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Category Breakdown</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('reports.categoryBreakdown')}</Text>
           <View style={[styles.dataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {breakdown.length === 0 && (
               <View style={styles.emptyState}>
-                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>No transactions for this filter</Text>
+                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>{t('reports.noTransactionsForFilter')}</Text>
               </View>
             )}
             {breakdown.map((item, idx) => (
@@ -1174,11 +1204,11 @@ export default function ReportsScreen() {
         </Animated.View>
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(400).duration(500) : undefined}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Merchants</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('reports.topMerchants')}</Text>
           <View style={[styles.dataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {merchantTotals.length === 0 && (
               <View style={styles.emptyState}>
-                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>No merchants for this filter</Text>
+                <Text style={[styles.emptyText, { color: colors.textTertiary }]}>{t('reports.noMerchantsForFilter')}</Text>
               </View>
             )}
             {merchantTotals.map(([merchant, data], idx) => {
@@ -1191,7 +1221,7 @@ export default function ReportsScreen() {
                     </View>
                     <View style={styles.merchantInfo}>
                       <Text style={[styles.merchantName, { color: colors.text }]} numberOfLines={1}>{merchant}</Text>
-                      <Text style={[styles.merchantCount, { color: colors.textTertiary }]}>{data.count} transactions</Text>
+                      <Text style={[styles.merchantCount, { color: colors.textTertiary }]}>{t('reports.transactionCount', { count: data.count })}</Text>
                     </View>
                     <Money style={[styles.merchantAmount, { color: colors.text }]}>{formatAmount(data.total)}</Money>
                   </View>
