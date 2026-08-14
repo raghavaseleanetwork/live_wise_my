@@ -17,11 +17,13 @@ import { Link, router } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { login, loginWithGoogle } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -39,13 +41,13 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password.trim()) {
-      setError('Please fill in all fields');
+      setError(t('login.errorFillFields'));
       return;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      setError('Please enter a valid email address');
+      setError(t('login.errorInvalidEmail'));
       return;
     }
 
@@ -54,7 +56,7 @@ export default function LoginScreen() {
     const result = await login(trimmedEmail, password);
     setIsSubmitting(false);
     if (!result.success) {
-      setError(result.error || 'Login failed');
+      setError(result.error || t('login.errorLoginFailed'));
       return;
     }
     // An account created before verification completed still needs its code.
@@ -80,7 +82,7 @@ export default function LoginScreen() {
       setIsGoogleSubmitting(false);
     }
     if (!res.success) {
-      setError(res.error || 'Google sign-in failed');
+      setError(res.error || t('login.errorGoogleSignInFailed'));
       return;
     }
     // Must be checked BEFORE navigating into the app: on an OTP-required
@@ -107,8 +109,8 @@ export default function LoginScreen() {
           <Animated.View entering={Platform.OS !== 'web' ? ZoomIn.delay(300).duration(600) : undefined} style={styles.logoCircle}>
             <Image source={require('../../logo.png')} style={styles.logoImage} resizeMode="contain" />
           </Animated.View>
-          <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to access your spending insights</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('login.title')}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('login.subtitle')}</Text>
         </Animated.View>
 
         {!!error && (
@@ -120,14 +122,14 @@ export default function LoginScreen() {
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(150).duration(600) : undefined} style={styles.formSection}>
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(200).duration(600) : undefined}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('login.emailLabel')}</Text>
             <View style={[styles.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
               <Ionicons name="mail-outline" size={20} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="your@email.com"
+                placeholder={t('login.emailPlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -138,14 +140,14 @@ export default function LoginScreen() {
           </Animated.View>
 
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(250).duration(600) : undefined}>
-            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>Password</Text>
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>{t('login.passwordLabel')}</Text>
             <View style={[styles.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Enter password"
+                placeholder={t('login.passwordPlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 secureTextEntry={!showPassword}
                 testID="login-password"
@@ -172,7 +174,7 @@ export default function LoginScreen() {
                 {isSubmitting ? (
                   <PremiumLoader size={28} compact />
                 ) : (
-                  <Text style={styles.loginBtnText}>Sign In</Text>
+                  <Text style={styles.loginBtnText}>{t('login.signIn')}</Text>
                 )}
               </LinearGradient>
             </Pressable>
@@ -182,7 +184,7 @@ export default function LoginScreen() {
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(200).duration(600) : undefined}>
           <View style={styles.dividerRow}>
             <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-            <Text style={[styles.dividerText, { color: colors.textTertiary }]}>OR</Text>
+            <Text style={[styles.dividerText, { color: colors.textTertiary }]}>{t('login.or')}</Text>
             <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </View>
 
@@ -207,13 +209,13 @@ export default function LoginScreen() {
                       already closed by this point, so saying what is happening
                       is what makes the wait legible. */}
                   <Text style={[styles.googleBtnText, { color: colors.textSecondary }]}>
-                    Verifying…
+                    {t('login.verifying')}
                   </Text>
                 </>
               ) : (
                 <>
                   <Ionicons name="logo-google" size={24} color="#4285F4" />
-                  <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+                  <Text style={[styles.googleBtnText, { color: colors.text }]}>{t('login.continueWithGoogle')}</Text>
                 </>
               )}
             </Pressable>
@@ -221,10 +223,10 @@ export default function LoginScreen() {
         </Animated.View>
 
         <View style={styles.footerRow}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>{`Don\u2019t have an account?`}</Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>{t('login.noAccount')}</Text>
           <Link href="/(auth)/register" asChild>
             <Pressable>
-              <Text style={[styles.footerLink, { color: colors.accent }]}>Sign Up</Text>
+              <Text style={[styles.footerLink, { color: colors.accent }]}>{t('login.signUp')}</Text>
             </Pressable>
           </Link>
         </View>

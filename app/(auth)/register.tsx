@@ -17,11 +17,13 @@ import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import Animated, { FadeInDown, ZoomIn, FadeInLeft } from 'react-native-reanimated';
 import PremiumLoader from '@/components/PremiumLoader';
+import { useTranslation } from 'react-i18next';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
   const { register, loginWithGoogle } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,13 +42,13 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     const trimmedEmail = email.trim();
     if (!name.trim() || !trimmedEmail || !password.trim()) {
-      setError('Please fill in all fields');
+      setError(t('register.errorFillFields'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      setError('Please enter a valid email address');
+      setError(t('register.errorInvalidEmail'));
       return;
     }
 
@@ -57,7 +59,7 @@ export default function RegisterScreen() {
     const hasSpecial = /[^A-Za-z0-9]/.test(password);
 
     if (!hasMinLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
-      setError('Password must meet all the requirements');
+      setError(t('register.errorPasswordRequirements'));
       return;
     }
     setError('');
@@ -65,7 +67,7 @@ export default function RegisterScreen() {
     const result = await register(name.trim(), email.trim(), password);
     setIsSubmitting(false);
     if (!result.success) {
-      setError(result.error || 'Registration failed');
+      setError(result.error || t('register.errorRegistrationFailed'));
       return;
     }
     // The account exists but no session was created — the user is not signed in
@@ -89,7 +91,7 @@ export default function RegisterScreen() {
       setIsGoogleSubmitting(false);
     }
     if (!res.success) {
-      setError(res.error || 'Google sign-up failed');
+      setError(res.error || t('register.errorGoogleSignUpFailed'));
       return;
     }
     // Google accounts verify by OTP too — signing in with Google proves the
@@ -113,8 +115,8 @@ export default function RegisterScreen() {
           <Animated.View entering={Platform.OS !== 'web' ? ZoomIn.delay(300).duration(600) : undefined} style={styles.logoCircle}>
             <Image source={require('../../logo.png')} style={styles.logoImage} resizeMode="contain" />
           </Animated.View>
-          <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Start tracking your expenses smarter</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('register.title')}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('register.subtitle')}</Text>
         </Animated.View>
 
         {!!error && (
@@ -126,14 +128,14 @@ export default function RegisterScreen() {
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(150).duration(600) : undefined} style={styles.formSection}>
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(200).duration(600) : undefined}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('register.fullNameLabel')}</Text>
             <View style={[styles.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
               <Ionicons name="person-outline" size={20} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={name}
                 onChangeText={setName}
-                placeholder="Your name"
+                placeholder={t('register.fullNamePlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 autoCapitalize="words"
                 testID="register-name"
@@ -142,14 +144,14 @@ export default function RegisterScreen() {
           </Animated.View>
 
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(250).duration(600) : undefined}>
-            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>Email</Text>
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>{t('register.emailLabel')}</Text>
             <View style={[styles.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
               <Ionicons name="mail-outline" size={20} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="your@email.com"
+                placeholder={t('register.emailPlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -160,14 +162,14 @@ export default function RegisterScreen() {
           </Animated.View>
 
           <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(300).duration(600) : undefined}>
-            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>Password</Text>
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>{t('register.passwordLabel')}</Text>
             <View style={[styles.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Min 8 characters, strong"
+                placeholder={t('register.passwordPlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 secureTextEntry={!showPassword}
                 testID="register-password"
@@ -182,27 +184,27 @@ export default function RegisterScreen() {
           {showPasswordHints && (
             <View style={styles.passwordHints}>
               <PasswordRule
-                label="At least 8 characters"
+                label={t('register.passwordRuleMinLength')}
                 met={password.length >= 8}
                 colors={colors}
               />
               <PasswordRule
-                label="One uppercase letter (A-Z)"
+                label={t('register.passwordRuleUppercase')}
                 met={/[A-Z]/.test(password)}
                 colors={colors}
               />
               <PasswordRule
-                label="One lowercase letter (a-z)"
+                label={t('register.passwordRuleLowercase')}
                 met={/[a-z]/.test(password)}
                 colors={colors}
               />
               <PasswordRule
-                label="One number (0-9)"
+                label={t('register.passwordRuleNumber')}
                 met={/[0-9]/.test(password)}
                 colors={colors}
               />
               <PasswordRule
-                label="One special character (!@#$...)"
+                label={t('register.passwordRuleSpecial')}
                 met={/[^A-Za-z0-9]/.test(password)}
                 colors={colors}
               />
@@ -225,7 +227,7 @@ export default function RegisterScreen() {
                 {isSubmitting ? (
                   <PremiumLoader size={28} compact />
                 ) : (
-                  <Text style={styles.submitBtnText}>Create Account</Text>
+                  <Text style={styles.submitBtnText}>{t('register.createAccount')}</Text>
                 )}
               </LinearGradient>
             </Pressable>
@@ -235,7 +237,7 @@ export default function RegisterScreen() {
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(200).duration(600) : undefined}>
           <View style={styles.dividerRow}>
             <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-            <Text style={[styles.dividerText, { color: colors.textTertiary }]}>OR</Text>
+            <Text style={[styles.dividerText, { color: colors.textTertiary }]}>{t('register.or')}</Text>
             <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </View>
 
@@ -257,13 +259,13 @@ export default function RegisterScreen() {
                 <>
                   <PremiumLoader size={24} compact />
                   <Text style={[styles.googleBtnText, { color: colors.textSecondary }]}>
-                    Verifying…
+                    {t('register.verifying')}
                   </Text>
                 </>
               ) : (
                 <>
                   <Ionicons name="logo-google" size={24} color="#4285F4" />
-                  <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+                  <Text style={[styles.googleBtnText, { color: colors.text }]}>{t('register.continueWithGoogle')}</Text>
                 </>
               )}
             </Pressable>
@@ -271,10 +273,10 @@ export default function RegisterScreen() {
         </Animated.View>
 
         <View style={styles.footerRow}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account?</Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>{t('register.haveAccount')}</Text>
           <Link href="/(auth)/login" asChild>
             <Pressable>
-              <Text style={[styles.footerLink, { color: colors.accent }]}>Sign In</Text>
+              <Text style={[styles.footerLink, { color: colors.accent }]}>{t('register.signIn')}</Text>
             </Pressable>
           </Link>
         </View>

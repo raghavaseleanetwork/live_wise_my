@@ -15,31 +15,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
-const SLIDES = [
-  {
-    icon: 'analytics' as const,
-    title: 'Smart Spending Insights',
-    description: 'Track every UPI transaction and get intelligent analysis of your spending patterns across categories.',
-    color: '#8B5CF6',
-  },
-  {
-    icon: 'water' as const,
-    title: 'Detect Money Leaks',
-    description: 'Automatically identify recurring expenses draining your wallet and get actionable savings suggestions.',
-    color: '#3B82F6',
-  },
-  {
-    icon: 'notifications' as const,
-    title: 'Never Miss a Payment',
-    description: 'Smart reminders for bills, subscriptions, and custom payments. Snooze, track, and stay organized.',
-    color: '#F59E0B',
-  },
+const SLIDE_META = [
+  { icon: 'analytics' as const, titleKey: 'onboarding.slide1Title', descriptionKey: 'onboarding.slide1Description', color: '#8B5CF6' },
+  { icon: 'water' as const, titleKey: 'onboarding.slide2Title', descriptionKey: 'onboarding.slide2Description', color: '#3B82F6' },
+  { icon: 'notifications' as const, titleKey: 'onboarding.slide3Title', descriptionKey: 'onboarding.slide3Description', color: '#F59E0B' },
 ];
 
-function Slide({ item, colors }: { item: typeof SLIDES[0]; colors: any }) {
+function Slide({ item, colors, t }: { item: typeof SLIDE_META[0]; colors: any; t: (key: string) => string }) {
   return (
     <View style={[styles.slide, { width }]}>
       <View style={[styles.iconCircle, { backgroundColor: item.color + '15' }]}>
@@ -47,8 +33,8 @@ function Slide({ item, colors }: { item: typeof SLIDES[0]; colors: any }) {
           <Ionicons name={item.icon} size={48} color={item.color} />
         </View>
       </View>
-      <Text style={[styles.slideTitle, { color: colors.text }]}>{item.title}</Text>
-      <Text style={[styles.slideDescription, { color: colors.textSecondary }]}>{item.description}</Text>
+      <Text style={[styles.slideTitle, { color: colors.text }]}>{t(item.titleKey)}</Text>
+      <Text style={[styles.slideDescription, { color: colors.textSecondary }]}>{t(item.descriptionKey)}</Text>
     </View>
   );
 }
@@ -57,6 +43,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { completeOnboarding } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -72,7 +59,7 @@ export default function OnboardingScreen() {
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   const handleNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
+    if (currentIndex < SLIDE_META.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
       handleGetStarted();
@@ -93,14 +80,14 @@ export default function OnboardingScreen() {
       <View style={[styles.topBar, { paddingTop: topInset + 8 }]}>
         <View />
         <Pressable onPress={handleSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip</Text>
+          <Text style={[styles.skipText, { color: colors.textSecondary }]}>{t('onboarding.skip')}</Text>
         </Pressable>
       </View>
 
       <FlatList
         ref={flatListRef}
-        data={SLIDES}
-        renderItem={({ item }) => <Slide item={item} colors={colors} />}
+        data={SLIDE_META}
+        renderItem={({ item }) => <Slide item={item} colors={colors} t={t} />}
         keyExtractor={(_, i) => i.toString()}
         horizontal
         pagingEnabled
@@ -112,7 +99,7 @@ export default function OnboardingScreen() {
 
       <View style={[styles.bottomSection, { paddingBottom: bottomInset }]}>
         <View style={styles.dotsRow}>
-          {SLIDES.map((_, i) => (
+          {SLIDE_META.map((_, i) => (
             <View
               key={i}
               style={[
@@ -132,7 +119,7 @@ export default function OnboardingScreen() {
             style={styles.nextBtn}
           >
             <Text style={styles.nextBtnText}>
-              {currentIndex === SLIDES.length - 1 ? 'Get Started' : 'Next'}
+              {currentIndex === SLIDE_META.length - 1 ? t('onboarding.getStarted') : t('common.next')}
             </Text>
             <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
           </LinearGradient>

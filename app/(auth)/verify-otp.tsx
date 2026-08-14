@@ -15,11 +15,13 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { LoadingIndicator } from '@/components/PremiumLoader';
+import { useTranslation } from 'react-i18next';
 
 export default function VerifyOtpScreen() {
   const insets = useSafeAreaInsets();
   const { verifyOtp, resendOtp, user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ email?: string }>();
   // Verification is by email — the code is sent to the address the account was
   // created with. Falls back to the signed-in user's email for the case where
@@ -35,11 +37,11 @@ export default function VerifyOtpScreen() {
 
   const handleVerify = async () => {
     if (!otp.trim() || otp.length !== 6) {
-      setError('Enter the 6-digit code sent to your email');
+      setError(t('verifyOtp.errorInvalidCode'));
       return;
     }
     if (!email) {
-      setError('Email address missing');
+      setError(t('verifyOtp.errorEmailMissing'));
       return;
     }
     setError('');
@@ -49,7 +51,7 @@ export default function VerifyOtpScreen() {
     if (result.success) {
       router.replace('/(tabs)');
     } else {
-      setError(result.error || 'Invalid code');
+      setError(result.error || t('verifyOtp.errorVerifyFailed'));
     }
   };
 
@@ -62,16 +64,16 @@ export default function VerifyOtpScreen() {
     if (result.success) {
       setOtp('');
     } else {
-      setError(result.error || 'Failed to resend');
+      setError(result.error || t('verifyOtp.errorResendFailed'));
     }
   };
 
   if (!email) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
-        <Text style={[styles.errorText, { color: colors.danger }]}>Email address missing. Please sign up again.</Text>
+        <Text style={[styles.errorText, { color: colors.danger }]}>{t('verifyOtp.emailMissingNotice')}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: colors.accent }}>Go back</Text>
+          <Text style={{ color: colors.accent }}>{t('verifyOtp.goBack')}</Text>
         </Pressable>
       </View>
     );
@@ -88,9 +90,9 @@ export default function VerifyOtpScreen() {
           <View style={[styles.logoCircle, { backgroundColor: colors.accentDim }]}>
             <Ionicons name="mail-open-outline" size={32} color={colors.accent} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Verify your email</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('verifyOtp.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            We sent a 6-digit code to {email}. Enter it below.
+            {t('verifyOtp.subtitle', { email })}
           </Text>
         </View>
 
@@ -102,14 +104,14 @@ export default function VerifyOtpScreen() {
         )}
 
         <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Verification code</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('verifyOtp.codeLabel')}</Text>
           <View style={[styles.inputWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
             <Ionicons name="keypad-outline" size={20} color={colors.textTertiary} />
             <TextInput
               style={[styles.input, { color: colors.text }]}
               value={otp}
-              onChangeText={(t) => { setOtp(t.replace(/\D/g, '').slice(0, 6)); setError(''); }}
-              placeholder="000000"
+              onChangeText={(val) => { setOtp(val.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+              placeholder={t('verifyOtp.codePlaceholder')}
               placeholderTextColor={colors.textTertiary}
               keyboardType="number-pad"
               maxLength={6}
@@ -130,14 +132,14 @@ export default function VerifyOtpScreen() {
               {isSubmitting ? (
                 <LoadingIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitBtnText}>Verify & continue</Text>
+                <Text style={styles.submitBtnText}>{t('verifyOtp.verify')}</Text>
               )}
             </LinearGradient>
           </Pressable>
 
           <Pressable onPress={handleResend} disabled={resending} style={styles.resendWrap}>
             <Text style={[styles.resendText, { color: colors.accent }]}>
-              {resending ? 'Sending…' : "Didn't get the code? Resend"}
+              {resending ? t('verifyOtp.sending') : t('verifyOtp.resendPrompt')}
             </Text>
           </Pressable>
         </View>
