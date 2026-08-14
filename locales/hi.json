@@ -1814,5 +1814,38 @@
     "oops": "उफ़!",
     "doesNotExist": "यह स्क्रीन मौजूद नहीं है।",
     "goHome": "होम स्क्रीन पर जाएं!"
+  },
+  "dateRangeFilter": {
+    "selectStartDate": "प्रारंभ तिथि चुनें",
+    "selectEndDate": "समाप्ति तिथि चुनें",
+    "timeRange": "समय सीमा",
+    "startDate": "प्रारंभ तिथि",
+    "endDate": "समाप्ति तिथि",
+    "reset": "रीसेट करें",
+    "apply": "लागू करें",
+    "pickYear": "वर्ष चुनें",
+    "category": "श्रेणी",
+    "yearLabel": "वर्ष: {{year}}"
+  },
+  "lockScreen": {
+    "waitingForAuth": "प्रमाणीकरण की प्रतीक्षा है…",
+    "unlockToContinue": "जारी रखने के लिए अनलॉक करें",
+    "useMethodToContinue": "जारी रखने के लिए {{method}} का उपयोग करें",
+    "authenticating": "प्रमाणित किया जा रहा है…",
+    "unlock": "अनलॉक करें",
+    "pinHint": "आप अपने डिवाइस के पिन या पासवर्ड का भी उपयोग कर सकते हैं।",
+    "biometric": {
+      "face": "फेस अनलॉक",
+      "fingerprint": "फिंगरप्रिंट अनलॉक",
+      "iris": "आइरिस अनलॉक",
+      "generic": "बायोमेट्रिक लॉक"
+    }
+  },
+  "errorFallback": {
+    "somethingWentWrong": "कुछ गड़बड़ हो गई",
+    "reloadToContinue": "जारी रखने के लिए कृपया ऐप को फिर से लोड करें।",
+    "tryAgain": "फिर से प्रयास करें",
+    "viewErrorDetails": "त्रुटि विवरण देखें",
+    "errorDetails": "त्रुटि विवरण"
   }
 }

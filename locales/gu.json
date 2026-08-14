@@ -1814,5 +1814,38 @@
     "oops": "અરેરે!",
     "doesNotExist": "આ સ્ક્રીન અસ્તિત્વમાં નથી.",
     "goHome": "હોમ સ્ક્રીન પર જાઓ!"
+  },
+  "dateRangeFilter": {
+    "selectStartDate": "શરૂઆતની તારીખ પસંદ કરો",
+    "selectEndDate": "અંતિમ તારીખ પસંદ કરો",
+    "timeRange": "સમય શ્રેણી",
+    "startDate": "શરૂઆતની તારીખ",
+    "endDate": "અંતિમ તારીખ",
+    "reset": "રીસેટ કરો",
+    "apply": "લાગુ કરો",
+    "pickYear": "વર્ષ પસંદ કરો",
+    "category": "શ્રેણી",
+    "yearLabel": "વર્ષ: {{year}}"
+  },
+  "lockScreen": {
+    "waitingForAuth": "પ્રમાણીકરણની રાહ જોવાઈ રહી છે…",
+    "unlockToContinue": "ચાલુ રાખવા માટે અનલૉક કરો",
+    "useMethodToContinue": "ચાલુ રાખવા માટે {{method}} નો ઉપયોગ કરો",
+    "authenticating": "પ્રમાણિત કરી રહ્યાં છીએ…",
+    "unlock": "અનલૉક કરો",
+    "pinHint": "તમે તમારા ડિવાઇસના પિન અથવા પાસવર્ડનો પણ ઉપયોગ કરી શકો છો.",
+    "biometric": {
+      "face": "ફેસ અનલૉક",
+      "fingerprint": "ફિંગરપ્રિન્ટ અનલૉક",
+      "iris": "આઇરિસ અનલૉક",
+      "generic": "બાયોમેટ્રિક લૉક"
+    }
+  },
+  "errorFallback": {
+    "somethingWentWrong": "કંઈક ખોટું થયું",
+    "reloadToContinue": "ચાલુ રાખવા માટે કૃપા કરી એપ ફરીથી લોડ કરો.",
+    "tryAgain": "ફરી પ્રયાસ કરો",
+    "viewErrorDetails": "ભૂલની વિગતો જુઓ",
+    "errorDetails": "ભૂલની વિગતો"
   }
 }

@@ -1814,5 +1814,38 @@
     "oops": "अरेरे!",
     "doesNotExist": "ही स्क्रीन अस्तित्वात नाही.",
     "goHome": "होम स्क्रीनवर जा!"
+  },
+  "dateRangeFilter": {
+    "selectStartDate": "प्रारंभ तारीख निवडा",
+    "selectEndDate": "शेवटची तारीख निवडा",
+    "timeRange": "कालावधी",
+    "startDate": "प्रारंभ तारीख",
+    "endDate": "शेवटची तारीख",
+    "reset": "रीसेट करा",
+    "apply": "लागू करा",
+    "pickYear": "वर्ष निवडा",
+    "category": "श्रेणी",
+    "yearLabel": "वर्ष: {{year}}"
+  },
+  "lockScreen": {
+    "waitingForAuth": "प्रमाणीकरणाची प्रतीक्षा आहे…",
+    "unlockToContinue": "सुरू ठेवण्यासाठी अनलॉक करा",
+    "useMethodToContinue": "सुरू ठेवण्यासाठी {{method}} वापरा",
+    "authenticating": "प्रमाणीकरण सुरू आहे…",
+    "unlock": "अनलॉक करा",
+    "pinHint": "तुम्ही तुमच्या डिव्हाइसचा पिन किंवा पासवर्ड देखील वापरू शकता.",
+    "biometric": {
+      "face": "फेस अनलॉक",
+      "fingerprint": "फिंगरप्रिंट अनलॉक",
+      "iris": "आयरिस अनलॉक",
+      "generic": "बायोमेट्रिक लॉक"
+    }
+  },
+  "errorFallback": {
+    "somethingWentWrong": "काहीतरी चूक झाली",
+    "reloadToContinue": "सुरू ठेवण्यासाठी कृपया अ‍ॅप पुन्हा लोड करा.",
+    "tryAgain": "पुन्हा प्रयत्न करा",
+    "viewErrorDetails": "त्रुटीचा तपशील पहा",
+    "errorDetails": "त्रुटीचा तपशील"
   }
 }

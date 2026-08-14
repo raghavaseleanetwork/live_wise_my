@@ -1814,5 +1814,38 @@
     "oops": "అయ్యో!",
     "doesNotExist": "ఈ స్క్రీన్ లేదు.",
     "goHome": "హోమ్ స్క్రీన్‌కు వెళ్లండి!"
+  },
+  "dateRangeFilter": {
+    "selectStartDate": "ప్రారంభ తేదీని ఎంచుకోండి",
+    "selectEndDate": "ముగింపు తేదీని ఎంచుకోండి",
+    "timeRange": "కాల వ్యవధి",
+    "startDate": "ప్రారంభ తేదీ",
+    "endDate": "ముగింపు తేదీ",
+    "reset": "రీసెట్ చేయండి",
+    "apply": "వర్తింపజేయండి",
+    "pickYear": "సంవత్సరాన్ని ఎంచుకోండి",
+    "category": "వర్గం",
+    "yearLabel": "సంవత్సరం: {{year}}"
+  },
+  "lockScreen": {
+    "waitingForAuth": "ప్రామాణీకరణ కోసం వేచి ఉన్నాము…",
+    "unlockToContinue": "కొనసాగించడానికి అన్‌లాక్ చేయండి",
+    "useMethodToContinue": "కొనసాగించడానికి {{method}} ఉపయోగించండి",
+    "authenticating": "ప్రామాణీకరిస్తోంది…",
+    "unlock": "అన్‌లాక్ చేయండి",
+    "pinHint": "మీరు మీ పరికరం పిన్ లేదా పాస్‌వర్డ్‌ను కూడా ఉపయోగించవచ్చు.",
+    "biometric": {
+      "face": "ఫేస్ అన్‌లాక్",
+      "fingerprint": "ఫింగర్‌ప్రింట్ అన్‌లాక్",
+      "iris": "ఐరిస్ అన్‌లాక్",
+      "generic": "బయోమెట్రిక్ లాక్"
+    }
+  },
+  "errorFallback": {
+    "somethingWentWrong": "ఏదో తప్పు జరిగింది",
+    "reloadToContinue": "కొనసాగించడానికి దయచేసి యాప్‌ను మళ్లీ లోడ్ చేయండి.",
+    "tryAgain": "మళ్లీ ప్రయత్నించండి",
+    "viewErrorDetails": "లోపం వివరాలను చూడండి",
+    "errorDetails": "లోపం వివరాలు"
   }
 }

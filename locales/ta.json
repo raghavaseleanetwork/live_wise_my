@@ -1814,5 +1814,38 @@
     "oops": "அச்சச்சோ!",
     "doesNotExist": "இந்த திரை இல்லை.",
     "goHome": "முகப்புத் திரைக்குச் செல்லவும்!"
+  },
+  "dateRangeFilter": {
+    "selectStartDate": "தொடக்கத் தேதியைத் தேர்ந்தெடுக்கவும்",
+    "selectEndDate": "முடிவுத் தேதியைத் தேர்ந்தெடுக்கவும்",
+    "timeRange": "காலவரம்பு",
+    "startDate": "தொடக்கத் தேதி",
+    "endDate": "முடிவுத் தேதி",
+    "reset": "மீட்டமை",
+    "apply": "பயன்படுத்து",
+    "pickYear": "ஆண்டைத் தேர்ந்தெடுக்கவும்",
+    "category": "வகை",
+    "yearLabel": "ஆண்டு: {{year}}"
+  },
+  "lockScreen": {
+    "waitingForAuth": "அங்கீகாரத்திற்காகக் காத்திருக்கிறது…",
+    "unlockToContinue": "தொடர பூட்டைத் திற",
+    "useMethodToContinue": "தொடர {{method}} ஐப் பயன்படுத்தவும்",
+    "authenticating": "அங்கீகரிக்கப்படுகிறது…",
+    "unlock": "பூட்டைத் திற",
+    "pinHint": "உங்கள் சாதனத்தின் பின் அல்லது கடவுச்சொல்லையும் நீங்கள் பயன்படுத்தலாம்.",
+    "biometric": {
+      "face": "முக அடையாள திறப்பு",
+      "fingerprint": "கைரேகை திறப்பு",
+      "iris": "ஐரிஸ் திறப்பு",
+      "generic": "பயோமெட்ரிக் பூட்டு"
+    }
+  },
+  "errorFallback": {
+    "somethingWentWrong": "ஏதோ தவறாகிவிட்டது",
+    "reloadToContinue": "தொடர, ஆப்ஸை மீண்டும் ஏற்றவும்.",
+    "tryAgain": "மீண்டும் முயற்சிக்கவும்",
+    "viewErrorDetails": "பிழை விவரங்களைப் பார்க்கவும்",
+    "errorDetails": "பிழை விவரங்கள்"
   }
 }

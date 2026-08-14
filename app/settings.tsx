@@ -291,7 +291,7 @@ export default function SettingsScreen() {
               />
               <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
                 <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
-                  {t('settings.appLockHint', { method: biometricLabel(biometricKind).toLowerCase() })}
+                  {t('settings.appLockHint', { method: biometricLabel(biometricKind, t).toLowerCase() })}
                 </Text>
               </View>
             </View>

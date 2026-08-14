@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import CustomModal from '@/components/CustomModal';
 import DatePickerModal from '@/components/DatePickerModal';
@@ -70,11 +71,13 @@ export default function DateRangeFilter({
   categories,
   activeCategory,
   onCategoryChange,
-  categoryLabel = 'Category',
+  categoryLabel,
   sublabel,
   onReset,
 }: DateRangeFilterProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const resolvedCategoryLabel = categoryLabel ?? t('dateRangeFilter.category');
 
   const [showFilterModal, setShowFilterModal] = React.useState(false);
   const [showYearPicker, setShowYearPicker] = React.useState(false);
@@ -132,7 +135,7 @@ export default function DateRangeFilter({
       <DatePickerModal
         visible={showCustomStartPicker}
         onClose={() => setShowCustomStartPicker(false)}
-        title="Select Start Date"
+        title={t('dateRangeFilter.selectStartDate')}
         value={customStart}
         onConfirm={(d) => {
           const fixedStart = startOfDay(d);
@@ -148,7 +151,7 @@ export default function DateRangeFilter({
       <DatePickerModal
         visible={showCustomEndPicker}
         onClose={() => setShowCustomEndPicker(false)}
-        title="Select End Date"
+        title={t('dateRangeFilter.selectEndDate')}
         value={customEnd}
         onConfirm={(d) => {
           const fixedEnd = endOfDay(d);
@@ -162,7 +165,7 @@ export default function DateRangeFilter({
       <CustomModal visible={showFilterModal} onClose={() => setShowFilterModal(false)}>
         <Text style={[styles.modalTitle, { color: colors.text }]}>{title}</Text>
 
-        <Text style={[styles.filterSectionLabel, { color: colors.textTertiary }]}>Time range</Text>
+        <Text style={[styles.filterSectionLabel, { color: colors.textTertiary }]}>{t('dateRangeFilter.timeRange')}</Text>
         <View style={styles.filterModalChipsWrap}>
           {DATE_FILTER_CHIPS.map((chip) => {
             const active = filterKey === chip.key;
@@ -195,7 +198,7 @@ export default function DateRangeFilter({
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>Start date</Text>
+                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>{t('dateRangeFilter.startDate')}</Text>
                 <Text style={[styles.customChipValue, { color: colors.text }]}>
                   {customStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </Text>
@@ -210,7 +213,7 @@ export default function DateRangeFilter({
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>End Date</Text>
+                <Text style={[styles.customChipLabel, { color: colors.textTertiary }]}>{t('dateRangeFilter.endDate')}</Text>
                 <Text style={[styles.customChipValue, { color: colors.text }]}>
                   {customEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </Text>
@@ -226,7 +229,7 @@ export default function DateRangeFilter({
               style={[styles.yearPill, { backgroundColor: colors.card, borderColor: colors.border }]}
             >
               <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-              <Text style={[styles.yearPillText, { color: colors.text }]}>Year: {selectedYear}</Text>
+              <Text style={[styles.yearPillText, { color: colors.text }]}>{t('dateRangeFilter.yearLabel', { year: selectedYear })}</Text>
               <Ionicons name="chevron-down" size={14} color={colors.textTertiary} />
             </Pressable>
             {/* Year covers the whole year, so month chips would be meaningless
@@ -277,7 +280,7 @@ export default function DateRangeFilter({
         {!!categories?.length && (
           <>
             <Text style={[styles.filterSectionLabel, { color: colors.textTertiary, marginTop: 18 }]}>
-              {categoryLabel}
+              {resolvedCategoryLabel}
             </Text>
             <View style={styles.filterModalChipsWrap}>
               {categories.map((cat) => {
@@ -309,14 +312,14 @@ export default function DateRangeFilter({
               onPress={onReset}
               style={[styles.filterResetBtn, { borderColor: colors.border }]}
             >
-              <Text style={[styles.filterResetBtnText, { color: colors.textSecondary }]}>Reset</Text>
+              <Text style={[styles.filterResetBtnText, { color: colors.textSecondary }]}>{t('dateRangeFilter.reset')}</Text>
             </Pressable>
           )}
           <Pressable
             onPress={() => setShowFilterModal(false)}
             style={[styles.filterDoneBtn, { backgroundColor: colors.accent, flex: 1 }]}
           >
-            <Text style={styles.filterDoneBtnText}>Apply</Text>
+            <Text style={styles.filterDoneBtnText}>{t('dateRangeFilter.apply')}</Text>
           </Pressable>
         </View>
       </CustomModal>
@@ -324,7 +327,7 @@ export default function DateRangeFilter({
       <DatePickerModal
         visible={showYearPicker}
         onClose={() => setShowYearPicker(false)}
-        title="Pick year"
+        title={t('dateRangeFilter.pickYear')}
         value={new Date(selectedYear, 0, 1)}
         onConfirm={(d) => patch({ selectedYear: d.getFullYear() })}
       />

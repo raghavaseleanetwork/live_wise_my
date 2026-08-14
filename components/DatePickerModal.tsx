@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 import CustomModal from '@/components/CustomModal';
 import { useTheme } from '@/lib/theme-context';
@@ -53,6 +54,7 @@ export default function DatePickerModal({
   maximumDate,
 }: DatePickerModalProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   // iOS holds the in-progress value so Done/Cancel can commit or discard it.
   // Android has no such step: its dialog's own OK IS the commit.
@@ -113,7 +115,7 @@ export default function DatePickerModal({
       </View>
       <View style={styles.actionsRow}>
         <Pressable onPress={onClose} style={styles.textBtn}>
-          <Text style={[styles.textBtnLabel, { color: colors.textTertiary }]}>Cancel</Text>
+          <Text style={[styles.textBtnLabel, { color: colors.textTertiary }]}>{t('common.cancel')}</Text>
         </Pressable>
         <Pressable
           onPress={() => {
@@ -122,7 +124,7 @@ export default function DatePickerModal({
           }}
           style={[styles.primaryBtn, { backgroundColor: colors.accentDim }]}
         >
-          <Text style={[styles.primaryBtnLabel, { color: colors.accent }]}>Done</Text>
+          <Text style={[styles.primaryBtnLabel, { color: colors.accent }]}>{t('common.done')}</Text>
         </Pressable>
       </View>
     </CustomModal>

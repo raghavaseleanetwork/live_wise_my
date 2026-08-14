@@ -1814,5 +1814,38 @@
     "oops": "আহা!",
     "doesNotExist": "এই স্ক্রিনটি নেই।",
     "goHome": "হোম স্ক্রিনে যান!"
+  },
+  "dateRangeFilter": {
+    "selectStartDate": "শুরুর তারিখ নির্বাচন করুন",
+    "selectEndDate": "শেষ তারিখ নির্বাচন করুন",
+    "timeRange": "সময়সীমা",
+    "startDate": "শুরুর তারিখ",
+    "endDate": "শেষ তারিখ",
+    "reset": "রিসেট করুন",
+    "apply": "প্রয়োগ করুন",
+    "pickYear": "বছর নির্বাচন করুন",
+    "category": "বিভাগ",
+    "yearLabel": "বছর: {{year}}"
+  },
+  "lockScreen": {
+    "waitingForAuth": "প্রমাণীকরণের জন্য অপেক্ষা করা হচ্ছে…",
+    "unlockToContinue": "চালিয়ে যেতে আনলক করুন",
+    "useMethodToContinue": "চালিয়ে যেতে {{method}} ব্যবহার করুন",
+    "authenticating": "প্রমাণীকরণ করা হচ্ছে…",
+    "unlock": "আনলক করুন",
+    "pinHint": "আপনি আপনার ডিভাইসের পিন বা পাসওয়ার্ডও ব্যবহার করতে পারেন।",
+    "biometric": {
+      "face": "ফেস আনলক",
+      "fingerprint": "ফিঙ্গারপ্রিন্ট আনলক",
+      "iris": "আইরিস আনলক",
+      "generic": "বায়োমেট্রিক লক"
+    }
+  },
+  "errorFallback": {
+    "somethingWentWrong": "কিছু ভুল হয়েছে",
+    "reloadToContinue": "চালিয়ে যেতে অনুগ্রহ করে অ্যাপটি পুনরায় লোড করুন।",
+    "tryAgain": "আবার চেষ্টা করুন",
+    "viewErrorDetails": "ত্রুটির বিবরণ দেখুন",
+    "errorDetails": "ত্রুটির বিবরণ"
   }
 }

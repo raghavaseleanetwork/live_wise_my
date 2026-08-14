@@ -14,6 +14,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import {
   useAppLock,
@@ -24,6 +25,7 @@ import { BRAND_LOGO } from '@/components/PremiumLoader';
 
 export default function LockScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { authenticate, biometricKind } = useAppLock();
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -53,7 +55,7 @@ export default function LockScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const label = biometricLabel(biometricKind);
+  const label = biometricLabel(biometricKind, t);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -71,10 +73,10 @@ export default function LockScreen() {
         <Text style={[styles.title, { color: colors.text }]}>LifeWise</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {isAuthenticating
-            ? 'Waiting for authentication…'
+            ? t('lockScreen.waitingForAuth')
             : failed
-              ? 'Unlock to continue'
-              : `Use ${label.toLowerCase()} to continue`}
+              ? t('lockScreen.unlockToContinue')
+              : t('lockScreen.useMethodToContinue', { method: label.toLowerCase() })}
         </Text>
 
         <View
@@ -99,13 +101,13 @@ export default function LockScreen() {
         >
           <Ionicons name="lock-open-outline" size={18} color="#FFFFFF" />
           <Text style={styles.unlockBtnText}>
-            {isAuthenticating ? 'Authenticating…' : 'Unlock'}
+            {isAuthenticating ? t('lockScreen.authenticating') : t('lockScreen.unlock')}
           </Text>
         </Pressable>
 
         {failed && (
           <Text style={[styles.hint, { color: colors.textTertiary }]}>
-            You can also use your device PIN or password.
+            {t('lockScreen.pinHint')}
           </Text>
         )}
       </View>

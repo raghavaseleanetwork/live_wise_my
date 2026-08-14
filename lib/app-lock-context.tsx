@@ -324,16 +324,16 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useAppLock = () => useContext(AppLockContext);
 
 /** Human label for the device's hardware, for settings rows and prompts. */
-export function biometricLabel(kind: BiometricKind): string {
+export function biometricLabel(kind: BiometricKind, t: (key: string) => string): string {
   switch (kind) {
     case 'face':
-      return 'Face Unlock';
+      return t('lockScreen.biometric.face');
     case 'fingerprint':
-      return 'Fingerprint Unlock';
+      return t('lockScreen.biometric.fingerprint');
     case 'iris':
-      return 'Iris Unlock';
+      return t('lockScreen.biometric.iris');
     default:
-      return 'Biometric Lock';
+      return t('lockScreen.biometric.generic');
   }
 }
 

@@ -1814,5 +1814,38 @@
     "oops": "Oops!",
     "doesNotExist": "This screen doesn't exist.",
     "goHome": "Go to home screen!"
+  },
+  "dateRangeFilter": {
+    "selectStartDate": "Select Start Date",
+    "selectEndDate": "Select End Date",
+    "timeRange": "Time range",
+    "startDate": "Start date",
+    "endDate": "End Date",
+    "reset": "Reset",
+    "apply": "Apply",
+    "pickYear": "Pick year",
+    "category": "Category",
+    "yearLabel": "Year: {{year}}"
+  },
+  "lockScreen": {
+    "waitingForAuth": "Waiting for authentication…",
+    "unlockToContinue": "Unlock to continue",
+    "useMethodToContinue": "Use {{method}} to continue",
+    "authenticating": "Authenticating…",
+    "unlock": "Unlock",
+    "pinHint": "You can also use your device PIN or password.",
+    "biometric": {
+      "face": "Face Unlock",
+      "fingerprint": "Fingerprint Unlock",
+      "iris": "Iris Unlock",
+      "generic": "Biometric Lock"
+    }
+  },
+  "errorFallback": {
+    "somethingWentWrong": "Something went wrong",
+    "reloadToContinue": "Please reload the app to continue.",
+    "tryAgain": "Try Again",
+    "viewErrorDetails": "View error details",
+    "errorDetails": "Error Details"
   }
 }
