@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FAQ_DATA } from '@/constants/faq';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue, interpolate, Extrapolate, withRepeat, withSequence } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
@@ -85,7 +86,8 @@ export default function SupportScreen() {
   const { colors: theme } = useTheme();
   const router = useRouter();
   const { token } = useAuth();
-  
+  const { t } = useTranslation();
+
   const [activeTab, setActiveTab] = useState<'faq' | 'tickets'>('faq');
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -139,7 +141,7 @@ export default function SupportScreen() {
       
       <View style={styles.messagePreviewRow}>
         <Text style={[styles.ticketLastMsg, { color: theme.textSecondary }]} numberOfLines={1}>
-          {item.lastMessage?.senderType === 'admin' ? 'Support: ' : 'You: '}
+          {item.lastMessage?.senderType === 'admin' ? `${t('support.supportPrefix')} ` : `${t('common.you')}: `}
           {item.lastMessage?.content || item.description}
         </Text>
         {item.lastMessage?.status === 'read' && item.lastMessage?.senderType === 'user' && (
@@ -149,11 +151,11 @@ export default function SupportScreen() {
 
       <View style={styles.ticketBadgeRow}>
         <View style={[styles.categoryBadge, { backgroundColor: theme.accent + '10' }]}>
-          <Text style={[styles.categoryText, { color: theme.accent }]}>{item.category || 'General'}</Text>
+          <Text style={[styles.categoryText, { color: theme.accent }]}>{item.category || t('support.categoryGeneral')}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
           <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {item.status === 'active' ? 'Active' : item.status.replace('_', ' ').charAt(0).toUpperCase() + item.status.replace('_', ' ').slice(1)}
+            {item.status === 'active' ? t('support.statusActive') : item.status.replace('_', ' ').charAt(0).toUpperCase() + item.status.replace('_', ' ').slice(1)}
           </Text>
         </View>
       </View>
@@ -169,9 +171,9 @@ export default function SupportScreen() {
       
       <View style={styles.header}>
         <View>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Help Center</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{t('support.helpCenter')}</Text>
           <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-            How can we help you today?
+            {t('support.headerSubtitle')}
           </Text>
         </View>
         <TouchableOpacity 
@@ -187,13 +189,13 @@ export default function SupportScreen() {
           style={[styles.tab, activeTab === 'faq' && { borderBottomColor: theme.accent, borderBottomWidth: 3 }]}
           onPress={() => setActiveTab('faq')}
         >
-          <Text style={[styles.tabText, { color: activeTab === 'faq' ? theme.text : theme.textSecondary }]}>FAQs</Text>
+          <Text style={[styles.tabText, { color: activeTab === 'faq' ? theme.text : theme.textSecondary }]}>{t('support.tabFaqs')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'tickets' && { borderBottomColor: theme.accent, borderBottomWidth: 3 }]}
           onPress={() => setActiveTab('tickets')}
         >
-          <Text style={[styles.tabText, { color: activeTab === 'tickets' ? theme.text : theme.textSecondary }]}>My Tickets</Text>
+          <Text style={[styles.tabText, { color: activeTab === 'tickets' ? theme.text : theme.textSecondary }]}>{t('support.tabMyTickets')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -218,15 +220,15 @@ export default function SupportScreen() {
           
           <View style={[styles.contactCard, { backgroundColor: theme.accent + '10', borderColor: theme.accent + '30' }]}>
             <Ionicons name="help-circle-outline" size={32} color={theme.accent} />
-            <Text style={[styles.contactTitle, { color: theme.text }]}>Still have questions?</Text>
+            <Text style={[styles.contactTitle, { color: theme.text }]}>{t('support.stillHaveQuestions')}</Text>
             <Text style={[styles.contactDesc, { color: theme.textSecondary }]}>
-              Our support team is available 24/7 to help you with any issues.
+              {t('support.contactDesc')}
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.contactButton, { backgroundColor: theme.accent }]}
               onPress={() => router.push('/support/create')}
             >
-              <Text style={styles.contactButtonText}>Contact Support</Text>
+              <Text style={styles.contactButtonText}>{t('support.contactSupport')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -237,7 +239,7 @@ export default function SupportScreen() {
               <Ionicons name="search-outline" size={20} color={theme.textSecondary} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Search ticket, ID, or message..."
+                placeholder={t('support.searchPlaceholder')}
                 placeholderTextColor={theme.textSecondary + '70'}
                 value={search}
                 onChangeText={setSearch}
@@ -278,7 +280,7 @@ export default function SupportScreen() {
                     { color: theme.textSecondary },
                     filterStatus === status && { color: '#FFF' }
                   ]}>
-                    {status === 'all' ? 'All Tickets' : status === 'active' ? 'Active' : status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
+                    {status === 'all' ? t('support.filterAllTickets') : status === 'active' ? t('support.statusActive') : status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -294,9 +296,9 @@ export default function SupportScreen() {
               <View style={[styles.emptyIconContainer, { backgroundColor: theme.card }]}>
                 <Ionicons name="search-outline" size={48} color={theme.textSecondary} style={{ opacity: 0.3 }} />
               </View>
-              <Text style={[styles.emptyTitle, { color: theme.text }]}>No tickets found</Text>
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('support.noTicketsFound')}</Text>
               <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-                Try adjusting your search or filters to find what you're looking for.
+                {t('support.noTicketsSubtitle')}
               </Text>
             </View>
           ) : (

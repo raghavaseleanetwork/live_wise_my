@@ -20,6 +20,7 @@ import { useAlert } from '@/lib/alert-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LoadingIndicator } from '@/components/PremiumLoader';
+import { useTranslation } from 'react-i18next';
 
 const CATEGORIES = [
   { label: 'Technical Issue', value: 'technical' },
@@ -35,6 +36,16 @@ export default function CreateTicketScreen() {
   const router = useRouter();
   const { token } = useAuth();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    technical: t('supportCreate.categoryTechnical'),
+    billing: t('supportCreate.categoryBilling'),
+    bug: t('supportCreate.categoryBug'),
+    account: t('supportCreate.categoryAccount'),
+    general: t('supportCreate.categoryGeneral'),
+    feature: t('supportCreate.categoryFeature'),
+  };
 
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0].value);
@@ -54,7 +65,7 @@ export default function CreateTicketScreen() {
       if (!result.canceled) {
         const asset = result.assets[0];
         if (asset.size && asset.size > 5 * 1024 * 1024) {
-          showAlert({ title: 'File Too Large', message: 'Maximum file size is 5MB.' });
+          showAlert({ title: t('supportCreate.fileTooLargeTitle'), message: t('supportCreate.fileTooLargeMessage') });
           return;
         }
         setMedia(asset);
@@ -66,19 +77,19 @@ export default function CreateTicketScreen() {
 
   const handleSubmit = async () => {
     if (!subject.trim() || !description.trim()) {
-      showAlert({ title: 'Required Fields', message: 'Please enter a subject and description.' });
+      showAlert({ title: t('supportCreate.requiredFieldsTitle'), message: t('supportCreate.requiredFieldsMessage') });
       return;
     }
 
     // Mirrors the server's SupportTicketSchema (subject min 3, description min 10)
     // so the user is told what's wrong here instead of getting a 400 back.
     if (subject.trim().length < 3) {
-      showAlert({ title: 'Subject Too Short', message: 'Please use at least 3 characters for the subject.' });
+      showAlert({ title: t('supportCreate.subjectTooShortTitle'), message: t('supportCreate.subjectTooShortMessage') });
       return;
     }
 
     if (description.trim().length < 10) {
-      showAlert({ title: 'Description Too Short', message: 'Please describe your issue in at least 10 characters.' });
+      showAlert({ title: t('supportCreate.descriptionTooShortTitle'), message: t('supportCreate.descriptionTooShortMessage') });
       return;
     }
 
@@ -117,31 +128,31 @@ export default function CreateTicketScreen() {
           message = '';
         }
         if (res.status === 401 || res.status === 403) {
-          throw new Error('Your session has expired. Please sign in again.');
+          throw new Error(t('supportCreate.sessionExpired'));
         }
-        throw new Error(message || `Failed to create ticket (${res.status})`);
+        throw new Error(message || t('supportCreate.createFailed', { status: res.status }));
       }
 
       queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
 
       showAlert({
-        title: 'Ticket Created',
+        title: t('supportCreate.ticketCreatedTitle'),
         type: 'success',
-        message: 'Your support ticket has been submitted. We will get back to you soon!',
-        buttons: [{ 
-          text: 'OK', 
+        message: t('supportCreate.ticketCreatedMessage'),
+        buttons: [{
+          text: t('common.ok'),
           onPress: () => {
             router.replace('/support');
-          } 
+          }
         }]
       });
     } catch (err) {
       console.error('Create ticket error:', err);
       showAlert({
-        title: 'Error',
+        title: t('supportCreate.errorTitle'),
         message: err instanceof Error && err.message
           ? err.message
-          : 'Could not create ticket. Please try again.',
+          : t('supportCreate.createFailedGeneric'),
       });
     } finally {
       setIsSubmitting(false);
@@ -159,16 +170,16 @@ export default function CreateTicketScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>New Ticket</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('supportCreate.newTicket')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Subject</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>{t('supportCreate.subjectLabel')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-            placeholder="What's the problem?"
+            placeholder={t('supportCreate.subjectPlaceholder')}
             placeholderTextColor={theme.textSecondary + '80'}
             value={subject}
             onChangeText={setSubject}
@@ -176,7 +187,7 @@ export default function CreateTicketScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Category</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>{t('supportCreate.categoryLabel')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
@@ -193,7 +204,7 @@ export default function CreateTicketScreen() {
                   { color: theme.textSecondary },
                   category === cat.value && { color: '#FFF' }
                 ]}>
-                  {cat.label}
+                  {CATEGORY_LABELS[cat.value] || cat.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -201,10 +212,10 @@ export default function CreateTicketScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Description</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>{t('supportCreate.descriptionLabel')}</Text>
           <TextInput
             style={[styles.textArea, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-            placeholder="Please provide details about your issue..."
+            placeholder={t('supportCreate.descriptionPlaceholder')}
             placeholderTextColor={theme.textSecondary + '80'}
             multiline
             numberOfLines={6}
@@ -215,8 +226,8 @@ export default function CreateTicketScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Attachments (Optional)</Text>
-          <TouchableOpacity 
+          <Text style={[styles.label, { color: theme.textSecondary }]}>{t('supportCreate.attachmentsLabel')}</Text>
+          <TouchableOpacity
             style={[styles.mediaButton, { backgroundColor: theme.card, borderColor: theme.border, borderStyle: 'dashed' }]}
             onPress={pickMedia}
           >
@@ -234,7 +245,7 @@ export default function CreateTicketScreen() {
               <View style={styles.mediaPlaceholder}>
                 <Ionicons name="cloud-upload-outline" size={32} color={theme.textSecondary} />
                 <Text style={[styles.mediaPlaceholderText, { color: theme.textSecondary }]}>
-                  Upload Image or PDF (Max 5MB)
+                  {t('supportCreate.mediaPlaceholder')}
                 </Text>
               </View>
             )}
@@ -243,7 +254,7 @@ export default function CreateTicketScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { borderTopColor: theme.border }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.submitButton, { backgroundColor: theme.accent }, isSubmitting && { opacity: 0.7 }]}
           onPress={handleSubmit}
           disabled={isSubmitting}
@@ -252,7 +263,7 @@ export default function CreateTicketScreen() {
             <LoadingIndicator color="#FFF" />
           ) : (
             <>
-              <Text style={styles.submitButtonText}>Submit Ticket</Text>
+              <Text style={styles.submitButtonText}>{t('supportCreate.submitTicket')}</Text>
               <Ionicons name="send" size={18} color="#FFF" style={{ marginLeft: 8 }} />
             </>
           )}

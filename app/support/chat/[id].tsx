@@ -23,6 +23,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue, interpolate, FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingIndicator } from '@/components/PremiumLoader';
+import { useTranslation } from 'react-i18next';
 
 export default function ChatScreen() {
   const { id: ticketId } = useLocalSearchParams();
@@ -31,6 +32,7 @@ export default function ChatScreen() {
   const router = useRouter();
   const { user, token } = useAuth();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -198,8 +200,8 @@ export default function ChatScreen() {
   const renderItem = ({ item }: { item: any }) => {
     if (item.type === 'date') {
       let dateText = format(item.date, 'MMMM d, yyyy');
-      if (isToday(item.date)) dateText = 'Today';
-      else if (isYesterday(item.date)) dateText = 'Yesterday';
+      if (isToday(item.date)) dateText = t('supportChat.today');
+      else if (isYesterday(item.date)) dateText = t('supportChat.yesterday');
 
       return (
         <View style={styles.dateHeader}>
@@ -249,12 +251,12 @@ export default function ChatScreen() {
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-              {ticket?.subject || 'Support Chat'}
+              {ticket?.subject || t('supportChat.supportChatTitle')}
             </Text>
             <View style={styles.headerBadgeRow}>
               <View style={[styles.statusDot, { backgroundColor: getStatusColor(ticket?.status || 'active') }]} />
               <Text style={[styles.headerStatusText, { color: theme.textSecondary }]}>
-                {ticket?.status === 'active' ? 'Active' : (() => { const s = ticket?.status.replace('_', ' ') || ''; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); })()} • ID: {String(ticketId).slice(-6).toUpperCase()}
+                {ticket?.status === 'active' ? t('support.statusActive') : (() => { const s = ticket?.status.replace('_', ' ') || ''; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); })()} • {t('supportChat.idLabel')}: {String(ticketId).slice(-6).toUpperCase()}
               </Text>
             </View>
           </View>
@@ -269,17 +271,17 @@ export default function ChatScreen() {
         {showDetails && (
           <Animated.View entering={FadeIn.duration(300)} style={[styles.detailsPanel, { borderTopColor: theme.border }]}>
             <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>Created</Text>
+              <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>{t('supportChat.createdLabel')}</Text>
               <Text style={[styles.detailValue, { color: theme.text }]}>
-                {ticket?.createdAt ? format(new Date(ticket.createdAt), 'MMM d, yyyy') : 'Loading...'}
+                {ticket?.createdAt ? format(new Date(ticket.createdAt), 'MMM d, yyyy') : t('common.loading')}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>Category</Text>
-              <Text style={[styles.detailValue, { color: theme.text }]}>{ticket?.category || 'General'}</Text>
+              <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>{t('supportChat.categoryLabel')}</Text>
+              <Text style={[styles.detailValue, { color: theme.text }]}>{ticket?.category || t('support.categoryGeneral')}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>Description</Text>
+              <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>{t('supportChat.descriptionLabel')}</Text>
               <Text style={[styles.detailValue, { color: theme.text }]} numberOfLines={2}>
                 {ticket?.description}
               </Text>
@@ -292,7 +294,7 @@ export default function ChatScreen() {
         <View style={[styles.closedBanner, { backgroundColor: theme.danger + '15', borderColor: theme.danger + '30' }]}>
           <Ionicons name="lock-closed" size={18} color={theme.danger} />
           <Text style={[styles.closedText, { color: theme.danger }]}>
-            This ticket has been resolved and closed.
+            {t('supportChat.closedBanner')}
           </Text>
         </View>
       )}
@@ -325,7 +327,7 @@ export default function ChatScreen() {
           <BlurView intensity={100} tint={isDark ? 'dark' : 'light'} style={[styles.inputContainer, { borderTopColor: theme.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
             {isAdminTyping && (
               <View style={styles.typingIndicator}>
-                <Text style={[styles.typingText, { color: theme.accent }]}>Admin is typing...</Text>
+                <Text style={[styles.typingText, { color: theme.accent }]}>{t('supportChat.adminTyping')}</Text>
               </View>
             )}
             <View style={styles.inputRow}>
@@ -334,7 +336,7 @@ export default function ChatScreen() {
               </TouchableOpacity>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
-                placeholder="Type your message..."
+                placeholder={t('supportChat.messagePlaceholder')}
                 placeholderTextColor={theme.textSecondary + '80'}
                 value={message}
                 onChangeText={handleTyping}
