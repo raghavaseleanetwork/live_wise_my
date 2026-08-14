@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,6 +23,7 @@ import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { user, token, updateProfile } = useAuth();
   const { colors, isDark } = useTheme();
 
@@ -66,7 +68,7 @@ export default function ProfileScreen() {
     });
     setSaving(false);
     if (!res.success) {
-      setError(res.error || 'Failed to update profile');
+      setError(res.error || t('profile.updateFailed'));
     } else if (router.canGoBack()) {
       router.back();
     }
@@ -76,7 +78,7 @@ export default function ProfileScreen() {
     setError('');
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      setError('Media permission is required to pick an avatar');
+      setError(t('profile.mediaPermissionRequired'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -95,13 +97,13 @@ export default function ProfileScreen() {
       const url = await uploadAvatar(token, asset.uri, asset.fileSize);
       const res = await updateProfile({ avatarUrl: url });
       if (!res.success) {
-        throw new Error(res.error || 'Failed to save avatar');
+        throw new Error(res.error || t('profile.avatarSaveFailed'));
       }
       setAvatarUrl(url);
     } catch (e: any) {
       setAvatarUrl(previousAvatarUrl);
       console.error('[Avatar] Upload Error:', e);
-      setError(e.message || 'Upload failed. Please try again.');
+      setError(e.message || t('profile.uploadFailed'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -113,7 +115,7 @@ export default function ProfileScreen() {
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -140,7 +142,7 @@ export default function ProfileScreen() {
           </Pressable>
           <View style={styles.headerTextWrap}>
             <Text style={[styles.headerName, { color: colors.text }]}>
-              {name || user?.name || 'Your name'}
+              {name || user?.name || t('profile.yourName')}
             </Text>
             <View style={styles.emailRow}>
               <Text style={[styles.emailValue, { color: colors.textSecondary }]} numberOfLines={1}>
@@ -152,39 +154,39 @@ export default function ProfileScreen() {
 
         <View style={styles.body}>
           <View style={[styles.fieldCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('profile.fullName')}</Text>
             <View style={[styles.inputRow, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}>
               <Ionicons name="person-outline" size={18} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={name}
                 onChangeText={setName}
-                placeholder="Your name"
+                placeholder={t('profile.yourName')}
                 placeholderTextColor={colors.textTertiary}
               />
             </View>
 
-            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 14 }]}>Mobile Number</Text>
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 14 }]}>{t('profile.mobileNumber')}</Text>
             <View style={[styles.inputRow, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}>
               <Ionicons name="call-outline" size={18} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="Add phone number"
+                placeholder={t('profile.addPhoneNumber')}
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="phone-pad"
               />
             </View>
 
-            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 14 }]}>Email</Text>
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 14 }]}>{t('profile.email')}</Text>
             <View style={[styles.inputRow, { borderColor: colors.border + '40', backgroundColor: colors.inputBg, opacity: 0.7 }]}>
               <Ionicons name="mail-outline" size={18} color={colors.textTertiary} />
               <TextInput
                 style={[styles.input, { color: colors.textTertiary }]}
                 value={email}
                 editable={false}
-                placeholder="Add email"
+                placeholder={t('profile.addEmail')}
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -192,7 +194,7 @@ export default function ProfileScreen() {
               <Ionicons name="checkmark-circle" size={16} color={colors.accent} />
             </View>
 
-            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 14 }]}>Date of Birth</Text>
+            <Text style={[styles.label, { color: colors.textSecondary, marginTop: 14 }]}>{t('profile.dateOfBirth')}</Text>
             <Pressable
               onPress={() => {
                 if (Platform.OS === 'android' && showDatePicker) {
@@ -206,7 +208,7 @@ export default function ProfileScreen() {
             >
               <Ionicons name="calendar-outline" size={18} color={colors.textTertiary} />
               <Text style={[styles.input, { color: dateOfBirth ? colors.text : colors.textTertiary, height: 'auto', paddingVertical: 12 }]}>
-                {dateOfBirth || "Select Date of Birth"}
+                {dateOfBirth || t('profile.selectDateOfBirth')}
               </Text>
             </Pressable>
 
@@ -239,7 +241,7 @@ export default function ProfileScreen() {
               disabled={saving}
               style={[styles.saveBtn, { backgroundColor: colors.accent }]}
             >
-              <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save Changes'}</Text>
+              <Text style={styles.saveBtnText}>{saving ? t('profile.saving') : t('profile.saveChanges')}</Text>
             </Pressable>
           </View>
         </View>

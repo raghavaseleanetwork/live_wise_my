@@ -3,6 +3,8 @@ import { StyleSheet, View, Text, FlatList, Pressable, Platform } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
@@ -63,7 +65,7 @@ function daysUntil(date: Date): number {
  * server owns these, this projection is deleted and the rows arrive as real
  * notifications.
  */
-function familyReminderToNotification(reminder: FamilyReminder): NotificationItem | null {
+function familyReminderToNotification(reminder: FamilyReminder, t: TFunction): NotificationItem | null {
   const due = new Date(reminder.dueDate);
   if (Number.isNaN(due.getTime())) return null;
 
@@ -73,12 +75,12 @@ function familyReminderToNotification(reminder: FamilyReminder): NotificationIte
   const kindLabel = familyReminderLabel(reminder.sourceKind);
   const when =
     days < 0
-      ? `overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`
+      ? t('notifications.overdueBy', { count: Math.abs(days) })
       : days === 0
-        ? 'due today'
+        ? t('notifications.dueToday')
         : days === 1
-          ? 'due tomorrow'
-          : `due in ${days} days`;
+          ? t('notifications.dueTomorrow')
+          : t('notifications.dueInDays', { count: days });
 
   const amount = reminder.amount > 0 ? `₹${reminder.amount.toLocaleString('en-IN')} · ` : '';
 
@@ -99,21 +101,22 @@ function familyReminderToNotification(reminder: FamilyReminder): NotificationIte
   };
 }
 
-function formatTimeAgo(dateString: string) {
+function formatTimeAgo(dateString: string, t: TFunction) {
   const date = new Date(dateString);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'Just now';
-  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffMin < 1) return t('notifications.justNow');
+  if (diffMin < 60) return t('notifications.minAgo', { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hr ago`;
+  if (diffHr < 24) return t('notifications.hrAgo', { count: diffHr });
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return 'Yesterday';
-  return `${diffDay} days ago`;
+  if (diffDay === 1) return t('notifications.yesterday');
+  return t('notifications.daysAgo', { count: diffDay });
 }
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token } = useAuth();
 
@@ -128,13 +131,13 @@ export default function NotificationsScreen() {
   // stored, so they stay in step with edits made in Family Hub.
   const visibleItems = React.useMemo(() => {
     const familyItems = familyReminders
-      .map(familyReminderToNotification)
+      .map((r) => familyReminderToNotification(r, t))
       .filter((n): n is NotificationItem => n !== null);
 
     return [...items, ...familyItems].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [items, familyReminders]);
+  }, [items, familyReminders, t]);
 
   // Only server rows have a persisted read state; family rows are projections.
   const hasUnreadServerItems = items.some((n) => !n.read);
@@ -164,7 +167,7 @@ export default function NotificationsScreen() {
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.screenTitle, { color: colors.text }]}>Notifications</Text>
+        <Text style={[styles.screenTitle, { color: colors.text }]}>{t('notifications.title')}</Text>
         <Pressable
           onPress={async () => {
             if (hasUnreadServerItems) {
@@ -175,14 +178,14 @@ export default function NotificationsScreen() {
           disabled={!hasUnreadServerItems}
           style={({ pressed }) => [{ opacity: pressed || !hasUnreadServerItems ? 0.6 : 1 }]}
         >
-          <Text style={[styles.markAllText, { color: colors.accent }]}>Mark all read</Text>
+          <Text style={[styles.markAllText, { color: colors.accent }]}>{t('notifications.markAllRead')}</Text>
         </Pressable>
       </View>
 
       {loading ? (
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Loading notifications…</Text>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('notifications.loading')}</Text>
       ) : visibleItems.length === 0 ? (
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No notifications yet.</Text>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('notifications.empty')}</Text>
       ) : (
         <FlatList
           data={visibleItems}
@@ -251,7 +254,7 @@ export default function NotificationsScreen() {
                 {family && (
                   <View style={[styles.sourceChip, { backgroundColor: colors.accentDim }]}>
                     <Text style={[styles.sourceChipText, { color: colors.accent }]}>
-                      Family Hub
+                      {t('notifications.familyHub')}
                     </Text>
                   </View>
                 )}
@@ -272,7 +275,7 @@ export default function NotificationsScreen() {
                   {item.body}
                 </Text>
                 <Text style={[styles.itemTime, { color: colors.textTertiary }]}>
-                  {formatTimeAgo(item.createdAt)}
+                  {formatTimeAgo(item.createdAt, t)}
                 </Text>
               </View>
               <Pressable

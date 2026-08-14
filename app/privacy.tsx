@@ -3,10 +3,12 @@ import { StyleSheet, View, Text, ScrollView, Pressable, Platform } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 
 export default function PrivacyScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
 
@@ -16,7 +18,7 @@ export default function PrivacyScreen() {
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.screenTitle, { color: colors.text }]}>Privacy Policy</Text>
+        <Text style={[styles.screenTitle, { color: colors.text }]}>{t('privacy.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -26,47 +28,38 @@ export default function PrivacyScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.paragraph, styles.sectionTitle, { color: colors.text }]}>
-          LifeWise is built to be privacy-first. This page explains what data we collect, what
-          permissions we request, how we use data, and how we keep it secure.
+          {t('privacy.intro')}
         </Text>
 
-        <Text style={[styles.paragraphHeading, { color: colors.text }]}>Data Collection</Text>
+        <Text style={[styles.paragraphHeading, { color: colors.text }]}>{t('privacy.dataCollectionHeading')}</Text>
         <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-          • Account data (optional): name, email/phone if you create an account.{'\n'}
-          • Reminder data: reminders you create, schedules, and completion status.{'\n'}
-          • Usage analytics (optional): app performance and feature usage to improve reliability.
+          {t('privacy.dataCollectionBody')}
         </Text>
 
-        <Text style={[styles.paragraphHeading, { color: colors.text }]}>Permissions (SMS detection)</Text>
+        <Text style={[styles.paragraphHeading, { color: colors.text }]}>{t('privacy.permissionsHeading')}</Text>
         <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-          LifeWise may request access to read SMS only to detect bill and financial reminder messages
-          (for example: electricity, mobile recharge, subscriptions, and bank alerts). This helps us
-          identify due dates and amounts so you don’t miss critical payments.
+          {t('privacy.permissionsBody1')}
         </Text>
         <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-          We do not use SMS data for advertising, profiling, or selling to third parties.
+          {t('privacy.permissionsBody2')}
         </Text>
 
-        <Text style={[styles.paragraphHeading, { color: colors.text }]}>Data Usage</Text>
+        <Text style={[styles.paragraphHeading, { color: colors.text }]}>{t('privacy.dataUsageHeading')}</Text>
         <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-          • To create reminders and send notifications.{'\n'}
-          • To generate insights like life score and reports.{'\n'}
-          • To support Family Hub features you enable.
+          {t('privacy.dataUsageBody')}
         </Text>
         <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-          User data is never sold.
+          {t('privacy.dataNeverSold')}
         </Text>
 
-        <Text style={[styles.paragraphHeading, { color: colors.text }]}>Security</Text>
+        <Text style={[styles.paragraphHeading, { color: colors.text }]}>{t('privacy.securityHeading')}</Text>
         <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-          We apply industry-standard security practices (encryption in transit, access controls,
-          and least-privilege). If we store data, we aim to minimize what’s collected and retain it
-          only as long as needed to provide the service.
+          {t('privacy.securityBody')}
         </Text>
 
-        <Text style={[styles.paragraphHeading, { color: colors.text }]}>Contact</Text>
+        <Text style={[styles.paragraphHeading, { color: colors.text }]}>{t('privacy.contactHeading')}</Text>
         <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
-          Questions? Email Info@lifewise.app.
+          {t('privacy.contactBody')}
         </Text>
       </ScrollView>
     </View>
