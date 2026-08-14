@@ -23,6 +23,7 @@ import {
   declineInvite,
 } from '@/lib/family-caregivers';
 import { LoadingIndicator } from '@/components/PremiumLoader';
+import { useTranslation } from 'react-i18next';
 
 export default function CaregiverInvitesScreen() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function CaregiverInvitesScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
 
   const [invites, setInvites] = useState<CaregiverInvite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,10 +59,10 @@ export default function CaregiverInvitesScreen() {
     try {
       await acceptInvite(invite.id, token);
       setInvites((prev) => prev.filter((i) => i.id !== invite.id));
-      showAlert({ title: 'Connected', message: `You'll now receive reminders and alerts for ${invite.memberName}.`, type: 'success' });
+      showAlert({ title: t('caregiverInvites.connectedTitle'), message: t('caregiverInvites.connectedMessage', { memberName: invite.memberName }), type: 'success' });
     } catch (e) {
       console.error('Accept invite error:', e);
-      showAlert({ title: 'Could not accept', message: 'Please try again.', type: 'error' });
+      showAlert({ title: t('caregiverInvites.couldNotAcceptTitle'), message: t('caregiverInvites.tryAgain'), type: 'error' });
     } finally {
       setBusyId(null);
     }
@@ -73,7 +75,7 @@ export default function CaregiverInvitesScreen() {
       setInvites((prev) => prev.filter((i) => i.id !== invite.id));
     } catch (e) {
       console.error('Decline invite error:', e);
-      showAlert({ title: 'Could not decline', message: 'Please try again.', type: 'error' });
+      showAlert({ title: t('caregiverInvites.couldNotDeclineTitle'), message: t('caregiverInvites.tryAgain'), type: 'error' });
     } finally {
       setBusyId(null);
     }
@@ -88,7 +90,7 @@ export default function CaregiverInvitesScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Caregiver Invites</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('caregiverInvites.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
       </LinearGradient>
@@ -102,15 +104,15 @@ export default function CaregiverInvitesScreen() {
           <View style={[styles.noticeBox, { backgroundColor: colors.warningDim, borderColor: colors.warning }]}>
             <Ionicons name="alert-circle-outline" size={22} color={colors.warning} />
             <Text style={[styles.noticeText, { color: colors.text }]}>
-              Couldn’t load invites right now. Pull to refresh or try again in a moment.
+              {t('caregiverInvites.loadError')}
             </Text>
           </View>
         ) : invites.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="mail-open-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No pending invites</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('caregiverInvites.emptyTitle')}</Text>
             <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>
-              When someone adds you as a caregiver for a family member, it'll show up here.
+              {t('caregiverInvites.emptyDesc')}
             </Text>
           </View>
         ) : (
@@ -121,7 +123,7 @@ export default function CaregiverInvitesScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>{invite.memberName}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                    Invited by {invite.invitedByName} ({invite.invitedByEmail})
+                    {t('caregiverInvites.invitedBy', { name: invite.invitedByName, email: invite.invitedByEmail })}
                   </Text>
                 </View>
               </View>
@@ -131,14 +133,14 @@ export default function CaregiverInvitesScreen() {
                   disabled={busyId === invite.id}
                   style={[styles.declineBtn, { borderColor: colors.border }]}
                 >
-                  <Text style={[styles.declineBtnText, { color: colors.textSecondary }]}>Decline</Text>
+                  <Text style={[styles.declineBtnText, { color: colors.textSecondary }]}>{t('caregiverInvites.decline')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => handleAccept(invite)}
                   disabled={busyId === invite.id}
                   style={[styles.acceptBtn, { backgroundColor: colors.accent }]}
                 >
-                  {busyId === invite.id ? <LoadingIndicator color="#FFF" size="small" /> : <Text style={styles.acceptBtnText}>Accept</Text>}
+                  {busyId === invite.id ? <LoadingIndicator color="#FFF" size="small" /> : <Text style={styles.acceptBtnText}>{t('caregiverInvites.accept')}</Text>}
                 </Pressable>
               </View>
             </Animated.View>

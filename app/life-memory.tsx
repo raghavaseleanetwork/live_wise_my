@@ -17,6 +17,7 @@ import { useCurrency } from '@/lib/currency-context';
 import { useExpenses } from '@/lib/expense-context';
 import { CATEGORIES, CategoryType } from '@/lib/data';
 import CategoryIcon from '@/components/CategoryIcon';
+import { useTranslation } from 'react-i18next';
 
 interface MemoryCard {
   id: string;
@@ -33,6 +34,7 @@ export default function LifeMemoryScreen() {
   const { colors, isDark } = useTheme();
   const { formatAmount } = useCurrency();
   const { transactions, bills, leaks } = useExpenses();
+  const { t } = useTranslation();
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 34 : Math.max(insets.bottom, 20);
@@ -42,10 +44,10 @@ export default function LifeMemoryScreen() {
 
     // 1. Spending Pattern (Day of week)
     const dayTotals: Record<string, number> = {};
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     transactions.forEach(tx => {
       if (tx.isDebit) {
-        const day = dayNames[new Date(tx.date).getDay()];
+        const day = dayKeys[new Date(tx.date).getDay()];
         dayTotals[day] = (dayTotals[day] || 0) + tx.amount;
       }
     });
@@ -55,9 +57,9 @@ export default function LifeMemoryScreen() {
         id: 'day_pattern',
         icon: 'calendar',
         iconColor: '#8B5CF6',
-        title: 'Spending Rhythm',
-        insight: `Your peak spending day is ${topDay[0]}. Typically, you spend ${formatAmount(Math.round(topDay[1] / 4))} on those days.`,
-        tag: 'Pattern',
+        title: t('lifeMemory.card.spendingRhythm.title'),
+        insight: t('lifeMemory.card.spendingRhythm.insight', { day: t(`lifeMemory.days.${topDay[0]}`), amount: formatAmount(Math.round(topDay[1] / 4)) }),
+        tag: t('lifeMemory.tag.pattern'),
         category: 'habits',
       });
     }
@@ -78,9 +80,9 @@ export default function LifeMemoryScreen() {
         id: 'top_category',
         icon: cat.icon,
         iconColor: cat.color,
-        title: 'Primary Category',
-        insight: `${cat.label} leads your expenses at ${formatAmount(topCat[1] as number)} this month.`,
-        tag: 'Spending',
+        title: t('lifeMemory.card.primaryCategory.title'),
+        insight: t('lifeMemory.card.primaryCategory.insight', { category: cat.label, amount: formatAmount(topCat[1] as number) }),
+        tag: t('lifeMemory.tag.spending'),
         category: catKey,
       });
     }
@@ -93,9 +95,9 @@ export default function LifeMemoryScreen() {
         id: 'sub_sentinel',
         icon: 'refresh-circle',
         iconColor: '#3B82F6',
-        title: 'Subscription Tracker',
-        insight: `Tracking ${subscriptions.length} recurring services. Estimated yearly commitment: ${formatAmount(yearlySubscriptions)}.`,
-        tag: 'Recurring',
+        title: t('lifeMemory.card.subscriptionTracker.title'),
+        insight: t('lifeMemory.card.subscriptionTracker.insight', { count: subscriptions.length, amount: formatAmount(yearlySubscriptions) }),
+        tag: t('lifeMemory.tag.recurring'),
         category: 'entertainment',
       });
     }
@@ -119,11 +121,11 @@ export default function LifeMemoryScreen() {
         id: 'wealth_wisdom',
         icon: 'stats-chart',
         iconColor: diff > 0 ? '#EF4444' : '#10B981',
-        title: 'Financial Momentum',
-        insight: diff > 0 
-          ? `Expenses rose by ${Math.round(diff)}% this week. A quick review might help!` 
-          : `Excellent progress! Your spending decreased by ${Math.abs(Math.round(diff))}% this week.`,
-        tag: 'Wealth',
+        title: t('lifeMemory.card.financialMomentum.title'),
+        insight: diff > 0
+          ? t('lifeMemory.card.financialMomentum.insightUp', { pct: Math.round(diff) })
+          : t('lifeMemory.card.financialMomentum.insightDown', { pct: Math.abs(Math.round(diff)) }),
+        tag: t('lifeMemory.tag.wealth'),
       });
     }
 
@@ -139,9 +141,9 @@ export default function LifeMemoryScreen() {
         id: 'nocturnal_nibbles',
         icon: 'moon',
         iconColor: '#1E293B',
-        title: 'Late-Night Habits',
-        insight: `Noted ${lateNightFood.length} late-night orders. Monthly total: ${formatAmount(lateNightFood.reduce((s, tx) => s + tx.amount, 0))}.`,
-        tag: 'Lifestyle',
+        title: t('lifeMemory.card.lateNightHabits.title'),
+        insight: t('lifeMemory.card.lateNightHabits.insight', { count: lateNightFood.length, amount: formatAmount(lateNightFood.reduce((s, tx) => s + tx.amount, 0)) }),
+        tag: t('lifeMemory.tag.lifestyle'),
         category: 'habits',
       });
     }
@@ -157,9 +159,9 @@ export default function LifeMemoryScreen() {
         id: 'fav_merchant',
         icon: 'heart',
         iconColor: '#EC4899',
-        title: 'Top Destination',
-        insight: `You frequent ${favMerchant[0]} regularly—visited ${favMerchant[1]} times this month.`,
-        tag: 'Frequented',
+        title: t('lifeMemory.card.topDestination.title'),
+        insight: t('lifeMemory.card.topDestination.insight', { merchant: favMerchant[0], count: favMerchant[1] }),
+        tag: t('lifeMemory.tag.frequented'),
         category: 'others',
       });
     }
@@ -171,15 +173,15 @@ export default function LifeMemoryScreen() {
         id: 'leak_insight',
         icon: 'flash',
         iconColor: '#F59E0B',
-        title: 'Smart Optimization',
-        insight: `Detected ${leaks.length} optimization opportunities. Potential annual savings: ${formatAmount(totalLeaks * 12)}.`,
-        tag: 'Efficiency',
+        title: t('lifeMemory.card.smartOptimization.title'),
+        insight: t('lifeMemory.card.smartOptimization.insight', { count: leaks.length, amount: formatAmount(totalLeaks * 12) }),
+        tag: t('lifeMemory.tag.efficiency'),
         category: 'finance',
       });
     }
 
     return cards;
-  }, [transactions, bills, leaks, formatAmount]);
+  }, [transactions, bills, leaks, formatAmount, t]);
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -200,8 +202,8 @@ export default function LifeMemoryScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.headerContent}>
-            <Text style={[styles.title, { color: colors.text }]}>Life Memory</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Personal Insights & Patterns</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('lifeMemory.title')}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('lifeMemory.subtitle')}</Text>
           </View>
           <View style={{ width: 44 }} />
         </View>
@@ -214,9 +216,9 @@ export default function LifeMemoryScreen() {
             <Ionicons name="sparkles" size={20} color={colors.accent} />
           </View>
           <View style={styles.bannerInfo}>
-            <Text style={[styles.bannerTitle, { color: colors.text }]}>{memories.length} Key Insights</Text>
+            <Text style={[styles.bannerTitle, { color: colors.text }]}>{t('lifeMemory.keyInsights', { count: memories.length })}</Text>
             <Text style={[styles.bannerText, { color: colors.textSecondary }]}>
-              Analyzed from your recent activity
+              {t('lifeMemory.analyzedFrom')}
             </Text>
           </View>
         </LinearGradient>

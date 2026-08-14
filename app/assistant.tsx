@@ -27,6 +27,7 @@ import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 import { apiRequest } from '@/lib/query-client';
 import { CATEGORIES, CategoryType, getMonthlySpending } from '@/lib/data';
+import { useTranslation } from 'react-i18next';
 
 interface Message {
   id: string;
@@ -43,6 +44,7 @@ interface AnalysisCard {
 }
 
 function buildLocalAssistantReply(
+  t: (key: string, opts?: any) => string,
   query: string,
   monthlySpend: number,
   monthlyBudget: number,
@@ -54,27 +56,27 @@ function buildLocalAssistantReply(
   const budgetUsedPct = monthlyBudget > 0 ? Math.round((monthlySpend / monthlyBudget) * 100) : 0;
 
   if (q.includes('budget') || q.includes('afford') || q.includes('buy')) {
-    return `Budget check: You used about ${budgetUsedPct}% of your monthly budget. Remaining is ${budgetLeft.toLocaleString('en-IN')}. Keep bills due (${billsDue}) in mind before big purchases.`;
+    return t('assistant.replyBudget', { pct: budgetUsedPct, remaining: budgetLeft.toLocaleString('en-IN'), billsDue });
   }
   if (q.includes('merchant') || q.includes('where')) {
     return topMerchant
-      ? `Your top merchant this period is ${topMerchant}. We can reduce spend there with a weekly cap.`
-      : 'I do not have enough merchant data yet. Add a few more transactions and ask again.';
+      ? t('assistant.replyMerchant', { merchant: topMerchant })
+      : t('assistant.replyNoMerchant');
   }
   if (q.includes('saving') || q.includes('savings')) {
-    return `You currently have about ${budgetLeft.toLocaleString('en-IN')} left from budget. Set aside a fixed percentage every week to improve savings consistency.`;
+    return t('assistant.replySavings', { remaining: budgetLeft.toLocaleString('en-IN') });
   }
 
-  return `Quick summary: spent ${monthlySpend.toLocaleString('en-IN')} this month, ${billsDue} bill reminders due, and ${budgetLeft.toLocaleString('en-IN')} budget left.`;
+  return t('assistant.replySummary', { spend: monthlySpend.toLocaleString('en-IN'), billsDue, remaining: budgetLeft.toLocaleString('en-IN') });
 }
 
 const QUICK_CHIPS = [
-  { label: 'Can I buy?', query: 'afford' },
-  { label: 'Food spending', query: 'food' },
-  { label: 'Savings status', query: 'savings' },
-  { label: 'Spending trends', query: 'trends' },
-  { label: 'Top merchants', query: 'merchants' },
-  { label: 'Budget check', query: 'budget' },
+  { key: 'canIBuy', query: 'afford' },
+  { key: 'foodSpending', query: 'food' },
+  { key: 'savingsStatus', query: 'savings' },
+  { key: 'spendingTrends', query: 'trends' },
+  { key: 'topMerchants', query: 'merchants' },
+  { key: 'budgetCheck', query: 'budget' },
 ];
 
 export default function AssistantScreen() {
@@ -85,10 +87,11 @@ export default function AssistantScreen() {
   const { token } = useAuth();
   const { checkLimit, incrementUsage } = useSubscription();
   const { presentPaywall } = usePaywall();
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
-      text: 'Hi! I\'m your LifeWise Assistant. I can help you make smarter financial decisions. Ask me anything about your spending!',
+      text: t('assistant.greeting'),
       isUser: false,
     },
   ]);
@@ -163,7 +166,7 @@ export default function AssistantScreen() {
         const replyText: string =
           typeof data.reply === 'string'
             ? data.reply
-            : 'Sorry, I could not generate a response right now.';
+            : t('assistant.replyFailed');
 
         const botMsg: Message = {
           id: (Date.now() + 1).toString(),
@@ -176,7 +179,7 @@ export default function AssistantScreen() {
         console.error('Assistant error', e);
         const billsDue = bills.filter((b) => !b.isPaid && b.status !== 'paid').length;
         const topMerchant = merchantTotals.length > 0 ? merchantTotals[0][0] : null;
-        const fallback = buildLocalAssistantReply(query, monthlySpend, monthlyBudget, billsDue, topMerchant);
+        const fallback = buildLocalAssistantReply(t, query, monthlySpend, monthlyBudget, billsDue, topMerchant);
         const errorMsg: Message = {
           id: (Date.now() + 2).toString(),
           text: fallback,
@@ -191,7 +194,7 @@ export default function AssistantScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 120);
     },
-    [inputText, token, messages, bills, merchantTotals, monthlySpend, monthlyBudget, isTyping, checkLimit, incrementUsage, presentPaywall],
+    [inputText, token, messages, bills, merchantTotals, monthlySpend, monthlyBudget, isTyping, checkLimit, incrementUsage, presentPaywall, t],
   );
 
   const handleBack = () => {
@@ -245,8 +248,8 @@ export default function AssistantScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Decision Assistant</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>AI-powered insights</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('assistant.title')}</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textTertiary }]}>{t('assistant.subtitle')}</Text>
         </View>
         <View style={{ width: 24 }} />
       </View>
@@ -260,15 +263,15 @@ export default function AssistantScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.chipsSection}>
-            <Text style={[styles.chipsSectionTitle, { color: colors.textTertiary }]}>Quick questions</Text>
+            <Text style={[styles.chipsSectionTitle, { color: colors.textTertiary }]}>{t('assistant.quickQuestions')}</Text>
             <View style={styles.chipsRow}>
               {QUICK_CHIPS.map(chip => (
                 <Pressable
                   key={chip.query}
-                  onPress={() => handleSend(chip.label)}
+                  onPress={() => handleSend(t(`assistant.chip.${chip.key}`))}
                   style={[styles.quickChip, { backgroundColor: colors.card, borderColor: colors.border }]}
                 >
-                  <Text style={[styles.quickChipText, { color: colors.accent }]}>{chip.label}</Text>
+                  <Text style={[styles.quickChipText, { color: colors.accent }]}>{t(`assistant.chip.${chip.key}`)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -282,7 +285,7 @@ export default function AssistantScreen() {
             <Ionicons name="sparkles" size={16} color={colors.accent} />
           </View>
           <View style={[styles.msgBubble, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
-            <Text style={[styles.msgText, { color: colors.textSecondary }]}>Assistant is typing…</Text>
+            <Text style={[styles.msgText, { color: colors.textSecondary }]}>{t('assistant.typing')}</Text>
           </View>
         </View>
       )}
@@ -292,7 +295,7 @@ export default function AssistantScreen() {
           style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
-          placeholder="Ask about your finances..."
+          placeholder={t('assistant.inputPlaceholder')}
           placeholderTextColor={colors.textTertiary}
           onSubmitEditing={() => handleSend()}
           returnKeyType="send"

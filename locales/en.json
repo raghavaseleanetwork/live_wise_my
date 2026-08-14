@@ -1708,5 +1708,111 @@
     "closedBanner": "This ticket has been resolved and closed.",
     "adminTyping": "Admin is typing...",
     "messagePlaceholder": "Type your message..."
+  },
+  "tabs": {
+    "home": "Home",
+    "reminders": "Reminders",
+    "report": "Report"
+  },
+  "assistant": {
+    "title": "Decision Assistant",
+    "subtitle": "AI-powered insights",
+    "greeting": "Hi! I'm your LifeWise Assistant. I can help you make smarter financial decisions. Ask me anything about your spending!",
+    "quickQuestions": "Quick questions",
+    "chip": {
+      "canIBuy": "Can I buy?",
+      "foodSpending": "Food spending",
+      "savingsStatus": "Savings status",
+      "spendingTrends": "Spending trends",
+      "topMerchants": "Top merchants",
+      "budgetCheck": "Budget check"
+    },
+    "typing": "Assistant is typing…",
+    "inputPlaceholder": "Ask about your finances...",
+    "replyFailed": "Sorry, I could not generate a response right now.",
+    "replyBudget": "Budget check: You used about {{pct}}% of your monthly budget. Remaining is {{remaining}}. Keep bills due ({{billsDue}}) in mind before big purchases.",
+    "replyMerchant": "Your top merchant this period is {{merchant}}. We can reduce spend there with a weekly cap.",
+    "replyNoMerchant": "I do not have enough merchant data yet. Add a few more transactions and ask again.",
+    "replySavings": "You currently have about {{remaining}} left from budget. Set aside a fixed percentage every week to improve savings consistency.",
+    "replySummary": "Quick summary: spent {{spend}} this month, {{billsDue}} bill reminders due, and {{remaining}} budget left."
+  },
+  "lifeMemory": {
+    "title": "Life Memory",
+    "subtitle": "Personal Insights & Patterns",
+    "keyInsights_one": "{{count}} Key Insight",
+    "keyInsights_other": "{{count}} Key Insights",
+    "analyzedFrom": "Analyzed from your recent activity",
+    "days": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "tag": {
+      "pattern": "Pattern",
+      "spending": "Spending",
+      "recurring": "Recurring",
+      "wealth": "Wealth",
+      "lifestyle": "Lifestyle",
+      "frequented": "Frequented",
+      "efficiency": "Efficiency"
+    },
+    "card": {
+      "spendingRhythm": {
+        "title": "Spending Rhythm",
+        "insight": "Your peak spending day is {{day}}. Typically, you spend {{amount}} on those days."
+      },
+      "primaryCategory": {
+        "title": "Primary Category",
+        "insight": "{{category}} leads your expenses at {{amount}} this month."
+      },
+      "subscriptionTracker": {
+        "title": "Subscription Tracker",
+        "insight_one": "Tracking {{count}} recurring service. Estimated yearly commitment: {{amount}}.",
+        "insight_other": "Tracking {{count}} recurring services. Estimated yearly commitment: {{amount}}."
+      },
+      "financialMomentum": {
+        "title": "Financial Momentum",
+        "insightUp": "Expenses rose by {{pct}}% this week. A quick review might help!",
+        "insightDown": "Excellent progress! Your spending decreased by {{pct}}% this week."
+      },
+      "lateNightHabits": {
+        "title": "Late-Night Habits",
+        "insight_one": "Noted {{count}} late-night order. Monthly total: {{amount}}.",
+        "insight_other": "Noted {{count}} late-night orders. Monthly total: {{amount}}."
+      },
+      "topDestination": {
+        "title": "Top Destination",
+        "insight_one": "You frequent {{merchant}} regularly—visited {{count}} time this month.",
+        "insight_other": "You frequent {{merchant}} regularly—visited {{count}} times this month."
+      },
+      "smartOptimization": {
+        "title": "Smart Optimization",
+        "insight_one": "Detected {{count}} optimization opportunity. Potential annual savings: {{amount}}.",
+        "insight_other": "Detected {{count}} optimization opportunities. Potential annual savings: {{amount}}."
+      }
+    }
+  },
+  "caregiverInvites": {
+    "title": "Caregiver Invites",
+    "loadError": "Couldn't load invites right now. Pull to refresh or try again in a moment.",
+    "emptyTitle": "No pending invites",
+    "emptyDesc": "When someone adds you as a caregiver for a family member, it'll show up here.",
+    "invitedBy": "Invited by {{name}} ({{email}})",
+    "decline": "Decline",
+    "accept": "Accept",
+    "connectedTitle": "Connected",
+    "connectedMessage": "You'll now receive reminders and alerts for {{memberName}}.",
+    "couldNotAcceptTitle": "Could not accept",
+    "couldNotDeclineTitle": "Could not decline",
+    "tryAgain": "Please try again."
+  },
+  "notFound": {
+    "oops": "Oops!",
+    "doesNotExist": "This screen doesn't exist.",
+    "goHome": "Go to home screen!"
   }
 }

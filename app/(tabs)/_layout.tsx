@@ -5,9 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/lib/theme-context";
+import { useTranslation } from "react-i18next";
 
 function ClassicTabLayout() {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
@@ -70,7 +72,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tabs.home"),
           tabBarIcon: ({ focused }) => (
             <View style={[styles.tabItem, focused && styles.tabItemActive]}>
               <Ionicons
@@ -85,7 +87,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="family"
         options={{
-          title: "Family Hub",
+          title: t("family.title"),
           tabBarIcon: ({ focused }) => (
             <View style={[styles.tabItem, focused && styles.tabItemActive]}>
               <Ionicons
@@ -101,7 +103,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="bills"
         options={{
-          title: "Reminders",
+          title: t("tabs.reminders"),
           tabBarIcon: ({ focused }) => (
             <View style={[styles.tabItem, focused && styles.tabItemActive]}>
               <Ionicons
@@ -117,7 +119,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: "Report",
+          title: t("tabs.report"),
           tabBarIcon: ({ focused }) => (
             <View style={[styles.tabItem, focused && styles.tabItemActive]}>
               <Ionicons
@@ -133,7 +135,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: t("settings.title"),
           tabBarIcon: ({ focused }) => (
             <View style={[styles.tabItem, focused && styles.tabItemActive]}>
               <Ionicons
