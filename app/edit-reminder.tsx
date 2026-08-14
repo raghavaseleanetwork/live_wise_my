@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useExpenses } from '@/lib/expense-context';
@@ -33,16 +34,16 @@ import {
 import { getIntentPolicy, getReminderIntentFromBill } from '@/lib/reminder-intent';
 import CategoryIcon from '@/components/CategoryIcon';
 
-const CATEGORY_OPTIONS: { key: CategoryType; label: string }[] = [
-  { key: 'bills', label: 'Bills & Utilities' },
-  { key: 'entertainment', label: 'Entertainment' },
-  { key: 'food', label: 'Food & Dining' },
-  { key: 'health', label: 'Healthcare' },
-  { key: 'shopping', label: 'Shopping' },
-  { key: 'education', label: 'Education' },
-  { key: 'investment', label: 'Investment' },
-  { key: 'transport', label: 'Transport' },
-  { key: 'others', label: 'Others' },
+const CATEGORY_OPTIONS: { key: CategoryType; labelKey: string }[] = [
+  { key: 'bills', labelKey: 'editReminder.categoryBills' },
+  { key: 'entertainment', labelKey: 'editReminder.categoryEntertainment' },
+  { key: 'food', labelKey: 'editReminder.categoryFood' },
+  { key: 'health', labelKey: 'editReminder.categoryHealth' },
+  { key: 'shopping', labelKey: 'editReminder.categoryShopping' },
+  { key: 'education', labelKey: 'editReminder.categoryEducation' },
+  { key: 'investment', labelKey: 'editReminder.categoryInvestment' },
+  { key: 'transport', labelKey: 'editReminder.categoryTransport' },
+  { key: 'others', labelKey: 'editReminder.categoryOthers' },
 ];
 
 export default function EditReminderScreen() {
@@ -54,6 +55,7 @@ export default function EditReminderScreen() {
   const { formatAmount, convertForDisplay, convertForStorage, symbol } = useCurrency();
   const { checkLimit } = useSubscription();
   const { presentPaywall } = usePaywall();
+  const { t } = useTranslation();
 
   // Find the bill if editing
   const existingBill = id ? bills.find(b => b.id === id) : null;
@@ -88,15 +90,15 @@ export default function EditReminderScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError('Please enter a name');
+      setError(t('editReminder.errorEnterName'));
       return;
     }
     if (!category) {
-      setError('Please select a category');
+      setError(t('editReminder.errorSelectCategory'));
       return;
     }
     if (!repeatType) {
-      setError('Please select how often this repeats');
+      setError(t('editReminder.errorSelectRepeat'));
       return;
     }
 
@@ -151,7 +153,7 @@ export default function EditReminderScreen() {
                 <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
               </Pressable>
               <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>
-                {existingBill ? 'Edit Reminder' : 'New Reminder'}
+                {existingBill ? t('editReminder.editTitle') : t('editReminder.newTitle')}
               </Text>
               <View style={{ width: 40 }} />
             </View>
@@ -161,7 +163,7 @@ export default function EditReminderScreen() {
                 style={[styles.nameInput, { color: '#FFFFFF', writingDirection: 'ltr' }]}
                 value={name}
                 onChangeText={setName}
-                placeholder="Name of Reminder"
+                placeholder={t('editReminder.namePlaceholder')}
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 autoFocus={!existingBill}
                 textAlign="center"
@@ -188,7 +190,7 @@ export default function EditReminderScreen() {
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.fieldRow}>
                 <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('editReminder.amount')}</Text>
                   <View style={styles.amountInputContainer}>
                     <Text style={[styles.currencySymbol, { color: colors.text }]}>{symbol}</Text>
                     <TextInput
@@ -203,7 +205,7 @@ export default function EditReminderScreen() {
                 </View>
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
                 <Pressable onPress={() => setShowDatePicker(true)} style={styles.field}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Due Date</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('editReminder.dueDate')}</Text>
                   <Text style={[styles.valueText, { color: colors.text }]}>
                     {dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                   </Text>
@@ -214,14 +216,14 @@ export default function EditReminderScreen() {
 
               <View style={styles.fieldRow}>
                 <Pressable onPress={() => setShowTimePicker(true)} style={styles.field}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Alert Time</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('editReminder.alertTime')}</Text>
                   <Text style={[styles.valueText, { color: colors.text }]}>
                     {dueDate.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
                   </Text>
                 </Pressable>
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
                 <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Icon</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t('editReminder.icon')}</Text>
                   <Pressable onPress={() => setShowIconPicker(!showIconPicker)} style={styles.iconSelection}>
                     <Ionicons name={selectedIcon as any} size={22} color={colors.accent} />
                     <Ionicons name="chevron-down" size={14} color={colors.textTertiary} style={{ marginLeft: 6 }} />
@@ -245,7 +247,7 @@ export default function EditReminderScreen() {
             )}
 
             {/* Repeat Selection */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Recurrence</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('editReminder.recurrence')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.repeatScroll}>
               {REPEAT_OPTIONS.map(opt => (
                 <Pressable
@@ -270,7 +272,7 @@ export default function EditReminderScreen() {
             </ScrollView>
 
             {/* Category Grid */}
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Category</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('editReminder.category')}</Text>
             <View style={styles.categoryGrid}>
               {CATEGORY_OPTIONS.map(opt => {
                 const isSelected = category === opt.key;
@@ -280,17 +282,17 @@ export default function EditReminderScreen() {
                     key={opt.key}
                     onPress={() => setCategory(opt.key)}
                     style={[
-                      styles.categoryCard, 
+                      styles.categoryCard,
                       { backgroundColor: colors.card, borderColor: colors.border },
                       isSelected && { borderColor: catColor, backgroundColor: catColor + '10' }
                     ]}
                   >
                     <CategoryIcon category={opt.key} size={24} color={isSelected ? catColor : colors.textTertiary} />
-                    <Text 
+                    <Text
                       style={[styles.categoryLabel, { color: colors.textSecondary }, isSelected && { color: catColor, fontFamily: 'Inter_600SemiBold' }]}
                       numberOfLines={1}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </Text>
                   </Pressable>
                 );
@@ -304,7 +306,7 @@ export default function EditReminderScreen() {
           <Pressable onPress={handleSave} style={[styles.saveBtn, { backgroundColor: colors.accent }]}>
             <View style={styles.saveGradient}>
               <Ionicons name="checkmark-circle" size={24} color="#FFF" />
-              <Text style={styles.saveBtnText}>Save Reminder</Text>
+              <Text style={styles.saveBtnText}>{t('editReminder.saveReminder')}</Text>
             </View>
           </Pressable>
         </View>
@@ -315,8 +317,8 @@ export default function EditReminderScreen() {
             {(repeatType === 'weekly' || repeatType === 'monthly') && Platform.OS === 'ios' && (
               <Text style={[styles.datePickerHint, { color: colors.textSecondary }]}>
                 {repeatType === 'weekly'
-                  ? 'Choose the day of the week this repeats on'
-                  : 'Choose the date of the month this repeats on'}
+                  ? t('editReminder.hintWeekly')
+                  : t('editReminder.hintMonthly')}
               </Text>
             )}
             <DateTimePicker

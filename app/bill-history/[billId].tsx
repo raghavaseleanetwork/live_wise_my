@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { useExpenses } from '@/lib/expense-context';
 import { useAuth } from '@/lib/auth-context';
@@ -39,6 +40,7 @@ export default function BillHistoryScreen() {
   const { formatAmount } = useCurrency();
   const { token } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const bill = bills.find(r => r.id === billId);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,8 +92,8 @@ export default function BillHistoryScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
         <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Payment History</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{bill?.name || 'Bill Reminder'}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('billHistory.title')}</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{bill?.name || t('billHistory.billReminderFallback')}</Text>
         </View>
       </View>
 
@@ -106,8 +108,8 @@ export default function BillHistoryScreen() {
             <View style={[styles.emptyIconWrap, { backgroundColor: colors.card }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No History Yet</Text>
-            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>Actions like paying or snoozing this bill will appear here.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('billHistory.emptyTitle')}</Text>
+            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>{t('billHistory.emptyDesc')}</Text>
           </View>
         ) : (
           <View style={styles.timelineContainer}>
@@ -133,7 +135,7 @@ export default function BillHistoryScreen() {
                 {/* Content Card */}
                 <View style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={styles.cardHeader}>
-                    <Text style={[styles.actionText, { color: getActionColor(item.action).text }]}>{item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}</Text>
+                    <Text style={[styles.actionText, { color: getActionColor(item.action).text }]}>{getActionLabel(item.action, t)}</Text>
                     <Text style={[styles.dateText, { color: colors.textTertiary }]}>
                       {new Date(item.date).toLocaleDateString('en-IN', {
                         day: 'numeric',
@@ -163,7 +165,7 @@ export default function BillHistoryScreen() {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={[styles.infoBox, { backgroundColor: colors.accentDim }]}>
           <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
-          <Text style={[styles.footerText, { color: colors.accent }]}>Secure Audit Trail - LifeWise Intelligence</Text>
+          <Text style={[styles.footerText, { color: colors.accent }]}>{t('billHistory.secureAuditTrail')}</Text>
         </View>
       </View>
     </View>
@@ -187,6 +189,16 @@ function getActionColor(action: string) {
     case 'cancelled': return { bg: '#FEE2E2', text: '#EF4444' };
     case 'restored': return { bg: '#E0F2FE', text: '#0EA5E9' };
     default: return { bg: '#F5F3FF', text: '#7C3AED' };
+  }
+}
+
+function getActionLabel(action: string, t: (key: string) => string): string {
+  switch (action.toLowerCase()) {
+    case 'paid': return t('billHistory.actionPaid');
+    case 'snoozed': return t('billHistory.actionSnoozed');
+    case 'cancelled': return t('billHistory.actionCancelled');
+    case 'restored': return t('billHistory.actionRestored');
+    default: return action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
   }
 }
 

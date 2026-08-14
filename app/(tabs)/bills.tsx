@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import Colors, { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -52,19 +53,19 @@ type FilterType = ReminderIntent;
 /** The two switchable lists at the top of the screen. */
 type SectionKey = 'today' | 'upcoming';
 
-const FILTER_TABS: { key: FilterType; label: string; icon: string }[] = [
-  { key: 'all', label: 'All', icon: 'apps' },
-  { key: 'bills', label: 'Bills', icon: 'receipt' },
-  { key: 'health', label: 'Health', icon: 'medkit' },
-  { key: 'family', label: 'Family', icon: 'people' },
-  { key: 'work', label: 'Work', icon: 'newspaper' },
-  { key: 'tasks', label: 'Tasks', icon: 'shield-checkmark' },
-  { key: 'subscriptions', label: 'Subs', icon: 'refresh' },
-  { key: 'finance', label: 'Finance', icon: 'trending-up' },
-  { key: 'habits', label: 'Habits', icon: 'water' },
-  { key: 'travel', label: 'Travel', icon: 'globe' },
-  { key: 'events', label: 'Events', icon: 'film' },
-  { key: 'custom', label: 'Custom', icon: 'create' },
+const FILTER_TABS: { key: FilterType; labelKey: string; icon: string }[] = [
+  { key: 'all', labelKey: 'bills.filterAll', icon: 'apps' },
+  { key: 'bills', labelKey: 'bills.filterBills', icon: 'receipt' },
+  { key: 'health', labelKey: 'bills.filterHealth', icon: 'medkit' },
+  { key: 'family', labelKey: 'bills.filterFamily', icon: 'people' },
+  { key: 'work', labelKey: 'bills.filterWork', icon: 'newspaper' },
+  { key: 'tasks', labelKey: 'bills.filterTasks', icon: 'shield-checkmark' },
+  { key: 'subscriptions', labelKey: 'bills.filterSubs', icon: 'refresh' },
+  { key: 'finance', labelKey: 'bills.filterFinance', icon: 'trending-up' },
+  { key: 'habits', labelKey: 'bills.filterHabits', icon: 'water' },
+  { key: 'travel', labelKey: 'bills.filterTravel', icon: 'globe' },
+  { key: 'events', labelKey: 'bills.filterEvents', icon: 'film' },
+  { key: 'custom', labelKey: 'bills.filterCustom', icon: 'create' },
 ];
 
 /**
@@ -127,6 +128,7 @@ function ReminderCard({
   const { colors, isDark } = useTheme();
   const { formatAmount } = useCurrency();
   const router = useRouter();
+  const { t } = useTranslation();
   const [showActions, setShowActions] = useState(false);
   const effectiveDate = (bill.status === 'snoozed' && bill.snoozedUntil) ? bill.snoozedUntil : bill.dueDate;
   const daysLeft = getDaysUntil(effectiveDate);
@@ -142,28 +144,28 @@ function ReminderCard({
   const intentMeta = (() => {
     switch (intent) {
       case 'bills':
-        return { label: 'Bills', color: '#F59E0B' };
+        return { label: t('bills.intentBills'), color: '#F59E0B' };
       case 'subscriptions':
-        return { label: 'Subscriptions', color: '#3B82F6' };
+        return { label: t('bills.intentSubscriptions'), color: '#3B82F6' };
       case 'health':
-        return { label: 'Health', color: '#10B981' };
+        return { label: t('bills.intentHealth'), color: '#10B981' };
       case 'habits':
-        return { label: 'Habits', color: '#22C55E' };
+        return { label: t('bills.intentHabits'), color: '#22C55E' };
       case 'family':
-        return { label: 'Family', color: '#EC4899' };
+        return { label: t('bills.intentFamily'), color: '#EC4899' };
       case 'work':
-        return { label: 'Work', color: '#3B82F6' };
+        return { label: t('bills.intentWork'), color: '#3B82F6' };
       case 'tasks':
-        return { label: 'Tasks', color: '#F59E0B' };
+        return { label: t('bills.intentTasks'), color: '#F59E0B' };
       case 'finance':
-        return { label: 'Finance', color: '#4F46E5' };
+        return { label: t('bills.intentFinance'), color: '#4F46E5' };
       case 'travel':
-        return { label: 'Travel', color: '#60A5FA' };
+        return { label: t('bills.intentTravel'), color: '#60A5FA' };
       case 'events':
-        return { label: 'Events', color: '#6366F1' };
+        return { label: t('bills.intentEvents'), color: '#6366F1' };
       case 'custom':
       default:
-        return { label: 'Custom', color: '#4F46E5' };
+        return { label: t('bills.intentCustom'), color: '#4F46E5' };
     }
   })();
 
@@ -192,7 +194,7 @@ function ReminderCard({
               </View>
               {policy.showDue ? (
                 <Text style={[styles.reminderDue, { color: urgencyColor }, isSeniorMode && { fontSize: 15 }]}>
-                  {isPaid ? 'Paid' : isSnoozed ? 'Snoozed' : daysLeft <= 0 ? 'Overdue' : daysLeft === 1 ? 'Due tomorrow' : `Due in ${daysLeft} days`}
+                  {isPaid ? t('bills.statusPaid') : isSnoozed ? t('bills.statusSnoozed') : daysLeft <= 0 ? t('bills.statusOverdue') : daysLeft === 1 ? t('bills.statusDueTomorrow') : t('bills.statusDueInDays', { count: daysLeft })}
                   <Text style={[styles.reminderDate, { color: colors.textTertiary }, isSeniorMode && { fontSize: 14 }]}>
                     {'  '}
                     {dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -261,7 +263,7 @@ function ReminderCard({
             <View style={[styles.snoozeInfo, { backgroundColor: colors.accentBlueDim }]}>
               <Ionicons name="time" size={12} color={colors.accentBlue} />
               <Text style={[styles.snoozeInfoText, { color: colors.accentBlue }, isSeniorMode && { fontSize: 13 }]}>
-                Snoozed until {new Date(bill.snoozedUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                {t('bills.snoozedUntil', { date: new Date(bill.snoozedUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) })}
               </Text>
             </View>
           )}
@@ -275,17 +277,18 @@ function ReminderCard({
 
 function SnoozeModal({ visible, onClose, onSnooze }: { visible: boolean; onClose: () => void; onSnooze: (days: number) => void }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const SNOOZE_OPTIONS = [
-    { days: 1, label: '1 Day', icon: 'sunny' as const },
-    { days: 2, label: '2 Days', icon: 'partly-sunny' as const },
-    { days: 3, label: '3 Days', icon: 'cloud' as const },
-    { days: 7, label: '1 Week', icon: 'calendar' as const },
+    { days: 1, label: t('bills.snooze1Day'), icon: 'sunny' as const },
+    { days: 2, label: t('bills.snooze2Days'), icon: 'partly-sunny' as const },
+    { days: 3, label: t('bills.snooze3Days'), icon: 'cloud' as const },
+    { days: 7, label: t('bills.snooze1Week'), icon: 'calendar' as const },
   ];
 
   return (
     <CustomModal visible={visible} onClose={onClose}>
-      <Text style={[styles.snoozeTitle, { color: colors.text }]}>Snooze Reminder</Text>
-      <Text style={[styles.snoozeSubtitle, { color: colors.textSecondary }]}>Remind me again in...</Text>
+      <Text style={[styles.snoozeTitle, { color: colors.text }]}>{t('bills.snoozeModalTitle')}</Text>
+      <Text style={[styles.snoozeSubtitle, { color: colors.textSecondary }]}>{t('bills.snoozeModalSubtitle')}</Text>
       {SNOOZE_OPTIONS.map(opt => (
         <Pressable
           key={opt.days}
@@ -315,6 +318,7 @@ function SettingsModal({
   onSave: (s: { soundEnabled: boolean; vibrationEnabled: boolean; defaultReminderDays: number[] }) => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [sound, setSound] = useState(settings.soundEnabled);
   const [vibration, setVibration] = useState(settings.vibrationEnabled);
@@ -336,11 +340,11 @@ function SettingsModal({
           CustomModal's old 32px top padding; that padding is now 20, so the
           offset would pull the title under the close button. */}
       <View style={styles.modalHeader}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Reminder Settings</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('bills.settingsModalTitle')}</Text>
       </View>
 
       <View>
-        <Text style={[styles.settingsSectionTitle, { color: colors.textSecondary }]}>Notify me before due date</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.textSecondary }]}>{t('bills.notifyBeforeDue')}</Text>
         <View style={styles.dayChipsRow}>
           {[7, 3, 2, 1, 0].map(d => (
             <Pressable
@@ -357,7 +361,7 @@ function SettingsModal({
                 numberOfLines={1}
                 style={[styles.chipText, { color: colors.textSecondary }, days.includes(d) && { color: colors.accent, fontFamily: 'Inter_600SemiBold' }]}
               >
-                {d === 0 ? 'Due day' : `${d}d before`}
+                {d === 0 ? t('bills.dueDay') : t('bills.daysBeforeCount', { count: d })}
               </Text>
             </Pressable>
           ))}
@@ -368,7 +372,7 @@ function SettingsModal({
             <View style={[styles.settingIconWrap, { backgroundColor: colors.accentDim }]}>
               <Ionicons name="volume-high" size={20} color={colors.accent} />
             </View>
-            <Text style={[styles.settingLabel, { color: colors.text }]}>Sound Notifications</Text>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>{t('bills.soundNotifications')}</Text>
           </View>
           <Switch
             value={sound}
@@ -383,7 +387,7 @@ function SettingsModal({
             <View style={[styles.settingIconWrap, { backgroundColor: colors.accentBlueDim }]}>
               <Ionicons name="pulse-outline" size={20} color={colors.accentBlue} />
             </View>
-            <Text style={[styles.settingLabel, { color: colors.text }]}>Haptic Feedback</Text>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>{t('bills.hapticFeedback')}</Text>
           </View>
           <Switch
             value={vibration}
@@ -405,7 +409,7 @@ function SettingsModal({
           style={styles.saveBtnGradient}
         >
           <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-          <Text style={[styles.saveBtnText, { color: '#FFFFFF' }]}>Save Settings</Text>
+          <Text style={[styles.saveBtnText, { color: '#FFFFFF' }]}>{t('bills.saveSettings')}</Text>
         </LinearGradient>
       </Pressable>
     </CustomModal>
@@ -417,6 +421,7 @@ export default function BillsScreen() {
   const { formatAmount, formatCompactAmount } = useCurrency();
   const { isSeniorMode } = useSeniorMode();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
 
   const insets = useSafeAreaInsets();
   const tabBarInset = useTabBarContentInset();
@@ -468,8 +473,9 @@ export default function BillsScreen() {
   // like missing data.
   const activeCategoryLabel = useMemo(() => {
     if (activeFilter === 'all') return undefined;
-    return FILTER_TABS.find((t) => t.key === activeFilter)?.label;
-  }, [activeFilter]);
+    const tab = FILTER_TABS.find((tab) => tab.key === activeFilter);
+    return tab ? t(tab.labelKey) : undefined;
+  }, [activeFilter, t]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
@@ -546,16 +552,15 @@ export default function BillsScreen() {
     // it here would delete nothing and silently reappear on the next refresh.
     if (isFamilyReminderId(billId)) {
       showAlert({
-        title: 'Managed in Family Hub',
-        message:
-          'This reminder comes from a Family Hub record, so it can’t be removed from here.',
+        title: t('bills.managedInFamilyHubTitle'),
+        message: t('bills.managedInFamilyHubMessage'),
         type: 'info',
         buttons: [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
             // Telling the user where to go without taking them there is a dead
             // end — the detail screen carries the Family Hub hand-off.
-            text: 'View Reminder',
+            text: t('bills.viewReminder'),
             onPress: () =>
               router.push({
                 pathname: '/family-reminder/[reminderId]',
@@ -567,13 +572,13 @@ export default function BillsScreen() {
       return;
     }
     showAlert({
-      title: 'Delete Reminder',
-      message: 'Are you sure you want to delete this reminder? This action cannot be undone.',
+      title: t('bills.deleteReminderTitle'),
+      message: t('bills.deleteReminderMessage'),
       type: 'confirm',
       buttons: [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => deleteReminder(billId),
         },
@@ -638,7 +643,7 @@ export default function BillsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <PremiumLoader size={80} text="Loading Reminders..." />
+        <PremiumLoader size={80} text={t('bills.loadingReminders')} />
       </View>
     );
   }
@@ -655,8 +660,8 @@ export default function BillsScreen() {
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.duration(500) : undefined}>
           <View style={styles.headerRow}>
             <View>
-              <Text style={[styles.screenTitle, { color: colors.text }]}>Reminders</Text>
-              <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>Bills, subscriptions & payments</Text>
+              <Text style={[styles.screenTitle, { color: colors.text }]}>{t('bills.screenTitle')}</Text>
+              <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>{t('bills.screenSubtitle')}</Text>
             </View>
             <View style={styles.headerActions}>
               <Pressable
@@ -664,14 +669,14 @@ export default function BillsScreen() {
                 style={[styles.headerIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 testID="settings-btn"
-                accessibilityLabel="Settings"
+                accessibilityLabel={t('bills.settingsA11y')}
               >
                 <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
               </Pressable>
               <Pressable
                 onPress={() => router.push('/edit-reminder')}
                 testID="add-reminder-btn"
-                accessibilityLabel="Add reminder"
+                accessibilityLabel={t('bills.addReminderA11y')}
               >
                 <LinearGradient
                   colors={colors.buttonGradient as unknown as [string, string]}
@@ -695,7 +700,7 @@ export default function BillsScreen() {
           >
             <View style={styles.overviewRow}>
               <View style={styles.overviewStat}>
-                <Text style={[styles.overviewLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 16 }]}>Pending</Text>
+                <Text style={[styles.overviewLabel, { color: colors.textTertiary }, isSeniorMode && { fontSize: 16 }]}>{t('bills.overviewPending')}</Text>
                 <Text 
                   style={[styles.overviewAmount, { color: colors.text }, isSeniorMode && { fontSize: 36 }]}
                   numberOfLines={1}
@@ -706,7 +711,7 @@ export default function BillsScreen() {
               </View>
               <View style={[styles.overviewDivider, { backgroundColor: colors.border }]} />
               <View style={styles.overviewStat}>
-                <Text style={[styles.overviewLabel, { color: colors.textTertiary }]}>Urgent</Text>
+                <Text style={[styles.overviewLabel, { color: colors.textTertiary }]}>{t('bills.overviewUrgent')}</Text>
                 <View style={styles.urgentWrap}>
                   <Text style={[styles.overviewAmountLarge, { color: colors.text }, urgentCount > 0 && { color: colors.danger }]}>
                     {urgentCount}
@@ -718,7 +723,7 @@ export default function BillsScreen() {
               </View>
               <View style={[styles.overviewDivider, { backgroundColor: colors.border }]} />
               <View style={styles.overviewStat}>
-                <Text style={[styles.overviewLabel, { color: colors.textTertiary }]}>Subs</Text>
+                <Text style={[styles.overviewLabel, { color: colors.textTertiary }]}>{t('bills.overviewSubs')}</Text>
                 <Text 
                   style={[styles.overviewAmount, { color: colors.text }]}
                   numberOfLines={1}
@@ -738,7 +743,7 @@ export default function BillsScreen() {
             value={dateRange}
             onChange={setDateRange}
             label={rangeInfo.label}
-            title="Filter Reminders"
+            title={t('bills.filterRemindersTitle')}
             sublabel={activeCategoryLabel}
             onReset={resetFilters}
           />
@@ -778,7 +783,7 @@ export default function BillsScreen() {
                     { color: active ? '#FFFFFF' : colors.textSecondary },
                   ]}
                 >
-                  {cat.label}
+                  {t(cat.labelKey)}
                 </Text>
               </Pressable>
             );
@@ -788,8 +793,8 @@ export default function BillsScreen() {
         {/* Today / Upcoming switcher — only one list renders at a time. */}
         <View style={[styles.segmentWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {([
-            { key: 'today' as SectionKey, label: 'Today', count: todayBills.length },
-            { key: 'upcoming' as SectionKey, label: 'Upcoming', count: upcomingBills.length },
+            { key: 'today' as SectionKey, label: t('bills.segmentToday'), count: todayBills.length },
+            { key: 'upcoming' as SectionKey, label: t('bills.segmentUpcoming'), count: upcomingBills.length },
           ]).map((seg) => {
             const active = activeSection === seg.key;
             return (
@@ -853,7 +858,7 @@ export default function BillsScreen() {
         {paidBills.length > 0 && (
           <>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary, marginTop: 28 }]}>
-              Completed ({paidBills.length})
+              {t('bills.completedCount', { count: paidBills.length })}
             </Text>
             {paidBills.map((bill, idx) => (
               <ReminderCard
@@ -880,16 +885,16 @@ export default function BillsScreen() {
                 <Ionicons name="checkmark-done" size={32} color={colors.accent} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                {activeSection === 'today' ? 'Nothing due today' : 'Nothing upcoming'}
+                {activeSection === 'today' ? t('bills.emptyNothingDueToday') : t('bills.emptyNothingUpcoming')}
               </Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                 {activeSection === 'today'
                   ? upcomingBills.length > 0
-                    ? `You have ${upcomingBills.length} reminder${upcomingBills.length === 1 ? '' : 's'} coming up.`
-                    : 'You’re all caught up.'
+                    ? t('bills.remindersComingUp', { count: upcomingBills.length })
+                    : t('bills.allCaughtUp')
                   : todayBills.length > 0
-                    ? `You have ${todayBills.length} reminder${todayBills.length === 1 ? '' : 's'} due today.`
-                    : 'Nothing scheduled ahead.'}
+                    ? t('bills.remindersDueToday', { count: todayBills.length })
+                    : t('bills.nothingScheduledAhead')}
               </Text>
             </View>
           )}
@@ -901,22 +906,22 @@ export default function BillsScreen() {
             </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>
               {bills.length > 0
-                ? 'Nothing in this range'
+                ? t('bills.emptyNothingInRange')
                 : activeFilter === 'all'
-                  ? 'No reminders yet'
-                  : `No ${activeFilter} reminders`}
+                  ? t('bills.emptyNoRemindersYet')
+                  : t('bills.emptyNoCategoryReminders', { category: activeCategoryLabel ?? activeFilter })}
             </Text>
             {/* When reminders exist but none match, the filter is what is hiding
                 them — "Tap + to add" would send the user to create a duplicate. */}
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               {bills.length === 0
-                ? 'Tap + to add a new reminder'
+                ? t('bills.emptyTapToAdd')
                 : dateRange.filterKey === 'all'
                   ? // Already the widest range, so the category filter is what
                     // is hiding things — telling the user to widen the dates
                     // would send them in circles.
-                    'No reminders match this category.'
-                  : `No reminders due in ${rangeInfo.label}. Try a wider range.`}
+                    t('bills.emptyNoCategoryMatch')
+                  : t('bills.emptyNoRemindersInRange', { range: rangeInfo.label })}
             </Text>
           </View>
         )}

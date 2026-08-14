@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { useCurrency } from '@/lib/currency-context';
@@ -46,6 +47,7 @@ export default function RecurringExpensesScreen() {
   const { formatAmount } = useCurrency();
   const { showAlert } = useAlert();
   const { addTransaction } = useExpenses();
+  const { t } = useTranslation();
 
   const [templates, setTemplates] = useState<RecurringExpense[]>([]);
   const [due, setDue] = useState<DueRecurringExpense[]>([]);
@@ -84,8 +86,8 @@ export default function RecurringExpensesScreen() {
 
       if (!created) {
         showAlert({
-          title: 'Could not save',
-          message: 'The expense was not recorded. Please try again.',
+          title: t('recurringExpenses.couldNotSaveTitle'),
+          message: t('recurringExpenses.couldNotSaveMessage'),
           type: 'error',
         });
         return;
@@ -93,7 +95,7 @@ export default function RecurringExpensesScreen() {
       await markRecurringHandled(token, item.template.id, item.period);
       await refresh();
     },
-    [addTransaction, showAlert, refresh, token],
+    [addTransaction, showAlert, refresh, token, t],
   );
 
   /**
@@ -120,20 +122,20 @@ export default function RecurringExpensesScreen() {
 
       if (!created) {
         showAlert({
-          title: 'Could not save',
-          message: 'The expense was not recorded. Please check your connection and try again.',
+          title: t('recurringExpenses.couldNotSaveTitle'),
+          message: t('recurringExpenses.couldNotSaveConnectionMessage'),
           type: 'error',
         });
         return;
       }
       showAlert({
-        title: 'Expense recorded',
+        title: t('recurringExpenses.expenseRecordedTitle'),
         message: `${formatAmount(template.amount)} · ${template.name}`,
         type: 'success',
       });
       await refresh();
     },
-    [addTransaction, showAlert, formatAmount, refresh],
+    [addTransaction, showAlert, formatAmount, refresh, t],
   );
 
   /** Dismiss this month's occurrence without recording an expense. */
@@ -148,13 +150,13 @@ export default function RecurringExpensesScreen() {
   const handleDelete = useCallback(
     (template: RecurringExpense) => {
       showAlert({
-        title: 'Delete template?',
-        message: `"${template.name}" will stop being offered each month. Expenses already recorded are not affected.`,
+        title: t('recurringExpenses.deleteTemplateTitle'),
+        message: t('recurringExpenses.deleteTemplateMessage', { name: template.name }),
         type: 'warning',
         buttons: [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Delete',
+            text: t('common.delete'),
             style: 'destructive',
             onPress: async () => {
               await deleteRecurringExpense(token, template.id);
@@ -164,7 +166,7 @@ export default function RecurringExpensesScreen() {
         ],
       });
     },
-    [showAlert, refresh, token],
+    [showAlert, refresh, token, t],
   );
 
   return (
@@ -173,7 +175,7 @@ export default function RecurringExpensesScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Recurring Expenses</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('recurringExpenses.headerTitle')}</Text>
         <Pressable onPress={openAddTemplate} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="add" size={24} color={colors.accent} />
         </Pressable>
@@ -190,7 +192,7 @@ export default function RecurringExpensesScreen() {
             {/* Due this month — the actionable part. */}
             {due.length > 0 && (
               <>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Due now</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('recurringExpenses.dueNow')}</Text>
                 {due.map((item) => (
                   <View
                     key={item.template.id}
@@ -214,7 +216,7 @@ export default function RecurringExpensesScreen() {
                           {item.template.name}
                         </Text>
                         <Text style={[styles.dueMeta, { color: colors.textTertiary }]}>
-                          Due {item.dueDate.toLocaleDateString('en-IN')}
+                          {t('recurringExpenses.dueOn', { date: item.dueDate.toLocaleDateString('en-IN') })}
                         </Text>
                       </View>
                       <Money style={[styles.dueAmount, { color: colors.text }]}>
@@ -226,7 +228,7 @@ export default function RecurringExpensesScreen() {
                         onPress={() => handleSkipDue(item)}
                         style={[styles.skipBtn, { borderColor: colors.border }]}
                       >
-                        <Text style={[styles.skipText, { color: colors.textSecondary }]}>Skip</Text>
+                        <Text style={[styles.skipText, { color: colors.textSecondary }]}>{t('recurringExpenses.skip')}</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => handleConfirmDue(item)}
@@ -236,7 +238,7 @@ export default function RecurringExpensesScreen() {
                         {confirmingId === item.template.id ? (
                           <LoadingIndicator size="small" color="#FFFFFF" />
                         ) : (
-                          <Text style={styles.confirmText}>Confirm</Text>
+                          <Text style={styles.confirmText}>{t('recurringExpenses.confirm')}</Text>
                         )}
                       </Pressable>
                     </View>
@@ -246,63 +248,63 @@ export default function RecurringExpensesScreen() {
             )}
 
             <Text style={[styles.sectionTitle, { color: colors.text, marginTop: due.length ? 24 : 0 }]}>
-              Templates
+              {t('recurringExpenses.templates')}
             </Text>
 
             {templates.length === 0 ? (
               <View style={[styles.empty, { borderColor: colors.border }]}>
                 <Ionicons name="repeat" size={30} color={colors.textTertiary} />
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No recurring expenses</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('recurringExpenses.emptyTitle')}</Text>
                 <Text style={[styles.emptyText, { color: colors.textTertiary }]}>
-                  Add rent, EMI or a subscription once and confirm it with one tap each month.
+                  {t('recurringExpenses.emptyText')}
                 </Text>
                 <Pressable
                   onPress={openAddTemplate}
                   style={[styles.emptyBtn, { backgroundColor: colors.accent }]}
                 >
-                  <Text style={styles.emptyBtnText}>Add one</Text>
+                  <Text style={styles.emptyBtnText}>{t('recurringExpenses.addOne')}</Text>
                 </Pressable>
               </View>
             ) : (
-              templates.map((t) => (
+              templates.map((tpl) => (
                 <View
-                  key={t.id}
+                  key={tpl.id}
                   style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}
                 >
-                  <View style={[styles.iconWrap, { backgroundColor: CATEGORIES[t.category].color + '1F' }]}>
+                  <View style={[styles.iconWrap, { backgroundColor: CATEGORIES[tpl.category].color + '1F' }]}>
                     <Ionicons
-                      name={CATEGORIES[t.category].icon as any}
+                      name={CATEGORIES[tpl.category].icon as any}
                       size={18}
-                      color={CATEGORIES[t.category].color}
+                      color={CATEGORIES[tpl.category].color}
                     />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>
-                      {t.name}
+                      {tpl.name}
                     </Text>
                     <Text style={[styles.rowMeta, { color: colors.textTertiary }]}>
-                      Day {t.dayOfMonth} · {CATEGORIES[t.category].label}
+                      {t('recurringExpenses.dayOfMonth', { day: tpl.dayOfMonth })} · {CATEGORIES[tpl.category].label}
                     </Text>
                   </View>
-                  <Money style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(t.amount)}</Money>
+                  <Money style={[styles.rowAmount, { color: colors.text }]}>{formatAmount(tpl.amount)}</Money>
                   {/*
                     Log on demand. "Due now" only lists templates whose day has
                     already passed this month, so without this a template due
                     later is un-actionable and looks broken.
                   */}
                   <Pressable
-                    onPress={() => handleLogNow(t)}
-                    disabled={confirmingId === t.id}
+                    onPress={() => handleLogNow(tpl)}
+                    disabled={confirmingId === tpl.id}
                     hitSlop={8}
                     style={{ marginLeft: 10 }}
                   >
-                    {confirmingId === t.id ? (
+                    {confirmingId === tpl.id ? (
                       <LoadingIndicator size="small" color={colors.accent} />
                     ) : (
                       <Ionicons name="add-circle-outline" size={19} color={colors.accent} />
                     )}
                   </Pressable>
-                  <Pressable onPress={() => handleDelete(t)} hitSlop={8} style={{ marginLeft: 10 }}>
+                  <Pressable onPress={() => handleDelete(tpl)} hitSlop={8} style={{ marginLeft: 10 }}>
                     <Ionicons name="trash-outline" size={17} color={colors.danger} />
                   </Pressable>
                 </View>
@@ -310,8 +312,7 @@ export default function RecurringExpensesScreen() {
             )}
 
             <Text style={[styles.note, { color: colors.textTertiary }]}>
-              Tap + on any template to record it now. Nothing is ever added automatically without
-              your tap.
+              {t('recurringExpenses.noteTapToRecord')}
             </Text>
           </>
         )}

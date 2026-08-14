@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { 
   GestureHandlerRootView, 
   Gesture,
@@ -47,9 +48,9 @@ function timeLabelFromDate(d: Date) {
   return `${hour12}:${mm} ${suffix}`;
 }
 
-function formatRepeat(r: RepeatType) {
+function formatRepeat(r: RepeatType, t: (key: string) => string) {
   const found = REPEAT_OPTIONS.find((x) => x.key === r);
-  return found?.label ?? 'One-time';
+  return found?.label ?? t('billDetails.repeatOneTime');
 }
 
 export default function BillDetailsScreen() {
@@ -67,6 +68,7 @@ export default function BillDetailsScreen() {
   } = useExpenses();
   const { isSeniorMode } = useSeniorMode();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
 
   const bill = useMemo(() => bills.find((b) => b.id === billId), [bills, billId]);
 
@@ -154,7 +156,7 @@ export default function BillDetailsScreen() {
 
   const isPaid = bill ? bill.status === 'paid' || bill.isPaid : false;
   const dueDate = bill ? new Date(bill.dueDate) : null;
-  const repeatLabel = bill ? formatRepeat(bill.repeatType) : '';
+  const repeatLabel = bill ? formatRepeat(bill.repeatType, t) : '';
   const intent = bill ? getReminderIntentFromBill(bill) : 'custom';
   const policy = getIntentPolicy(intent);
 
@@ -164,12 +166,12 @@ export default function BillDetailsScreen() {
   async function onSaveEdit() {
     if (!bill) return;
     if (!tempName.trim()) {
-      setEditError('Name is required');
+      setEditError(t('billDetails.errorNameRequired'));
       return;
     }
     const amountNum = parseFloat(tempAmount);
     if (isNaN(amountNum) || amountNum < 0) {
-      setEditError('Please enter a valid amount');
+      setEditError(t('billDetails.errorInvalidAmount'));
       return;
     }
     setEditError('');
@@ -191,8 +193,8 @@ export default function BillDetailsScreen() {
     editReminder(updated);
 
     scheduleLocalNotification({
-      title: `${updated.name} Due`,
-      body: `₹${updated.amount} is due today.`,
+      title: t('billDetails.notificationDueTitle', { name: updated.name }),
+      body: t('billDetails.notificationDueBody', { amount: updated.amount }),
       data: { type: 'reminder', billId: bill.id },
       triggerAt: nextDue,
     }).catch(() => {});
@@ -215,7 +217,7 @@ export default function BillDetailsScreen() {
     const snoozedUntil = new Date();
     snoozedUntil.setDate(snoozedUntil.getDate() + days);
     scheduleLocalNotification({
-      title: 'Reminder',
+      title: t('billDetails.notificationReminderTitle'),
       body: bill.name,
       data: { type: 'reminder', billId: bill.id },
       triggerAt: snoozedUntil,
@@ -240,7 +242,7 @@ export default function BillDetailsScreen() {
           </Pressable>
         </View>
         <View style={styles.center}>
-          <PremiumLoader text="Loading reminder..." />
+          <PremiumLoader text={t('billDetails.loading')} />
         </View>
       </View>
     );
@@ -248,18 +250,18 @@ export default function BillDetailsScreen() {
 
   const statusLabel =
     bill.status === 'paid'
-      ? 'Done'
+      ? t('billDetails.statusDone')
       : bill.status === 'snoozed'
-        ? 'Snoozed'
+        ? t('billDetails.statusSnoozed')
         : dueDate
-            ? (dueDate.getTime() < Date.now() ? 'Overdue' : 'Upcoming')
+            ? (dueDate.getTime() < Date.now() ? t('billDetails.statusOverdue') : t('billDetails.statusUpcoming'))
           : bill.status === 'cancelled'
-            ? 'Cancelled'
-            : 'Active';
+            ? t('billDetails.statusCancelled')
+            : t('billDetails.statusActive');
 
   const snoozedUntilLabel =
     bill.status === 'snoozed' && bill.snoozedUntil
-      ? `Until ${new Date(bill.snoozedUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+      ? t('billDetails.snoozedUntilLabel', { date: new Date(bill.snoozedUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) })
       : null;
 
   return (
@@ -272,7 +274,7 @@ export default function BillDetailsScreen() {
             <Pressable onPress={() => router.back()} style={[styles.headerBackBtn, isSeniorMode && { width: 50, height: 50, borderRadius: 25 }]}>
               <Ionicons name="chevron-back" size={isSeniorMode ? 32 : 24} color="#FFFFFF" />
             </Pressable>
-            <Text style={[styles.headerTitleMain, isSeniorMode && { fontSize: 22 }]}>Reminder Details</Text>
+            <Text style={[styles.headerTitleMain, isSeniorMode && { fontSize: 22 }]}>{t('billDetails.headerTitle')}</Text>
             <Pressable onPress={() => router.push({ pathname: '/edit-reminder', params: { id: bill.id } })} style={[styles.headerEditBtn, isSeniorMode && { width: 50, height: 50, borderRadius: 25 }]}>
               <Ionicons name="pencil" size={isSeniorMode ? 28 : 20} color="#FFFFFF" />
             </Pressable>
@@ -305,7 +307,7 @@ export default function BillDetailsScreen() {
               <Ionicons name="calendar-outline" size={20} color={colors.accent} />
             </View>
             <View style={styles.infoTextWrap}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }, isSeniorMode && { fontSize: 16 }]}>Due Date</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }, isSeniorMode && { fontSize: 16 }]}>{t('billDetails.dueDate')}</Text>
               <Text style={[styles.infoValue, { color: colors.text }, isSeniorMode && { fontSize: 18 }]}>
                 {dueDate?.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
               </Text>
@@ -317,7 +319,7 @@ export default function BillDetailsScreen() {
               <Ionicons name="repeat-outline" size={20} color={colors.accentMint} />
             </View>
             <View style={styles.infoTextWrap}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Frequency</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{t('billDetails.frequency')}</Text>
               <Text style={[styles.infoValue, { color: colors.text }]}>{repeatLabel}</Text>
             </View>
           </View>
@@ -327,10 +329,10 @@ export default function BillDetailsScreen() {
               <Ionicons name="stats-chart-outline" size={20} color={colors.warning} />
             </View>
             <View style={styles.infoTextWrap}>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Status</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{t('billDetails.status')}</Text>
               <View style={[styles.statusBadge, { backgroundColor: isPaid ? colors.accentMintDim : colors.dangerDim }]}>
                 <Text style={[styles.statusBadgeText, { color: isPaid ? colors.accentMint : colors.danger }]}>
-                  {isPaid ? 'Paid' : 'Upcoming'}
+                  {isPaid ? t('billDetails.paid') : t('billDetails.upcoming')}
                 </Text>
               </View>
             </View>
@@ -340,23 +342,23 @@ export default function BillDetailsScreen() {
         {/* Metadata section if available */}
         {(bill.vendorName || bill.billNumber || bill.accountNumber) && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Bill Metadata</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('billDetails.billMetadata')}</Text>
             <View style={[styles.metaCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               {bill.vendorName && (
                 <View style={styles.metaItem}>
-                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Vendor</Text>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>{t('billDetails.vendor')}</Text>
                   <Text style={[styles.metaValue, { color: colors.text }]}>{bill.vendorName}</Text>
                 </View>
               )}
               {bill.billNumber && (
                 <View style={styles.metaItem}>
-                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Bill / Invoice #</Text>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>{t('billDetails.billInvoiceNumber')}</Text>
                   <Text style={[styles.metaValue, { color: colors.text }]}>{bill.billNumber}</Text>
                 </View>
               )}
               {bill.accountNumber && (
                 <View style={styles.metaItem}>
-                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Account #</Text>
+                  <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>{t('billDetails.accountNumber')}</Text>
                   <Text style={[styles.metaValue, { color: colors.text }]}>{bill.accountNumber}</Text>
                 </View>
               )}
@@ -367,10 +369,10 @@ export default function BillDetailsScreen() {
         {/* Smart Insights Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, styles.sectionTitleInRow, { color: colors.text }]}>Smart Insights</Text>
+            <Text style={[styles.sectionTitle, styles.sectionTitleInRow, { color: colors.text }]}>{t('billDetails.smartInsights')}</Text>
             <View style={[styles.aiBadge, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' }]}>
               <Ionicons name="sparkles" size={10} color={colors.accent} />
-              <Text style={[styles.aiBadgeText, { color: colors.accent }]}>AI</Text>
+              <Text style={[styles.aiBadgeText, { color: colors.accent }]}>{t('billDetails.aiBadge')}</Text>
             </View>
           </View>
           <View style={[styles.insightCard, { backgroundColor: colors.accentDim, borderWidth: 1, borderColor: colors.accent + '30' }]}>
@@ -379,9 +381,9 @@ export default function BillDetailsScreen() {
                 <Ionicons name="trending-up-outline" size={24} color={colors.accent} />
               </View>
               <View style={styles.insightContent}>
-                <Text style={[styles.insightTitle, { color: colors.text }]}>Predicted Savings</Text>
+                <Text style={[styles.insightTitle, { color: colors.text }]}>{t('billDetails.predictedSavings')}</Text>
                 <Text style={[styles.insightDesc, { color: colors.textSecondary }]}>
-                  Paying this {repeatLabel.toLowerCase()} reduces late fees by approx. ₹150 yearly.
+                  {t('billDetails.predictedSavingsDesc', { repeat: repeatLabel.toLowerCase() })}
                 </Text>
               </View>
               </View>
@@ -390,14 +392,14 @@ export default function BillDetailsScreen() {
 
         {/* Payment History Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment History</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('billDetails.paymentHistory')}</Text>
           <View style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {loadingHistory ? (
               <PremiumLoader size={40} compact />
             ) : history.length === 0 ? (
               <View style={{ padding: 20, alignItems: 'center' }}>
                 <Text style={{ color: colors.textTertiary, fontFamily: 'Inter_500Medium', fontSize: 13 }}>
-                  No payment history yet.
+                  {t('billDetails.noPaymentHistory')}
                 </Text>
               </View>
             ) : (
@@ -411,7 +413,7 @@ export default function BillDetailsScreen() {
                       {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </Text>
                     <Text style={[styles.historyStatus, { color: getActionColor(item.action).text }]}>
-                      {item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}
+                      {getActionLabel(item.action, t)}
                     </Text>
                   </View>
                   {item.amount ? (
@@ -426,7 +428,7 @@ export default function BillDetailsScreen() {
               style={[styles.viewMoreBtn, isSeniorMode && { paddingVertical: 18 }]}
               onPress={() => router.push({ pathname: '/bill-history/[billId]', params: { billId: bill.id } } as any)}
             >
-              <Text style={[styles.viewMoreText, { color: colors.accent }]}>View Full History</Text>
+              <Text style={[styles.viewMoreText, { color: colors.accent }]}>{t('billDetails.viewFullHistory')}</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.accent} />
             </Pressable>
           </View>
@@ -434,13 +436,13 @@ export default function BillDetailsScreen() {
 
         {/* Bill Image / Official Document */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{bill.imageUrl ? 'Official Bill' : 'Smart Summary'}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{bill.imageUrl ? t('billDetails.officialBill') : t('billDetails.smartSummary')}</Text>
           {bill.imageUrl ? (
             <Pressable onPress={() => setShowBillImageModal(true)} style={styles.billImageContainer}>
               <Image source={{ uri: bill.imageUrl }} style={styles.billImage} resizeMode="cover" />
               <View style={[styles.billImageOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
                 <Ionicons name="expand-outline" size={24} color="#FFFFFF" />
-                <Text style={styles.billImageOverlayText}>View Full Bill</Text>
+                <Text style={styles.billImageOverlayText}>{t('billDetails.viewFullBill')}</Text>
               </View>
             </Pressable>
           ) : (
@@ -448,15 +450,15 @@ export default function BillDetailsScreen() {
               <View style={[styles.emptyBillIconWrap, { backgroundColor: colors.bg }]}>
                 <Ionicons name="document-text-outline" size={32} color={colors.textTertiary} />
               </View>
-              <Text style={[styles.emptyBillTitle, { color: colors.text }]}>Digital Summary Available</Text>
-              <Text style={[styles.emptyBillDesc, { color: colors.textSecondary }]}>No physical scan attached. AI has summarized the intent as {intent}.</Text>
+              <Text style={[styles.emptyBillTitle, { color: colors.text }]}>{t('billDetails.digitalSummaryAvailable')}</Text>
+              <Text style={[styles.emptyBillDesc, { color: colors.textSecondary }]}>{t('billDetails.noScanAttached', { intent })}</Text>
               <Pressable
                 style={[styles.addScanBtnPremium, { backgroundColor: colors.accent }]}
                 onPress={() => router.push(`/scan-bill?billId=${bill.id}`)}
               >
                 <View style={styles.addScanGradient}>
                   <Ionicons name="camera" size={18} color="#FFFFFF" />
-                  <Text style={styles.addScanBtnTextPremium}>Attach Official Bill Scan</Text>
+                  <Text style={styles.addScanBtnTextPremium}>{t('billDetails.attachBillScan')}</Text>
                 </View>
               </Pressable>
             </View>
@@ -477,9 +479,9 @@ export default function BillDetailsScreen() {
             numberOfLines={1}
             adjustsFontSizeToFit
           >
-            {isPaid 
-              ? (bill.amount > 0 ? 'Mark Unpaid' : 'Mark Not Done') 
-              : (bill.amount > 0 ? 'Mark as Paid' : 'Mark as Done')
+            {isPaid
+              ? (bill.amount > 0 ? t('billDetails.markUnpaid') : t('billDetails.markNotDone'))
+              : (bill.amount > 0 ? t('billDetails.markAsPaid') : t('billDetails.markAsDone'))
             }
           </Text>
         </Pressable>
@@ -496,7 +498,7 @@ export default function BillDetailsScreen() {
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              Snooze
+              {t('billDetails.snooze')}
             </Text>
           </Pressable>
 
@@ -506,7 +508,7 @@ export default function BillDetailsScreen() {
               onPress={() => uncancelReminder(bill.id)}
             >
               <Ionicons name="arrow-undo-outline" size={20} color={colors.accentBlue} />
-              <Text style={[styles.bottomBtnText, { color: colors.accentBlue }]}>Restore</Text>
+              <Text style={[styles.bottomBtnText, { color: colors.accentBlue }]}>{t('billDetails.restore')}</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -514,12 +516,12 @@ export default function BillDetailsScreen() {
               onPress={() => cancelReminder(bill.id)}
             >
               <Ionicons name="close-outline" size={20} color={colors.danger} />
-              <Text 
+              <Text
                 style={[styles.bottomBtnText, { color: '#EF4444' }]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
               >
-                Cancel
+                {t('billDetails.cancel')}
               </Text>
             </Pressable>
           )}
@@ -530,7 +532,7 @@ export default function BillDetailsScreen() {
 
       {/* Repeat picker modal */}
       <CustomModal visible={showRepeatPickerModal} onClose={() => setShowRepeatPickerModal(false)} showCloseButton={false}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>Repeat</Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('billDetails.repeat')}</Text>
         <ScrollView style={{ maxHeight: 260 }}>
           {REPEAT_OPTIONS.map((opt) => {
             const active = opt.key === draftRepeat;
@@ -550,7 +552,7 @@ export default function BillDetailsScreen() {
         </ScrollView>
         <View style={styles.modalActionsRow}>
           <Pressable onPress={() => setShowRepeatPickerModal(false)} style={styles.modalTextButton}>
-            <Text style={[styles.modalTextButtonLabel, { color: colors.textTertiary }]}>Cancel</Text>
+            <Text style={[styles.modalTextButtonLabel, { color: colors.textTertiary }]}>{t('common.cancel')}</Text>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -559,22 +561,22 @@ export default function BillDetailsScreen() {
             }}
             style={[styles.modalPrimaryButton, { backgroundColor: colors.accent }]}
           >
-            <Text style={[styles.modalPrimaryButtonLabel, { color: '#FFFFFF' }]}>Save</Text>
+            <Text style={[styles.modalPrimaryButtonLabel, { color: '#FFFFFF' }]}>{t('common.save')}</Text>
           </Pressable>
         </View>
       </CustomModal>
 
       {/* Snooze modal */}
       <CustomModal visible={showSnoozeModal} onClose={() => setShowSnoozeModal(false)}>
-        <Text style={[styles.sheetTitle, { color: colors.text }]}>Snooze reminder</Text>
-        <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>Remind me again in…</Text>
+        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('billDetails.snoozeReminder')}</Text>
+        <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>{t('bills.snoozeModalSubtitle')}</Text>
 
         <View style={styles.snoozeGrid}>
           {[
-            { days: 1, label: '1 Day', icon: 'sunny' as const, accent: '#EA580C' },
-            { days: 2, label: '2 Days', icon: 'partly-sunny' as const, accent: '#F59E0B' },
-            { days: 3, label: '3 Days', icon: 'cloud' as const, accent: '#3B82F6' },
-            { days: 7, label: '1 Week', icon: 'calendar' as const, accent: '#7C3AED' },
+            { days: 1, label: t('bills.snooze1Day'), icon: 'sunny' as const, accent: '#EA580C' },
+            { days: 2, label: t('bills.snooze2Days'), icon: 'partly-sunny' as const, accent: '#F59E0B' },
+            { days: 3, label: t('bills.snooze3Days'), icon: 'cloud' as const, accent: '#3B82F6' },
+            { days: 7, label: t('bills.snooze1Week'), icon: 'calendar' as const, accent: '#7C3AED' },
           ].map((opt) => (
             <Pressable
               key={opt.days}
@@ -642,6 +644,16 @@ function getActionColor(action: string) {
     case 'cancelled': return { bg: '#FEE2E2', text: '#EF4444' };
     case 'restored': return { bg: '#E0F2FE', text: '#0EA5E9' };
     default: return { bg: '#F5F3FF', text: '#7C3AED' };
+  }
+}
+
+function getActionLabel(action: string, t: (key: string) => string): string {
+  switch (action.toLowerCase()) {
+    case 'paid': return t('billDetails.actionPaid');
+    case 'snoozed': return t('billDetails.actionSnoozed');
+    case 'cancelled': return t('billDetails.actionCancelled');
+    case 'restored': return t('billDetails.actionRestored');
+    default: return action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
   }
 }
 
