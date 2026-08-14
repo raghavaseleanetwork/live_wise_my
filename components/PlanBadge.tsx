@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { PlanId, PLAN_META } from '@/constants/plans';
 
@@ -21,6 +22,7 @@ interface PlanBadgeProps {
 
 export default function PlanBadge({ plan, showStar = false, trial = false, size = 'md' }: PlanBadgeProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const isFamily = plan === 'family';
   const isFree = plan === 'free';
@@ -29,7 +31,7 @@ export default function PlanBadge({ plan, showStar = false, trial = false, size 
   const bg = isFamily ? colors.warningDim : isFree ? colors.border : colors.accentDim;
 
   const small = size === 'sm';
-  const label = `${trial ? 'Trial · ' : ''}${PLAN_META[plan].name}`;
+  const label = `${trial ? t('planBadge.trialPrefix') : ''}${t(`subscription.planNames.${plan}`)}`;
 
   return (
     <View

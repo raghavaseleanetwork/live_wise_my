@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useSubscription } from '@/lib/subscription-context';
 import CustomModal from '@/components/CustomModal';
@@ -51,13 +52,15 @@ export default function PaywallScreen({
 }: PaywallScreenProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { storePrices, isPurchasing } = useSubscription();
 
   if (!trigger) return null;
 
   const recommended = trigger.recommendedPlan;
   const meta = PLAN_META[recommended];
-  const ctaLabel = canStartTrial ? 'Start 7-Day Free Trial' : `Upgrade to ${meta.name}`;
+  const planName = t(`subscription.planNames.${recommended}`);
+  const ctaLabel = canStartTrial ? t('paywall.startTrial') : t('paywall.upgradeTo', { plan: planName });
   const topInset = Platform.OS === 'web' ? 24 : insets.top;
   const bottomInset = Platform.OS === 'web' ? 24 : Math.max(insets.bottom, 20);
 
@@ -86,19 +89,19 @@ export default function PaywallScreen({
             >
               <Ionicons name={trigger.icon as any} size={38} color="#FFFFFF" />
             </LinearGradient>
-            <Text style={[styles.title, { color: colors.text }]}>{trigger.title}</Text>
-            <Text style={[styles.message, { color: colors.textSecondary }]}>{trigger.message}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t(`paywall.triggers.${trigger.key}.title`)}</Text>
+            <Text style={[styles.message, { color: colors.textSecondary }]}>{t(`paywall.triggers.${trigger.key}.message`)}</Text>
             {isTrialActive && (
               <View style={[styles.trialChip, { backgroundColor: colors.warningDim }]}>
                 <Ionicons name="time" size={14} color={colors.warning} />
                 <Text style={[styles.trialText, { color: colors.warning }]}>
-                  Your trial expires in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}
+                  {t('paywall.trialExpiresIn', { count: trialDaysLeft })}
                 </Text>
               </View>
             )}
           </View>
 
-          <Text style={[styles.compareTitle, { color: colors.text }]}>Compare all plans</Text>
+          <Text style={[styles.compareTitle, { color: colors.text }]}>{t('paywall.compareAllPlans')}</Text>
           <View style={[styles.tableCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <PlanComparisonTable currentPlan={currentPlan} />
           </View>
@@ -124,7 +127,7 @@ export default function PaywallScreen({
                   <Text style={styles.ctaText}>{ctaLabel}</Text>
                   <Text style={styles.ctaSub}>
                     {resolvePlanPrice(recommended, 'month', storePrices)}
-                    {meta.priceMonthly > 0 ? '/month' : ''}
+                    {meta.priceMonthly > 0 ? t('paywall.perMonth') : ''}
                   </Text>
                 </>
               )}

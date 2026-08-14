@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAlert } from '@/lib/alert-context';
 import { useSubscription } from '@/lib/subscription-context';
@@ -33,37 +34,15 @@ import { LoadingIndicator } from '@/components/PremiumLoader';
  * seam — no payment gateway yet.
  */
 
-/** A short, human benefit list per plan for the plan cards (marketing copy). */
-const PLAN_BENEFITS: Record<PlanId, string[]> = {
-  free: [
-    '2 family members',
-    '3 modules per member',
-    '10 reminders • 7-day history',
-    'Bill scan & voice entry (limited)',
-    'No ads, ever',
-  ],
-  starter: [
-    '4 family members',
-    '8 modules per member',
-    '50 reminders • 3-month history',
-    'Bank PDF import • CSV import',
-    '10 documents • 1 caregiver/member',
-  ],
-  family: [
-    'Unlimited members & modules',
-    'Unlimited reminders • 12-month history',
-    'PDF reports • Money leak alerts',
-    'Budget alerts • Location sharing (6)',
-    'WiseAI 100 msgs/mo • 50 documents',
-  ],
-  pro: [
-    'Everything in Family',
-    'Unlimited documents & history',
-    'WiseAI 300 msgs/mo',
-    'Medicine interaction & pill ID',
-    'Data export • Priority support',
-  ],
-};
+/**
+ * A short, human benefit list per plan for the plan cards (marketing copy).
+ * Labels live in `subscription.planBenefits.<plan>` (an array in the locale
+ * files) and are resolved via `t(key, { returnObjects: true })` at render time.
+ */
+function usePlanBenefits(planId: PlanId, t: (key: string, opts?: any) => any): string[] {
+  const list = t(`subscription.planBenefits.${planId}`, { returnObjects: true });
+  return Array.isArray(list) ? list : [];
+}
 
 function PlanCard({
   planId,
@@ -83,21 +62,23 @@ function PlanCard({
   isPurchasing: boolean;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const meta = PLAN_META[planId];
   const isFamily = planId === 'family';
   const price = resolvePlanPrice(planId, interval, storePrices);
-  const per = meta.priceMonthly === 0 ? '' : interval === 'year' ? '/year' : '/month';
+  const per = meta.priceMonthly === 0 ? '' : interval === 'year' ? t('subscription.perYear') : t('subscription.perMonth');
+  const benefits = usePlanBenefits(planId, t);
 
   const accent = isFamily ? colors.warning : colors.accent;
   const accentDim = isFamily ? colors.warningDim : colors.accentDim;
 
   const ctaLabel = isCurrent
-    ? 'Current plan'
+    ? t('subscription.currentPlanCta')
     : planId === 'free'
-      ? 'Downgrade'
+      ? t('subscription.downgrade')
       : canStartTrial
-        ? 'Start 7-Day Free Trial'
-        : 'Choose plan';
+        ? t('subscription.startTrial')
+        : t('subscription.choosePlan');
 
   return (
     <View
@@ -113,14 +94,14 @@ function PlanCard({
       {isFamily && (
         <View style={[styles.popularBadge, { backgroundColor: colors.warning }]}>
           <Ionicons name="star" size={11} color="#FFFFFF" />
-          <Text style={styles.popularText}>Most Popular</Text>
+          <Text style={styles.popularText}>{t('subscription.mostPopular')}</Text>
         </View>
       )}
 
       <View style={styles.planHeader}>
         <View>
-          <Text style={[styles.planName, { color: colors.text }]}>{meta.name}</Text>
-          <Text style={[styles.planTagline, { color: colors.textSecondary }]}>{meta.tagline}</Text>
+          <Text style={[styles.planName, { color: colors.text }]}>{t(`subscription.planNames.${planId}`)}</Text>
+          <Text style={[styles.planTagline, { color: colors.textSecondary }]}>{t(`subscription.planTaglines.${planId}`)}</Text>
         </View>
         {isCurrent && <PlanBadge plan={planId} size="sm" />}
       </View>
@@ -138,7 +119,7 @@ function PlanCard({
       </View>
 
       <View style={styles.benefitList}>
-        {PLAN_BENEFITS[planId].map((b) => (
+        {benefits.map((b) => (
           <View key={b} style={styles.benefitRow}>
             <Ionicons name="checkmark-circle" size={16} color={accent} />
             <Text style={[styles.benefitText, { color: colors.text }]}>{b}</Text>
@@ -192,6 +173,7 @@ function PlanCard({
 export default function SubscriptionScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { showAlert } = useAlert();
   const {
     currentPlan,
@@ -222,13 +204,13 @@ export default function SubscriptionScreen() {
 
   /** Apply a plan without the store, after the tester confirms. */
   const applyTestPlan = async (plan: PlanId) => {
-    const meta = PLAN_META[plan];
+    const planName = t(`subscription.planNames.${plan}`);
     await purchasePlan(plan, interval);
     showAlert({
-      title: `${meta.name} activated`,
-      message: `Test mode: you're now on ${meta.name} with no payment taken. All ${meta.name} features are unlocked.`,
+      title: t('subscription.alerts.testActivatedTitle', { plan: planName }),
+      message: t('subscription.alerts.testActivatedMsg', { plan: planName }),
       type: 'success',
-      buttons: [{ text: 'Done' }],
+      buttons: [{ text: t('common.done') }],
     });
   };
 
@@ -238,19 +220,19 @@ export default function SubscriptionScreen() {
     // unselectable even though the user doesn't own it yet.
     if (plan === ownedPlan) return;
 
-    const meta = PLAN_META[plan];
+    const planName = t(`subscription.planNames.${plan}`);
 
     // TEST MODE: confirm, then grant directly — no store, no payment.
     // Checked before the trial branch so testers can reach any tier on demand
     // rather than being redirected into the one-time Family trial.
     if (isTestMode && plan !== 'free') {
       showAlert({
-        title: `Activate ${meta.name}?`,
-        message: `This is a TEST activation — no payment will be taken and no real subscription is created. ${meta.name} features will be unlocked on this device.`,
+        title: t('subscription.alerts.testConfirmTitle', { plan: planName }),
+        message: t('subscription.alerts.testConfirmMsg', { plan: planName }),
         type: 'warning',
         buttons: [
-          { text: 'Cancel', style: 'cancel' },
-          { text: `Activate ${meta.name}`, onPress: () => applyTestPlan(plan) },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('subscription.alerts.activateBtn', { plan: planName }), onPress: () => applyTestPlan(plan) },
         ],
       });
       return;
@@ -259,10 +241,10 @@ export default function SubscriptionScreen() {
     if (canStartTrial && plan !== 'free') {
       await startTrial();
       showAlert({
-        title: 'Trial started 🎉',
-        message: 'Your 7-day Family trial is now active. Enjoy full access!',
+        title: t('subscription.alerts.trialStartedTitle'),
+        message: t('subscription.alerts.trialStartedMsg'),
         type: 'success',
-        buttons: [{ text: 'Great' }],
+        buttons: [{ text: t('subscription.alerts.great') }],
       });
       return;
     }
@@ -274,37 +256,37 @@ export default function SubscriptionScreen() {
 
     if (!result.success) {
       showAlert({
-        title: 'Purchase failed',
+        title: t('subscription.alerts.purchaseFailedTitle'),
         message:
           result.error === 'product_not_found' || result.error === 'no_offerings'
-            ? 'This plan is not available right now. Please try again later.'
-            : "We couldn't complete your purchase. You have not been charged.",
+            ? t('subscription.alerts.purchaseFailedProductMsg')
+            : t('subscription.alerts.purchaseFailedGenericMsg'),
         type: 'error',
-        buttons: [{ text: 'OK' }],
+        buttons: [{ text: t('common.ok') }],
       });
       return;
     }
 
     showAlert({
-      title: plan === 'free' ? 'Plan changed' : `Welcome to ${meta.name}!`,
+      title: plan === 'free' ? t('subscription.alerts.planChangedTitle') : t('subscription.alerts.welcomeTitle', { plan: planName }),
       message:
         plan === 'free'
-          ? "You're now on the Free plan."
-          : `You're now on the ${meta.name} plan. Enjoy!`,
+          ? t('subscription.alerts.planChangedFreeMsg')
+          : t('subscription.alerts.welcomeMsg', { plan: planName }),
       type: 'success',
-      buttons: [{ text: 'Done' }],
+      buttons: [{ text: t('common.done') }],
     });
   };
 
   const handleRestore = async () => {
     const result = await restore();
     showAlert({
-      title: result.success ? 'Purchases restored' : 'Nothing to restore',
+      title: result.success ? t('subscription.alerts.restoredTitle') : t('subscription.alerts.notRestoredTitle'),
       message: result.success
-        ? 'Any active subscription on this account has been restored.'
-        : "We couldn't find a previous purchase for this account.",
+        ? t('subscription.alerts.restoredMsg')
+        : t('subscription.alerts.notRestoredMsg'),
       type: result.success ? 'success' : 'info',
-      buttons: [{ text: 'OK' }],
+      buttons: [{ text: t('common.ok') }],
     });
   };
 
@@ -321,7 +303,7 @@ export default function SubscriptionScreen() {
           <Pressable onPress={handleBack} hitSlop={10}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.screenTitle, { color: colors.text }]}>Subscription</Text>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>{t('subscription.title')}</Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -335,25 +317,24 @@ export default function SubscriptionScreen() {
           >
             <View style={styles.currentTop}>
               <Text style={[styles.currentLabel, { color: colors.textSecondary }]}>
-                Current plan
+                {t('subscription.currentPlan')}
               </Text>
               <PlanBadge plan={currentPlan} showStar trial={isTrialProvidingPlan} />
             </View>
             <Text style={[styles.currentPlanName, { color: colors.text }]}>
-              {PLAN_META[currentPlan].name}
+              {t(`subscription.planNames.${currentPlan}`)}
             </Text>
             {isTrialProvidingPlan ? (
               <View style={styles.trialBanner}>
                 <Ionicons name="time" size={15} color={colors.warning} />
                 <Text style={[styles.trialBannerText, { color: colors.warning }]}>
-                  Your Family trial ends in {trialDaysLeft}{' '}
-                  {trialDaysLeft === 1 ? 'day' : 'days'}
-                  {ownedPlan === 'free' ? ' — then reverts to Free' : ''}
+                  {t('subscription.trialEndsIn', { count: trialDaysLeft })}
+                  {ownedPlan === 'free' ? t('subscription.thenRevertsToFree') : ''}
                 </Text>
               </View>
             ) : (
               <Text style={[styles.currentSub, { color: colors.textSecondary }]}>
-                {PLAN_META[currentPlan].tagline}
+                {t(`subscription.planTaglines.${currentPlan}`)}
               </Text>
             )}
           </LinearGradient>
@@ -382,12 +363,12 @@ export default function SubscriptionScreen() {
               />
               <View style={styles.testModeTextWrap}>
                 <Text style={[styles.testModeTitle, { color: colors.text }]}>
-                  Test payment mode
+                  {t('subscription.testPayment.title')}
                 </Text>
                 <Text style={[styles.testModeSub, { color: colors.textSecondary }]}>
                   {isTestMode
-                    ? 'Plans activate instantly without payment.'
-                    : 'Use the real payment gateway.'}
+                    ? t('subscription.testPayment.onSub')
+                    : t('subscription.testPayment.offSub')}
                 </Text>
               </View>
               <Switch
@@ -399,8 +380,7 @@ export default function SubscriptionScreen() {
             </View>
             {isTestMode && (
               <Text style={[styles.testModeWarn, { color: colors.warning }]}>
-                No payment is taken. Plans granted here are local to this device and are
-                cleared when you turn this off.
+                {t('subscription.testPayment.warning')}
               </Text>
             )}
           </View>
@@ -422,10 +402,10 @@ export default function SubscriptionScreen() {
                     { color: active ? colors.accent : colors.textSecondary },
                   ]}
                 >
-                  {opt === 'month' ? 'Monthly' : 'Yearly'}
+                  {opt === 'month' ? t('subscription.monthly') : t('subscription.yearly')}
                 </Text>
                 {opt === 'year' && (
-                  <Text style={[styles.toggleSave, { color: colors.accentMint }]}>Save up to 37%</Text>
+                  <Text style={[styles.toggleSave, { color: colors.accentMint }]}>{t('subscription.saveUpTo')}</Text>
                 )}
               </Pressable>
             );
@@ -455,7 +435,7 @@ export default function SubscriptionScreen() {
         >
           <Ionicons name="list" size={18} color={colors.accent} />
           <Text style={[styles.compareLinkText, { color: colors.accent }]}>
-            Compare all plan features
+            {t('subscription.compareAllPlans')}
           </Text>
         </Pressable>
 
@@ -468,17 +448,17 @@ export default function SubscriptionScreen() {
                 { color: colors.textSecondary, opacity: isPurchasing ? 0.5 : 1 },
               ]}
             >
-              Restore purchases
+              {t('subscription.restorePurchases')}
             </Text>
           </Pressable>
         )}
 
         <Text style={[styles.footnote, { color: colors.textTertiary }]}>
           {isTestMode
-            ? 'Test mode is on — no real payment is processed and no subscription is created.'
+            ? t('subscription.footnoteTestMode')
             : isStoreActive
-              ? 'Subscriptions renew automatically until cancelled. Manage or cancel anytime in your store account settings.'
-              : 'Payments are unavailable on this platform. Choosing a plan here activates it locally so you can explore the features.'}
+              ? t('subscription.footnoteStore')
+              : t('subscription.footnoteNoStore')}
         </Text>
       </ScrollView>
     </View>

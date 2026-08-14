@@ -1139,5 +1139,272 @@
     "securityBody": "We apply industry-standard security practices (encryption in transit, access controls, and least-privilege). If we store data, we aim to minimize what's collected and retain it only as long as needed to provide the service.",
     "contactHeading": "Contact",
     "contactBody": "Questions? Email Info@lifewise.app."
+  },
+  "subscription": {
+    "title": "Subscription",
+    "currentPlan": "Current plan",
+    "trialEndsIn_one": "Your Family trial ends in {{count}} day",
+    "trialEndsIn_other": "Your Family trial ends in {{count}} days",
+    "thenRevertsToFree": " — then reverts to Free",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "testPayment": {
+      "title": "Test payment mode",
+      "onSub": "Plans activate instantly without payment.",
+      "offSub": "Use the real payment gateway.",
+      "warning": "No payment is taken. Plans granted here are local to this device and are cleared when you turn this off."
+    },
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "saveUpTo": "Save up to 37%",
+    "mostPopular": "Most Popular",
+    "currentPlanCta": "Current plan",
+    "downgrade": "Downgrade",
+    "startTrial": "Start 7-Day Free Trial",
+    "choosePlan": "Choose plan",
+    "compareAllPlans": "Compare all plan features",
+    "restorePurchases": "Restore purchases",
+    "footnoteTestMode": "Test mode is on — no real payment is processed and no subscription is created.",
+    "footnoteStore": "Subscriptions renew automatically until cancelled. Manage or cancel anytime in your store account settings.",
+    "footnoteNoStore": "Payments are unavailable on this platform. Choosing a plan here activates it locally so you can explore the features.",
+    "alerts": {
+      "purchaseFailedTitle": "Purchase failed",
+      "purchaseFailedProductMsg": "This plan is not available right now. Please try again later.",
+      "purchaseFailedGenericMsg": "We couldn't complete your purchase. You have not been charged.",
+      "planChangedTitle": "Plan changed",
+      "planChangedFreeMsg": "You're now on the Free plan.",
+      "welcomeTitle": "Welcome to {{plan}}!",
+      "welcomeMsg": "You're now on the {{plan}} plan. Enjoy!",
+      "trialStartedTitle": "Trial started 🎉",
+      "trialStartedMsg": "Your 7-day Family trial is now active. Enjoy full access!",
+      "great": "Great",
+      "restoredTitle": "Purchases restored",
+      "restoredMsg": "Any active subscription on this account has been restored.",
+      "notRestoredTitle": "Nothing to restore",
+      "notRestoredMsg": "We couldn't find a previous purchase for this account.",
+      "testActivatedTitle": "{{plan}} activated",
+      "testActivatedMsg": "Test mode: you're now on {{plan}} with no payment taken. All {{plan}} features are unlocked.",
+      "testConfirmTitle": "Activate {{plan}}?",
+      "testConfirmMsg": "This is a TEST activation — no payment will be taken and no real subscription is created. {{plan}} features will be unlocked on this device.",
+      "activateBtn": "Activate {{plan}}"
+    },
+    "planNames": {
+      "free": "Free",
+      "starter": "Starter",
+      "family": "Family",
+      "pro": "Pro"
+    },
+    "planTaglines": {
+      "free": "Get started — no credit card needed",
+      "starter": "Perfect for a small family or couple",
+      "family": "The complete family operating system",
+      "pro": "Power users, large families, business use"
+    },
+    "planBenefits": {
+      "free": [
+        "2 family members",
+        "3 modules per member",
+        "10 reminders • 7-day history",
+        "Bill scan & voice entry (limited)",
+        "No ads, ever"
+      ],
+      "starter": [
+        "4 family members",
+        "8 modules per member",
+        "50 reminders • 3-month history",
+        "Bank PDF import • CSV import",
+        "10 documents • 1 caregiver/member"
+      ],
+      "family": [
+        "Unlimited members & modules",
+        "Unlimited reminders • 12-month history",
+        "PDF reports • Money leak alerts",
+        "Budget alerts • Location sharing (6)",
+        "WiseAI 100 msgs/mo • 50 documents"
+      ],
+      "pro": [
+        "Everything in Family",
+        "Unlimited documents & history",
+        "WiseAI 300 msgs/mo",
+        "Medicine interaction & pill ID",
+        "Data export • Priority support"
+      ]
+    },
+    "compare": {
+      "title": "Compare Plans",
+      "yourPlan": "Your plan",
+      "manageMyPlan": "Manage my plan"
+    }
+  },
+  "paywall": {
+    "startTrial": "Start 7-Day Free Trial",
+    "upgradeTo": "Upgrade to {{plan}}",
+    "upgradeNow": "Upgrade Now",
+    "trialExpiresIn_one": "Your trial expires in {{count}} day",
+    "trialExpiresIn_other": "Your trial expires in {{count}} days",
+    "compareAllPlans": "Compare all plans",
+    "mostPopular": "Most Popular",
+    "seeAllPlanFeatures": "See all plan features",
+    "continueOnFree": "Continue on Free",
+    "perMonth": "/month",
+    "perMo": "/mo",
+    "triggers": {
+      "thirdMember": {
+        "title": "You're building a bigger family hub!",
+        "message": "You're building a bigger family hub! Add unlimited members with LifeWise Family.",
+        "benefits": [
+          "Unlimited family members",
+          "All 20 modules per member",
+          "Full family dashboard"
+        ]
+      },
+      "fourthModule": {
+        "title": "Manage more of what matters",
+        "message": "This is a premium feature. Upgrade to manage more aspects of your family member's life.",
+        "benefits": [
+          "8 modules per member",
+          "More tracking per person",
+          "Grows with your family"
+        ]
+      },
+      "eleventhReminder": {
+        "title": "You're staying on top of things!",
+        "message": "You're staying on top of things! Unlimited reminders available in Starter and above.",
+        "benefits": [
+          "50 reminders on Starter",
+          "Unlimited on Family",
+          "Never miss a bill or dose"
+        ]
+      },
+      "expenseHistory": {
+        "title": "See the full picture",
+        "message": "Older expenses are stored safely. Unlock 12-month history to see the full picture.",
+        "benefits": [
+          "3 months on Starter",
+          "12 months on Family",
+          "Spot long-term trends"
+        ]
+      },
+      "pdfExport": {
+        "title": "Download your family's report",
+        "message": "Download your family's health and finance report. Available in Family plan and above.",
+        "benefits": [
+          "Monthly PDF reports",
+          "Annual overview",
+          "Share with anyone"
+        ]
+      },
+      "bankImport": {
+        "title": "One tap, whole month done",
+        "message": "Auto-fill all your expenses from your bank statement. One tap, whole month done.",
+        "benefits": [
+          "Import bank PDF statements",
+          "Auto-categorised expenses",
+          "Save hours of typing"
+        ]
+      },
+      "budgetAlerts": {
+        "title": "Keep your family's finances on track",
+        "message": "Set spending limits for each family member. Keep your family's finances on track.",
+        "benefits": [
+          "Per-category budgets",
+          "Per-member limits",
+          "Overspend alerts"
+        ]
+      },
+      "fourthBillScan": {
+        "title": "Scan unlimited bills",
+        "message": "Scan unlimited bills and receipts with Family plan.",
+        "benefits": [
+          "Unlimited receipt scans",
+          "On-device OCR",
+          "Attach receipt photos"
+        ]
+      },
+      "sixthWiseAi": {
+        "title": "You're chatting with WiseAI!",
+        "message": "You're chatting with WiseAI! Get 100 messages/month with LifeWise Family.",
+        "benefits": [
+          "100 messages/month on Family",
+          "300 on Pro",
+          "Smart family insights"
+        ]
+      },
+      "secondDocument": {
+        "title": "Store all your family's documents",
+        "message": "Store all your family's Aadhaar, PAN, Passport safely. Family plan = 50 documents.",
+        "benefits": [
+          "50 documents on Family",
+          "All document types",
+          "Expiry reminders"
+        ]
+      },
+      "locationSharing": {
+        "title": "Stay connected safely",
+        "message": "See where your family members are in real-time. Stay connected safely.",
+        "benefits": [
+          "Live location for up to 6",
+          "Emergency SOS",
+          "Peace of mind"
+        ]
+      },
+      "medicineInteraction": {
+        "title": "Keep your family safe",
+        "message": "Check if medicines are safe together. Pro plan keeps your family safe.",
+        "benefits": [
+          "Medicine interaction checker",
+          "Pill photo identifier",
+          "Doctor-ready reports"
+        ]
+      }
+    }
+  },
+  "planBadge": {
+    "trialPrefix": "Trial · "
+  },
+  "planComparison": {
+    "groups": {
+      "coreLimits": "Core Limits",
+      "expenseEntry": "Expense Entry",
+      "reportsAnalytics": "Reports & Analytics",
+      "familyHub": "Family Hub",
+      "aiWiseAi": "AI & WiseAI",
+      "health": "Health",
+      "other": "Other"
+    },
+    "rows": {
+      "familyMembers": "Family members",
+      "modulesPerMember": "Modules per member",
+      "activeReminders": "Active reminders",
+      "expenseHistory": "Expense history",
+      "billsPerMember": "Bills per member",
+      "documents": "Documents",
+      "billScan": "Bill scan (OCR) / mo",
+      "voiceEntry": "Voice entry / mo",
+      "bankPdfImport": "Bank PDF import / mo",
+      "csvExcelImport": "CSV / Excel import",
+      "recurringTemplates": "Recurring templates",
+      "perMemberBreakdown": "Per-member breakdown",
+      "pdfReports": "PDF reports",
+      "annualReportPdf": "Annual report PDF",
+      "moneyLeakAlerts": "Money leak alerts",
+      "budgetAlerts": "Budget alerts",
+      "caregiversPerMember": "Caregivers per member",
+      "locationSharing": "Location sharing",
+      "noticeboardPosts": "Noticeboard posts / mo",
+      "wiseAiMessages": "WiseAI messages / mo",
+      "medicineStockAlerts": "Medicine stock alerts",
+      "healthGraph": "Health graph (12 mo)",
+      "medicineInteraction": "Medicine interaction check",
+      "pillIdentifier": "Pill photo identifier",
+      "doctorHealthPdf": "Doctor health PDF",
+      "smsAutoDetect": "SMS auto-detect (Android)",
+      "documentExpiryAlerts": "Document expiry alerts",
+      "caregiverAlerts": "Caregiver alerts",
+      "whatsappReminders": "WhatsApp reminders (beta)",
+      "dataExportJson": "Data export (JSON)"
+    },
+    "suffixDays": " days",
+    "suffixMembers": " members"
   }
 }

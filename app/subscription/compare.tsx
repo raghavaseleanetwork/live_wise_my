@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, ScrollView, Pressable, Platform } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useSubscription } from '@/lib/subscription-context';
 import PlanComparisonTable from '@/components/PlanComparisonTable';
@@ -15,6 +16,7 @@ import PlanBadge from '@/components/PlanBadge';
 export default function CompareScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { currentPlan } = useSubscription();
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
@@ -38,12 +40,12 @@ export default function CompareScreen() {
           <Pressable onPress={handleBack} hitSlop={10}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.screenTitle, { color: colors.text }]}>Compare Plans</Text>
+          <Text style={[styles.screenTitle, { color: colors.text }]}>{t('subscription.compare.title')}</Text>
           <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.currentRow}>
-          <Text style={[styles.currentLabel, { color: colors.textSecondary }]}>Your plan</Text>
+          <Text style={[styles.currentLabel, { color: colors.textSecondary }]}>{t('subscription.compare.yourPlan')}</Text>
           <PlanBadge plan={currentPlan} showStar />
         </View>
 
@@ -56,7 +58,7 @@ export default function CompareScreen() {
           style={[styles.manageBtn, { borderColor: colors.border }]}
         >
           <Ionicons name="pricetags" size={18} color={colors.accent} />
-          <Text style={[styles.manageText, { color: colors.accent }]}>Manage my plan</Text>
+          <Text style={[styles.manageText, { color: colors.accent }]}>{t('subscription.compare.manageMyPlan')}</Text>
         </Pressable>
       </ScrollView>
     </View>

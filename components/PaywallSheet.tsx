@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useSubscription } from '@/lib/subscription-context';
 import CustomModal from '@/components/CustomModal';
@@ -55,11 +56,14 @@ export default function PaywallSheet({
   onDismiss,
 }: PaywallSheetProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { storePrices, isPurchasing } = useSubscription();
 
   if (!trigger) return null;
 
-  const ctaLabel = canStartTrial ? 'Start 7-Day Free Trial' : 'Upgrade Now';
+  const ctaLabel = canStartTrial ? t('paywall.startTrial') : t('paywall.upgradeNow');
+  const benefits = t(`paywall.triggers.${trigger.key}.benefits`, { returnObjects: true });
+  const benefitList: string[] = Array.isArray(benefits) ? benefits : [];
 
   return (
     <CustomModal visible={visible} onClose={onDismiss} showCloseButton={false}>
@@ -76,8 +80,8 @@ export default function PaywallSheet({
           </LinearGradient>
         </View>
 
-        <Text style={[styles.headline, { color: colors.text }]}>{trigger.title}</Text>
-        <Text style={[styles.message, { color: colors.textSecondary }]}>{trigger.message}</Text>
+        <Text style={[styles.headline, { color: colors.text }]}>{t(`paywall.triggers.${trigger.key}.title`)}</Text>
+        <Text style={[styles.message, { color: colors.textSecondary }]}>{t(`paywall.triggers.${trigger.key}.message`)}</Text>
 
         {/* Plan pills */}
         <View style={styles.pillRow}>
@@ -107,7 +111,7 @@ export default function PaywallSheet({
               >
                 {isFamily && (
                   <View style={[styles.popularBadge, { backgroundColor: colors.warning }]}>
-                    <Text style={styles.popularText}>Most Popular</Text>
+                    <Text style={styles.popularText}>{t('paywall.mostPopular')}</Text>
                   </View>
                 )}
                 <Text
@@ -116,11 +120,11 @@ export default function PaywallSheet({
                     { color: selected ? (isFamily ? colors.warning : colors.accent) : colors.text },
                   ]}
                 >
-                  {meta.name}
+                  {t(`subscription.planNames.${planId}`)}
                 </Text>
                 <Text style={[styles.pillPrice, { color: colors.textSecondary }]}>
                   {resolvePlanPrice(planId, 'month', storePrices)}
-                  {meta.priceMonthly > 0 ? '/mo' : ''}
+                  {meta.priceMonthly > 0 ? t('paywall.perMo') : ''}
                 </Text>
               </Pressable>
             );
@@ -129,7 +133,7 @@ export default function PaywallSheet({
 
         {/* Feature-specific benefits */}
         <View style={styles.benefits}>
-          {trigger.benefits.map((b) => (
+          {benefitList.map((b) => (
             <View key={b} style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={18} color={colors.accentMint} />
               <Text style={[styles.benefitText, { color: colors.text }]}>{b}</Text>
@@ -158,11 +162,11 @@ export default function PaywallSheet({
         </Pressable>
 
         <Pressable onPress={onSeeAllPlans} style={styles.secondaryBtn} hitSlop={6}>
-          <Text style={[styles.secondaryText, { color: colors.accent }]}>See all plan features</Text>
+          <Text style={[styles.secondaryText, { color: colors.accent }]}>{t('paywall.seeAllPlanFeatures')}</Text>
         </Pressable>
 
         <Pressable onPress={onDismiss} style={styles.dismissBtn} hitSlop={6}>
-          <Text style={[styles.dismissText, { color: colors.textTertiary }]}>Continue on Free</Text>
+          <Text style={[styles.dismissText, { color: colors.textTertiary }]}>{t('paywall.continueOnFree')}</Text>
         </Pressable>
       </ScrollView>
     </CustomModal>

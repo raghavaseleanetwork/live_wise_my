@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import {
   PlanId,
   PLAN_ORDER,
-  PLAN_META,
   LIMITS,
   FLAGS,
   formatLimit,
@@ -20,95 +20,100 @@ import {
 type CellValue = string; // "✓" | "✗" | "∞" | "3" | "6 members" | ...
 
 interface Row {
-  label: string;
+  labelKey: string;
   values: Record<PlanId, CellValue>;
 }
 
 interface Group {
-  title: string;
+  titleKey: string;
   rows: Row[];
 }
 
 const YES = '✓';
 const NO = '✗';
 
-function limitRow(label: string, key: keyof typeof LIMITS.free, suffix = ''): Row {
+type LimitSuffix = '' | 'days' | 'members';
+
+/** Suffix text is a translation-suffix marker embedded in the raw value; it is
+ * resolved to a localised string at render time (see `resolveSuffix` in Cell). */
+function limitRow(labelKey: string, key: keyof typeof LIMITS.free, suffix: LimitSuffix = ''): Row {
   const values = {} as Record<PlanId, CellValue>;
   for (const p of PLAN_ORDER) {
     const v = LIMITS[p][key];
-    values[p] = v === 0 ? NO : `${formatLimit(v)}${v === Infinity ? '' : suffix}`;
+    const suffixMarker = suffix && v !== Infinity ? `__SUFFIX_${suffix}__` : '';
+    values[p] = v === 0 ? NO : `${formatLimit(v)}${suffixMarker}`;
   }
-  return { label, values };
+  return { labelKey, values };
 }
 
-function flagRow(label: string, key: keyof typeof FLAGS.free): Row {
+function flagRow(labelKey: string, key: keyof typeof FLAGS.free): Row {
   const values = {} as Record<PlanId, CellValue>;
   for (const p of PLAN_ORDER) values[p] = FLAGS[p][key] ? YES : NO;
-  return { label, values };
+  return { labelKey, values };
 }
 
 const GROUPS: Group[] = [
   {
-    title: 'Core Limits',
+    titleKey: 'planComparison.groups.coreLimits',
     rows: [
-      limitRow('Family members', 'familyMembers'),
-      limitRow('Modules per member', 'modulesPerMember'),
-      limitRow('Active reminders', 'reminders'),
-      limitRow('Expense history', 'expenseHistoryDays', ' days'),
-      limitRow('Bills per member', 'billsPerMember'),
-      limitRow('Documents', 'documents'),
+      limitRow('planComparison.rows.familyMembers', 'familyMembers'),
+      limitRow('planComparison.rows.modulesPerMember', 'modulesPerMember'),
+      limitRow('planComparison.rows.activeReminders', 'reminders'),
+      limitRow('planComparison.rows.expenseHistory', 'expenseHistoryDays', 'days'),
+      limitRow('planComparison.rows.billsPerMember', 'billsPerMember'),
+      limitRow('planComparison.rows.documents', 'documents'),
     ],
   },
   {
-    title: 'Expense Entry',
+    titleKey: 'planComparison.groups.expenseEntry',
     rows: [
-      limitRow('Bill scan (OCR) / mo', 'billScanPerMonth'),
-      limitRow('Voice entry / mo', 'voiceReminderPerMonth'),
-      limitRow('Bank PDF import / mo', 'bankPdfImportPerMonth'),
-      flagRow('CSV / Excel import', 'csvImport'),
-      limitRow('Recurring templates', 'recurringTemplates'),
+      limitRow('planComparison.rows.billScan', 'billScanPerMonth'),
+      limitRow('planComparison.rows.voiceEntry', 'voiceReminderPerMonth'),
+      limitRow('planComparison.rows.bankPdfImport', 'bankPdfImportPerMonth'),
+      flagRow('planComparison.rows.csvExcelImport', 'csvImport'),
+      limitRow('planComparison.rows.recurringTemplates', 'recurringTemplates'),
     ],
   },
   {
-    title: 'Reports & Analytics',
+    titleKey: 'planComparison.groups.reportsAnalytics',
     rows: [
-      flagRow('Per-member breakdown', 'perMemberBreakdown'),
-      flagRow('PDF reports', 'pdfReports'),
-      flagRow('Annual report PDF', 'annualReportPdf'),
-      flagRow('Money leak alerts', 'moneyLeakAlerts'),
-      flagRow('Budget alerts', 'budgetAlerts'),
+      flagRow('planComparison.rows.perMemberBreakdown', 'perMemberBreakdown'),
+      flagRow('planComparison.rows.pdfReports', 'pdfReports'),
+      flagRow('planComparison.rows.annualReportPdf', 'annualReportPdf'),
+      flagRow('planComparison.rows.moneyLeakAlerts', 'moneyLeakAlerts'),
+      flagRow('planComparison.rows.budgetAlerts', 'budgetAlerts'),
     ],
   },
   {
-    title: 'Family Hub',
+    titleKey: 'planComparison.groups.familyHub',
     rows: [
-      limitRow('Caregivers per member', 'caregiversPerMember'),
-      limitRow('Location sharing', 'locationSharingMembers', ' members'),
-      limitRow('Noticeboard posts / mo', 'noticeboardPostsPerMonth'),
+      limitRow('planComparison.rows.caregiversPerMember', 'caregiversPerMember'),
+      limitRow('planComparison.rows.locationSharing', 'locationSharingMembers', 'members'),
+      limitRow('planComparison.rows.noticeboardPosts', 'noticeboardPostsPerMonth'),
     ],
   },
   {
-    title: 'AI & WiseAI',
-    rows: [limitRow('WiseAI messages / mo', 'wiseAiPerMonth')],
+    titleKey: 'planComparison.groups.aiWiseAi',
+    rows: [limitRow('planComparison.rows.wiseAiMessages', 'wiseAiPerMonth')],
   },
   {
-    title: 'Health',
+    titleKey: 'planComparison.groups.health',
     rows: [
-      flagRow('Medicine stock alerts', 'medicineStockAlerts'),
-      flagRow('Health graph (12 mo)', 'healthGraph12mo'),
-      flagRow('Medicine interaction check', 'medicineInteraction'),
-      flagRow('Pill photo identifier', 'pillIdentifier'),
-      flagRow('Doctor health PDF', 'doctorHealthPdf'),
+      flagRow('planComparison.rows.medicineStockAlerts', 'medicineStockAlerts'),
+      flagRow('planComparison.rows.healthGraph', 'healthGraph12mo'),
+      flagRow('planComparison.rows.medicineInteraction', 'medicineInteraction'),
+      flagRow('planComparison.rows.pillIdentifier', 'pillIdentifier'),
+      flagRow('planComparison.rows.doctorHealthPdf', 'doctorHealthPdf'),
     ],
   },
   {
-    title: 'Other',
+    titleKey: 'planComparison.groups.other',
     rows: [
-      flagRow('SMS auto-detect (Android)', 'smsAutoDetect'),
-      flagRow('Document expiry alerts', 'documentExpiryAlerts'),
-      flagRow('Caregiver alerts', 'sharedCaregiverAlerts'),
-      flagRow('WhatsApp reminders (beta)', 'whatsappReminders'),
-      flagRow('Data export (JSON)', 'dataExportJson'),
+      flagRow('planComparison.rows.smsAutoDetect', 'smsAutoDetect'),
+      flagRow('planComparison.rows.documentExpiryAlerts', 'documentExpiryAlerts'),
+      flagRow('planComparison.rows.caregiverAlerts', 'sharedCaregiverAlerts'),
+      flagRow('planComparison.rows.whatsappReminders', 'whatsappReminders'),
+      flagRow('planComparison.rows.dataExportJson', 'dataExportJson'),
     ],
   },
 ];
@@ -120,17 +125,26 @@ interface Props {
   currentPlan: PlanId;
 }
 
+function resolveSuffix(value: CellValue, t: (key: string) => string): CellValue {
+  const match = value.match(/^(.*)__SUFFIX_(days|members)__$/);
+  if (!match) return value;
+  const [, base, suffix] = match;
+  return `${base}${t(`planComparison.suffix${suffix === 'days' ? 'Days' : 'Members'}`)}`;
+}
+
 function Cell({ value, highlight }: { value: CellValue; highlight: boolean }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const resolved = resolveSuffix(value, t);
   const wrap = [styles.cell, { width: COL_W }, highlight && { backgroundColor: colors.accentDim }];
-  if (value === YES) {
+  if (resolved === YES) {
     return (
       <View style={wrap}>
         <Ionicons name="checkmark-circle" size={18} color={colors.accentMint} />
       </View>
     );
   }
-  if (value === NO) {
+  if (resolved === NO) {
     return (
       <View style={wrap}>
         <Ionicons name="close" size={16} color={colors.textTertiary} />
@@ -139,13 +153,14 @@ function Cell({ value, highlight }: { value: CellValue; highlight: boolean }) {
   }
   return (
     <View style={wrap}>
-      <Text style={[styles.cellText, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.cellText, { color: colors.text }]}>{resolved}</Text>
     </View>
   );
 }
 
 export default function PlanComparisonTable({ currentPlan }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false}>
@@ -170,7 +185,7 @@ export default function PlanComparisonTable({ currentPlan }: Props) {
                     { color: highlight ? colors.accent : colors.text },
                   ]}
                 >
-                  {PLAN_META[p].name}
+                  {t(`subscription.planNames.${p}`)}
                 </Text>
               </View>
             );
@@ -178,12 +193,12 @@ export default function PlanComparisonTable({ currentPlan }: Props) {
         </View>
 
         {GROUPS.map((group) => (
-          <View key={group.title}>
-            <Text style={[styles.groupTitle, { color: colors.textSecondary }]}>{group.title}</Text>
+          <View key={group.titleKey}>
+            <Text style={[styles.groupTitle, { color: colors.textSecondary }]}>{t(group.titleKey)}</Text>
             {group.rows.map((row) => (
-              <View key={row.label} style={[styles.dataRow, { borderBottomColor: colors.border }]}>
+              <View key={row.labelKey} style={[styles.dataRow, { borderBottomColor: colors.border }]}>
                 <View style={{ width: LABEL_W }}>
-                  <Text style={[styles.rowLabel, { color: colors.text }]}>{row.label}</Text>
+                  <Text style={[styles.rowLabel, { color: colors.text }]}>{t(row.labelKey)}</Text>
                 </View>
                 {PLAN_ORDER.map((p) => (
                   <Cell key={p} value={row.values[p]} highlight={p === currentPlan} />
