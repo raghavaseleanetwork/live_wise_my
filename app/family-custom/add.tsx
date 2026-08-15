@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
-import { addCustomItem } from '@/lib/family-records';
+import { CustomFieldDef, addCustomItem, loadCustomConfig } from '@/lib/family-records';
 
 export default function AddCustomItemScreen() {
   const router = useRouter();
@@ -17,8 +17,18 @@ export default function AddCustomItemScreen() {
   const { t } = useTranslation();
 
   const [itemTitle, setItemTitle] = useState('');
+  const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!memberId) return;
+    (async () => {
+      const config = await loadCustomConfig(String(memberId));
+      setCustomFields(config?.customFields ?? []);
+    })();
+  }, [memberId]);
 
   const handleSave = async () => {
     if (!itemTitle.trim()) {
@@ -27,7 +37,7 @@ export default function AddCustomItemScreen() {
     }
     if (!memberId || saving) return;
     setSaving(true);
-    await addCustomItem(String(memberId), itemTitle.trim());
+    await addCustomItem(String(memberId), itemTitle.trim(), Object.keys(fieldValues).length ? fieldValues : undefined);
     router.back();
   };
 
@@ -60,6 +70,20 @@ export default function AddCustomItemScreen() {
           placeholderTextColor={colors.textTertiary}
           autoFocus
         />
+
+        {customFields.map((f) => (
+          <View key={f.id}>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{f.label}</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={fieldValues[f.id] ?? ''}
+              onChangeText={(v) => setFieldValues((prev) => ({ ...prev, [f.id]: v }))}
+              placeholder={f.type === 'date' ? 'YYYY-MM-DD' : f.type === 'time' ? 'HH:MM AM/PM' : ''}
+              placeholderTextColor={colors.textTertiary}
+              keyboardType={f.type === 'number' ? 'numeric' : 'default'}
+            />
+          </View>
+        ))}
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
           <Text style={styles.primaryBtnLabel}>{t('familyCustom.addButton')}</Text>

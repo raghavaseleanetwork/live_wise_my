@@ -9,6 +9,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
@@ -28,21 +30,22 @@ type NotificationItem = {
   };
 };
 
-function formatTimeAgo(dateString: string) {
+function formatTimeAgo(dateString: string, t: TFunction) {
   const date = new Date(dateString);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'Just now';
-  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffMin < 1) return t('notifications.justNow');
+  if (diffMin < 60) return t('notifications.minAgo', { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hr ago`;
+  if (diffHr < 24) return t('notifications.hrAgo', { count: diffHr });
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return 'Yesterday';
-  return `${diffDay} days ago`;
+  if (diffDay === 1) return t('notifications.yesterday');
+  return t('notifications.daysAgo', { count: diffDay });
 }
 
 export default function NotificationDetailsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { showAlert } = useAlert();
@@ -97,7 +100,7 @@ export default function NotificationDetailsScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>Notification</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('notificationDetails.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -116,7 +119,7 @@ export default function NotificationDetailsScreen() {
             </Text>
             <Text style={[styles.itemBody, { color: colors.textSecondary }]}>{item.body}</Text>
             <Text style={[styles.itemTime, { color: colors.textTertiary }]}>
-              {formatTimeAgo(item.createdAt)}
+              {formatTimeAgo(item.createdAt, t)}
             </Text>
 
             {item.meta?.route && (
@@ -144,8 +147,8 @@ export default function NotificationDetailsScreen() {
                      router.push(route as any);
                    } catch (e) {
                      showAlert({
-                       title: 'Unavailable',
-                       message: 'This item is no longer available.',
+                       title: t('notificationDetails.unavailableTitle'),
+                       message: t('notificationDetails.unavailableMessage'),
                        type: 'error',
                      });
                    }
@@ -155,7 +158,7 @@ export default function NotificationDetailsScreen() {
                   { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 }
                 ]}
               >
-                <Text style={styles.actionButtonText}>View Related Item</Text>
+                <Text style={styles.actionButtonText}>{t('notificationDetails.viewRelatedItem')}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
               </Pressable>
             )}
@@ -168,9 +171,9 @@ export default function NotificationDetailsScreen() {
           </View>
           <View style={styles.content}>
             <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
-              {passedTitle || 'Notification'}
+              {passedTitle || t('notificationDetails.title')}
             </Text>
-            <Text style={[styles.itemBody, { color: colors.textSecondary }]}>{passedBody || 'Content no longer available.'}</Text>
+            <Text style={[styles.itemBody, { color: colors.textSecondary }]}>{passedBody || t('notificationDetails.contentUnavailable')}</Text>
           </View>
         </View>
       )}

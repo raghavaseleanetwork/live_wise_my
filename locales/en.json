@@ -151,6 +151,8 @@
     "expense": "Expense",
     "income": "Income",
     "category": "Category",
+    "categoryOtherExpense": "Other Expense",
+    "otherExpenseHint": "Money sent to another person or moved between your own accounts. Not counted in Leaks Analysis.",
     "for": "For",
     "me": "Me",
     "moreOptions": "More options",
@@ -211,6 +213,7 @@
     "filterHealth": "Health",
     "filterEdu": "Edu",
     "filterInvest": "Invest",
+    "filterOtherExpense": "Other Expense",
     "filterOthers": "Others",
     "timeAll": "All Time",
     "timeToday": "Today",
@@ -365,7 +368,22 @@
     "tapToSetUpTracker": "Tap to set up your tracker",
     "customNothingLoggedYet": "{{name}} — nothing logged yet",
     "customEntries_one": "{{name}} — {{count}} entry",
-    "customEntries_other": "{{name}} — {{count}} entries"
+    "customEntries_other": "{{name}} — {{count}} entries",
+    "noDietPlanSetYet": "No diet plan set yet",
+    "noWorkoutsScheduled": "No workouts scheduled",
+    "activeWorkouts_one": "{{count}} active workout",
+    "activeWorkouts_other": "{{count}} active workouts",
+    "noExamsUpcoming": "No exams upcoming",
+    "examsUpcoming_one": "{{count}} exam upcoming",
+    "examsUpcoming_other": "{{count}} exams upcoming",
+    "noWellnessDataYet": "No wellness data yet",
+    "wellnessSummary": "{{moodCount}} mood logs · {{reminderCount}} active reminders",
+    "noVehiclesTrackedYet": "No vehicles tracked yet",
+    "vehiclesTracked_one": "{{count}} vehicle tracked",
+    "vehiclesTracked_other": "{{count}} vehicles tracked",
+    "noHomeTasksTrackedYet": "No home tasks tracked yet",
+    "homeTasksTracked_one": "{{count}} task tracked",
+    "homeTasksTracked_other": "{{count}} tasks tracked"
   },
   "familyCheckin": {
     "title": "Call & Check-in",
@@ -388,7 +406,24 @@
     "timeLabel": "Time",
     "repeatOnLabel": "Repeat on (leave blank for every day)",
     "saveChanges": "Save Changes",
-    "errorDescribeCheckin": "Please describe this check-in (e.g. \"Daily call\")"
+    "errorDescribeCheckin": "Please describe this check-in (e.g. \"Daily call\")",
+    "frequencyLabel": "Call Frequency",
+    "frequencyOption": {
+      "daily": "Daily",
+      "every_2_days": "Every 2 days",
+      "weekly": "Weekly",
+      "custom": "Custom"
+    },
+    "callTypeLabel": "Call Type",
+    "callTypeOption": {
+      "regular_call": "Regular Call",
+      "video_call": "Video Call",
+      "whatsapp_call": "WhatsApp Call"
+    },
+    "contactNumberLabel": "Contact Number",
+    "contactNumberPlaceholder": "Phone number",
+    "missedCallAlertLabel": "Alert me if not called within 2 hours",
+    "missedCallWarning": "Missed — not marked as called"
   },
   "familyMember": {
     "addTitle": "Add New Member",
@@ -413,6 +448,12 @@
     "caregiverHintSuffix": "below — you can turn them off if you don't need them.",
     "dateOfBirth": "Date of birth",
     "selectBirthday": "Select Birthday",
+    "age": "Age",
+    "agePlaceholder": "Set date of birth to calculate",
+    "ageYears": "{{count}} yr",
+    "ageYears_plural": "{{count}} yrs",
+    "bloodGroup": "Blood group",
+    "selectBloodGroup": "Select Blood Group",
     "selectWhatToManage": "Select what you want to manage",
     "managedFeatures": "Managed features",
     "selectWhatToManageHint": "Choose one or more. Only what you pick will appear on {{name}}'s dashboard.",
@@ -482,7 +523,39 @@
     "saveBill": "Save Bill",
     "errorSelectCategory": "Please select a category",
     "errorEnterName": "Please enter a bill name",
-    "errorInvalidAmount": "Please enter a valid amount"
+    "errorInvalidAmount": "Please enter a valid amount",
+    "categoryGas": "Gas",
+    "categoryWater": "Water",
+    "categoryInternet": "Internet",
+    "categoryMobilePostpaid": "Mobile Postpaid",
+    "categoryCableTv": "Cable TV",
+    "categorySocietyMaintenance": "Society Maintenance",
+    "categoryRent": "Rent",
+    "categoryLoanEmi": "Loan EMI",
+    "categoryCreditCard": "Credit Card",
+    "placeholderGas": "e.g. Piped Gas",
+    "placeholderWater": "e.g. Municipal Water",
+    "placeholderInternet": "e.g. Jio Fiber",
+    "placeholderMobilePostpaid": "e.g. Airtel Postpaid",
+    "placeholderCableTv": "e.g. Tata Play",
+    "placeholderSocietyMaintenance": "e.g. Society Maintenance",
+    "placeholderRent": "e.g. House Rent",
+    "placeholderLoanEmi": "e.g. Car Loan EMI",
+    "placeholderCreditCard": "e.g. HDFC Credit Card",
+    "fieldAccountNumber": "Account Number",
+    "accountNumberPlaceholder": "Optional",
+    "fieldPaymentMethod": "Payment Method",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "Net Banking",
+      "credit_card": "Credit Card",
+      "auto_debit": "Auto-debit",
+      "cash": "Cash"
+    },
+    "fieldReminderDaysBefore": "Remind Me",
+    "daysBefore_one": "{{count}} day before",
+    "daysBefore_other": "{{count}} days before",
+    "dayOfReminderLabel": "Also remind on the due date"
   },
   "familyFeatures": {
     "medicines": {
@@ -565,7 +638,40 @@
     "locationPlaceholder": "Clinic / Hospital name",
     "followUpCheckbox": "This is a follow-up visit",
     "saveChanges": "Save Changes",
-    "saveAppointment": "Save Appointment"
+    "saveAppointment": "Save Appointment",
+    "specialization": {
+      "general": "General",
+      "cardiologist": "Cardiologist",
+      "orthopedic": "Orthopedic",
+      "neurologist": "Neurologist",
+      "pediatric": "Pediatric",
+      "dermatologist": "Dermatologist",
+      "gynecologist": "Gynecologist",
+      "dentist": "Dentist",
+      "ent": "ENT",
+      "ophthalmologist": "Ophthalmologist",
+      "psychiatrist": "Psychiatrist",
+      "other": "Other"
+    },
+    "hospitalNameLabel": "Hospital / Clinic Name",
+    "hospitalNamePlaceholder": "e.g. Sunshine Hospital",
+    "notesLabel": "Notes / Symptoms",
+    "notesPlaceholder": "Optional",
+    "reminderLeadLabel": "Remind Me",
+    "reminderLead": {
+      "1_day": "1 day before",
+      "3_hours": "3 hours before",
+      "1_hour": "1 hour before",
+      "30_min": "30 min before"
+    },
+    "recurringCheckbox": "This is a recurring appointment",
+    "recurrence": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "every_6_months": "Every 6 months",
+      "yearly": "Yearly"
+    },
+    "followUpDatePlaceholder": "Set follow-up date"
   },
   "familyDocuments": {
     "headerTitle": "Insurance & Documents",
@@ -583,16 +689,41 @@
     "errorEnterTitle": "Please enter a document title",
     "type": {
       "insurance": "Insurance Policy",
-      "id": "ID Document",
       "medical": "Medical Record",
-      "other": "Other"
+      "other": "Other",
+      "aadhaar": "Aadhaar Card",
+      "pan": "PAN Card",
+      "passport": "Passport",
+      "driving_license": "Driving License",
+      "birth_certificate": "Birth Certificate",
+      "marriage_certificate": "Marriage Certificate",
+      "property": "Property Documents",
+      "vehicle_rc": "Vehicle RC"
     },
     "placeholder": {
       "insurance": "e.g. Health Insurance Policy",
-      "id": "e.g. Aadhaar Card",
       "medical": "e.g. Blood Test Report",
-      "other": "e.g. Document title"
-    }
+      "other": "e.g. Document title",
+      "aadhaar": "e.g. Papa's Aadhaar",
+      "pan": "e.g. Papa's PAN",
+      "passport": "e.g. Papa's Passport",
+      "driving_license": "e.g. Papa's Driving License",
+      "birth_certificate": "e.g. Birth Certificate",
+      "marriage_certificate": "e.g. Marriage Certificate",
+      "property": "e.g. Flat Sale Deed",
+      "vehicle_rc": "e.g. Car RC"
+    },
+    "documentNumberLabel": "Document Number",
+    "documentNumberPlaceholder": "Optional",
+    "issueDateLabel": "Issue Date",
+    "setExpiryCheckbox": "This document expires",
+    "expiryReminderLabel": "Remind Me Before Expiry",
+    "expiryReminderLead": {
+      "6_months": "6 months",
+      "3_months": "3 months",
+      "1_month": "1 month"
+    },
+    "notSet": "Not set"
   },
   "familyCustom": {
     "defaultTitle": "Custom Feature",
@@ -610,7 +741,23 @@
     "errorNameTracker": "Please name your custom tracker",
     "trackerNameLabel": "Tracker Name",
     "trackerNamePlaceholder": "e.g. Physiotherapy Sessions",
-    "iconLabel": "Icon"
+    "iconLabel": "Icon",
+    "customFieldsLabel": "Custom Fields",
+    "fieldLabelPlaceholder": "Field name",
+    "fieldType": {
+      "text": "Text",
+      "date": "Date",
+      "time": "Time",
+      "number": "Number"
+    },
+    "reminderToggleLabel": "Enable reminder",
+    "frequencyLabel": "Frequency",
+    "frequencyOption": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "custom": "Custom"
+    }
   },
   "familyHealth": {
     "headerTitle": "Health Monitoring",
@@ -632,7 +779,18 @@
     "dateLabel": "Date",
     "notesLabel": "Notes (optional)",
     "notesPlaceholder": "e.g. After morning walk",
-    "saveReading": "Save Reading"
+    "saveReading": "Save Reading",
+    "systolicPlaceholder": "Systolic",
+    "diastolicPlaceholder": "Diastolic",
+    "pulsePlaceholder": "Pulse",
+    "sugarReadingType": {
+      "fasting": "Fasting",
+      "post_meal": "Post-meal"
+    },
+    "targetRangeLabel": "Normal Range Alert (optional)",
+    "targetRangeLowPlaceholder": "Min",
+    "targetRangeHighPlaceholder": "Max",
+    "outOfRangeWarning": "Outside target range"
   },
   "familyRoutine": {
     "headerTitle": "Daily Routine",
@@ -654,7 +812,11 @@
     "routineNamePlaceholder": "e.g. Evening Prayer",
     "timeLabel": "Time",
     "repeatOnLabel": "Repeat on (leave blank for every day)",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "presetAllDays": "All days",
+    "presetWeekdays": "Weekdays",
+    "presetWeekends": "Weekends",
+    "weeklyCompliance": "{{percent}}% this week"
   },
   "familyStock": {
     "headerTitle": "Medication Stock",
@@ -679,7 +841,10 @@
     "quantityPlaceholder": "e.g. 30",
     "dailyUsageLabel": "Daily Usage",
     "lowStockAlertLabel": "Low Stock Alert At",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "linkMedicineLabel": "Link to a Medicine",
+    "pharmacyNameLabel": "Pharmacy",
+    "pharmacyNamePlaceholder": "Optional"
   },
   "familySubscriptions": {
     "headerTitle": "Subscriptions",
@@ -704,7 +869,35 @@
     "amountLabel": "Amount",
     "renewalDateLabel": "Renewal Date",
     "billingCycleLabel": "Billing Cycle",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "customService": "Custom",
+    "planTypeLabel": "Plan Type",
+    "planTypePlaceholder": "e.g. Family Plan",
+    "cycle": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "autoRenewsLabel": "Auto-renews",
+    "paymentMethodLabel": "Payment Method",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "Net Banking",
+      "credit_card": "Credit Card",
+      "debit_card": "Debit Card",
+      "other": "Other"
+    },
+    "reminderLabel": "Remind Me",
+    "daysBefore_one": "{{count}} day before",
+    "daysBefore_other": "{{count}} days before",
+    "categoryLabel": "Category",
+    "category": {
+      "entertainment": "Entertainment",
+      "productivity": "Productivity",
+      "health": "Health",
+      "education": "Education",
+      "other": "Other"
+    }
   },
   "familyTasks": {
     "headerTitle": "Reminder Tasks",
@@ -747,7 +940,205 @@
     "dateLabel": "Date",
     "locationLabel": "Location",
     "locationPlaceholder": "Optional",
+    "saveChanges": "Save Changes",
+    "timeLabel": "Time",
+    "notesLabel": "Purpose / Notes",
+    "notesPlaceholder": "Optional",
+    "reminderLabel": "Remind Me",
+    "hoursBefore_one": "{{count}} hour before",
+    "hoursBefore_other": "{{count}} hours before",
+    "recurringCheckbox": "This repeats",
+    "recurrence": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "yearly": "Yearly"
+    },
+    "returnDateLabel": "Return Date",
+    "companionLabel": "Travelling With",
+    "notSet": "Not set"
+  },
+  "familyDiet": {
+    "headerTitle": "Diet & Meal Planning",
+    "forMember": "For {{name}}",
+    "dietTypeLabel": "Diet Type",
+    "type": {
+      "normal": "Normal",
+      "diabetic": "Diabetic",
+      "low_salt": "Low Salt",
+      "low_fat": "Low Fat",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "custom": "Custom"
+    },
+    "customDietNameLabel": "Custom Diet Name",
+    "customDietNamePlaceholder": "e.g. Keto",
+    "mealsLabel": "Meals",
+    "meal": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "evening_snack": "Evening Snack",
+      "dinner": "Dinner"
+    },
+    "mealTimePlaceholder": "e.g. 8:00 AM",
+    "mealNotesPlaceholder": "Food notes / plan (optional)",
+    "calorieTargetLabel": "Daily Calorie Target (optional)",
+    "calorieTargetPlaceholder": "e.g. 1800",
+    "foodRestrictionsLabel": "Food Restrictions",
+    "foodRestrictionsPlaceholder": "e.g. cannot eat sugar, salt, fried food",
+    "waterReminderLabel": "Water Intake Reminder",
+    "waterReminderHourlyLabel": "Remind every (hours)",
+    "doctorNotesLabel": "Doctor / Dietitian Notes",
+    "doctorNotesPlaceholder": "Optional notes",
     "saveChanges": "Save Changes"
+  },
+  "familyFitness": {
+    "headerTitle": "Fitness Tracking",
+    "forMember": "For {{name}}",
+    "emptyTitle": "No workouts scheduled yet",
+    "emptyDesc": "Tap + to add a workout schedule.",
+    "type": {
+      "walking": "Walking",
+      "running": "Running",
+      "yoga": "Yoga",
+      "gym": "Gym",
+      "swimming": "Swimming",
+      "cycling": "Cycling",
+      "other": "Other"
+    },
+    "editHeaderTitle": "Edit Workout",
+    "newHeaderTitle": "New Workout",
+    "errorSelectType": "Please select a workout type",
+    "timeLabel": "Time",
+    "repeatOnLabel": "Repeat On",
+    "durationGoalLabel": "Duration Goal (min)",
+    "durationGoalPlaceholder": "e.g. 30",
+    "stepGoalLabel": "Step Goal",
+    "stepGoalPlaceholder": "e.g. 5000",
+    "notesLabel": "Notes from Trainer/Doctor",
+    "notesPlaceholder": "Optional",
+    "isRestDayLabel": "Mark as rest day",
+    "reminderEnabledLabel": "Reminder enabled",
+    "saveChanges": "Save Changes",
+    "minutesGoal_one": "{{count}} min goal",
+    "minutesGoal_other": "{{count}} min goal",
+    "streakDays_one": "{{count}} day streak",
+    "streakDays_other": "{{count}} day streak"
+  },
+  "familyStudy": {
+    "headerTitle": "Study & Education",
+    "forMember": "For {{name}}",
+    "gradeLabel": "Student Grade / Class",
+    "gradePlaceholder": "e.g. Grade 10",
+    "subjectsLabel": "Subjects",
+    "subjectPlaceholder": "Add a subject",
+    "examsLabel": "Exams",
+    "examSubjectPlaceholder": "Exam subject",
+    "eventsLabel": "School/College Events",
+    "eventTitlePlaceholder": "Event title",
+    "feesLabel": "Fee Payments",
+    "feeTitlePlaceholder": "Fee title",
+    "feeAmountPlaceholder": "Amount"
+  },
+  "familyWellness": {
+    "headerTitle": "Mental Health & Wellness",
+    "forMember": "For {{name}}",
+    "moodTodayLabel": "Today's Mood",
+    "moodLoggedToday": "Mood logged for today",
+    "remindersLabel": "Self-Care Reminders",
+    "emptyDesc": "Tap + to add a meditation, breathing, journal, self-care, or therapy reminder.",
+    "kind": {
+      "meditation": "Meditation",
+      "breathing": "Breathing Exercise",
+      "journal": "Journal",
+      "self_care": "Self-Care",
+      "therapy": "Therapy / Counselling"
+    },
+    "editHeaderTitle": "Edit Reminder",
+    "newHeaderTitle": "New Reminder",
+    "errorEnterTitle": "Please enter a title",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Evening meditation",
+    "timeLabel": "Time",
+    "frequencyDaysLabel": "Frequency (every N days)",
+    "frequencyDaysPlaceholder": "e.g. 2",
+    "sessionDateLabel": "Session Date & Time",
+    "doctorNameLabel": "Doctor / Counsellor Name",
+    "doctorNamePlaceholder": "Optional",
+    "notSet": "Not set",
+    "saveChanges": "Save Changes"
+  },
+  "familyVehicles": {
+    "headerTitle": "Vehicle Management",
+    "forMember": "For {{name}}",
+    "emptyTitle": "No vehicles tracked yet",
+    "emptyDesc": "Tap + to add a car, bike, or scooter.",
+    "type": {
+      "car": "Car",
+      "bike": "Bike",
+      "scooter": "Scooter",
+      "other": "Other"
+    },
+    "editHeaderTitle": "Edit Vehicle",
+    "newHeaderTitle": "New Vehicle",
+    "errorEnterName": "Please enter a vehicle name",
+    "nameLabel": "Vehicle Name / Model",
+    "namePlaceholder": "e.g. Honda City",
+    "registrationLabel": "Registration Number",
+    "registrationPlaceholder": "e.g. GJ01AB1234",
+    "insuranceExpiryLabel": "Insurance Expiry",
+    "pucExpiryLabel": "PUC Expiry",
+    "serviceDueDateLabel": "Service Due Date",
+    "serviceDueNoteLabel": "Service Note (or KM-based)",
+    "serviceDueNotePlaceholder": "e.g. Due at 45,000 km",
+    "loanEmiAmountLabel": "Loan EMI Amount",
+    "loanEmiAmountPlaceholder": "Optional",
+    "loanEmiDueDateLabel": "Loan EMI Due Date",
+    "notSet": "Not set",
+    "saveChanges": "Save Changes",
+    "insuranceExpires": "Insurance expires {{date}}",
+    "pucExpires": "PUC expires {{date}}",
+    "serviceDue": "Service due {{date}}"
+  },
+  "familyHomeMaintenance": {
+    "headerTitle": "Home Maintenance",
+    "forMember": "For {{name}}",
+    "emptyTitle": "No home tasks tracked yet",
+    "emptyDesc": "Tap + to add a service, AMC, or maintenance task.",
+    "type": {
+      "ac_service": "AC Service",
+      "water_purifier": "Water Purifier Service",
+      "pest_control": "Pest Control",
+      "plumbing": "Plumbing",
+      "electrical": "Electrical",
+      "painting": "Painting",
+      "other": "Other"
+    },
+    "editHeaderTitle": "Edit Task",
+    "newHeaderTitle": "New Task",
+    "errorEnterTaskName": "Please enter a task name",
+    "taskNameLabel": "Task Name",
+    "taskNamePlaceholder": "e.g. AC Service",
+    "vendorNameLabel": "Vendor / Technician",
+    "vendorNamePlaceholder": "Name",
+    "vendorPhoneLabel": "Vendor Phone",
+    "vendorPhonePlaceholder": "Phone number",
+    "lastDoneDateLabel": "Last Done Date",
+    "nextDueDateLabel": "Next Due Date",
+    "frequencyLabel": "Frequency",
+    "frequency": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly",
+      "custom": "Custom"
+    },
+    "hasAmcLabel": "Has AMC Contract",
+    "amcExpiryDateLabel": "AMC Expiry Date",
+    "costLabel": "Cost",
+    "costPlaceholder": "Optional",
+    "notSet": "Not set",
+    "saveChanges": "Save Changes",
+    "nextDue": "Next due {{date}}",
+    "amcExpires": "AMC expires {{date}}"
   },
   "familyCaregivers": {
     "headerTitle": "Caregivers",
@@ -783,6 +1174,26 @@
     "infoBannerPrefix": "Alerts fire as a notification on ",
     "thisDevice": "this device",
     "infoBannerSuffix": ". Sending alerts to other family members' phones needs a small backend addition — see the notes in this app's project docs.",
+    "contactsSection": "Emergency Contacts",
+    "contactNamePlaceholder": "Contact name",
+    "contactPhonePlaceholder": "Phone number",
+    "contactRelationPlaceholder": "Relation",
+    "addContact": "Add Contact",
+    "medicalInfoSection": "Medical Information",
+    "knownAllergiesLabel": "Known Allergies",
+    "knownAllergiesPlaceholder": "e.g. Penicillin, peanuts",
+    "medicalConditionsLabel": "Existing Medical Conditions",
+    "medicalConditionsPlaceholder": "e.g. Diabetes, hypertension",
+    "currentMedicationsLabel": "Current Medications Note",
+    "currentMedicationsPlaceholder": "Optional note (or see Medicine Tracking)",
+    "doctorNameLabel": "Doctor Emergency Contact",
+    "doctorNamePlaceholder": "Doctor's name",
+    "doctorPhoneLabel": "Doctor Phone",
+    "doctorPhonePlaceholder": "Phone number",
+    "hospitalPreferenceLabel": "Hospital Preference",
+    "hospitalPreferencePlaceholder": "Preferred hospital name",
+    "insurancePolicyLabel": "Insurance Policy Number",
+    "insurancePolicyPlaceholder": "Optional",
     "settingsSection": "Settings",
     "missedMedicineAlertTitle": "Missed Medicine Alert",
     "missedMedicineAlertSub": "Alert if a dose is {{hours}}h+ overdue",
@@ -1077,7 +1488,7 @@
     "howItWorksBullet2": "• A recurring charge suddenly increases in price",
     "howItWorksBullet3": "• A subscription is billed but hasn't been used in 45+ days",
     "neverCountedTitle": "What's never counted as a leak",
-    "neverCountedText": "Essential and important payments are always excluded — bills, EMIs/loans, insurance, medical/health, education, rent, taxes, and investments or savings. Only unnecessary or extra spending is considered.",
+    "neverCountedText": "Essential and important payments are always excluded — bills, EMIs/loans, insurance, medical/health, education, rent, taxes, and investments or savings. Anything you tag as Other Expense (money sent to another person, or moved between your own accounts) is excluded too. Only unnecessary or extra spending is considered.",
     "leaksDetectedCount_one": "{{count}} leak detected",
     "leaksDetectedCount_other": "{{count}} leaks detected",
     "allClearTitle": "All clear!",
@@ -1357,7 +1768,10 @@
           "Doctor-ready reports"
         ]
       }
-    }
+    },
+    "testActivateTitle": "Activate {{planName}}?",
+    "testActivateMessage": "This is a TEST activation — no payment will be taken and no real subscription is created. {{planName}} features will be unlocked on this device.",
+    "testActivateButton": "Activate {{planName}}"
   },
   "planBadge": {
     "trialPrefix": "Trial · "
@@ -1562,7 +1976,21 @@
     "startDate": "Start Date",
     "endDate": "End Date",
     "adding": "Adding...",
-    "addMedicineButton": "Add Medicine"
+    "addMedicineButton": "Add Medicine",
+    "frequency": "Frequency",
+    "frequencyOption": {
+      "daily": "Daily",
+      "alternate_days": "Alternate Days",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "as_needed": "As Needed"
+    },
+    "reminderToggle": "Reminder enabled",
+    "snoozeDuration": "Snooze Duration",
+    "snoozeMinutes": "{{count}} min",
+    "doctorNotes": "Doctor's Notes",
+    "doctorNotesPlaceholder": "Optional notes from the doctor",
+    "addAnotherMedicine": "Add Another Medicine"
   },
   "medicineDetails": {
     "title": "Medicine Detail",
@@ -1847,5 +2275,42 @@
     "tryAgain": "Try Again",
     "viewErrorDetails": "View error details",
     "errorDetails": "Error Details"
+  },
+  "notificationDetails": {
+    "title": "Notification",
+    "unavailableTitle": "Unavailable",
+    "unavailableMessage": "This item is no longer available.",
+    "viewRelatedItem": "View Related Item",
+    "contentUnavailable": "Content no longer available."
+  },
+  "smsSync": {
+    "preparing": "Preparing SMS sync...",
+    "iosTitle": "Auto Track works differently here",
+    "iosMessage": "Apple does not let any app read your SMS. Instead, import your bank statement — one CSV export fills in a whole month at once. You can also scan receipts or speak an expense.",
+    "notNow": "Not now",
+    "importStatement": "Import statement",
+    "iosStatus": "On iPhone, import a bank statement or add expenses by scan/voice.",
+    "requestingPermission": "Requesting SMS permission...",
+    "permissionBlockedTitle": "Permission blocked",
+    "permissionBlockedMessage": "SMS permission is blocked. Please open Settings > Permissions and allow SMS.",
+    "openSettings": "Open Settings",
+    "permissionNeededTitle": "Permission needed",
+    "permissionNeededMessage": "Please allow SMS permission to enable Auto Track.",
+    "readingInbox": "Reading SMS inbox...",
+    "identifyingTransactions": "Identifying transactions...",
+    "syncingToCloud": "Securely syncing to cloud...",
+    "syncComplete_one": "Sync complete. {{count}} transaction synced.",
+    "syncComplete_other": "Sync complete. {{count}} transactions synced.",
+    "polishingCategories": "Polishing categories with AI...",
+    "sessionExpiredStatus": "Your session has expired. Please sign out and sign in again.",
+    "sessionExpiredTitle": "Session expired",
+    "sessionExpiredMessage": "Please sign out and sign in again, then retry Auto Track.",
+    "couldNotReadTitle": "Could not read SMS",
+    "failedServerError": "Auto Track failed (server error {{status}}). Please try again.",
+    "failedGeneric": "Auto Track failed. Please check your connection and try again.",
+    "unexpectedFailure": "SMS sync failed unexpectedly."
+  },
+  "addExpenseFab": {
+    "closeMenu": "Close add menu"
   }
 }

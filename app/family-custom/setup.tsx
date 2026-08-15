@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,9 +7,15 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
-import { CustomFeatureConfig, saveCustomConfig } from '@/lib/family-records';
+import { CustomFeatureConfig, CustomFieldDef, CustomFieldType, loadCustomConfig, saveCustomConfig } from '@/lib/family-records';
 
 const ICON_OPTIONS = ['star', 'fitness', 'book', 'musical-notes', 'brush', 'football', 'game-controller', 'leaf'];
+const FIELD_TYPES: CustomFieldType[] = ['text', 'date', 'time', 'number'];
+const FREQUENCIES: NonNullable<CustomFeatureConfig['frequency']>[] = ['daily', 'weekly', 'monthly', 'custom'];
+
+function genId(): string {
+  return Date.now().toString() + Math.random().toString(36).slice(2, 9);
+}
 
 export default function CustomTrackerSetupScreen() {
   const router = useRouter();
@@ -25,8 +31,31 @@ export default function CustomTrackerSetupScreen() {
 
   const [trackerName, setTrackerName] = useState(currentName ? String(currentName) : '');
   const [trackerIcon, setTrackerIcon] = useState(currentIcon ? String(currentIcon) : 'star');
+  const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldType, setNewFieldType] = useState<CustomFieldType>('text');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [frequency, setFrequency] = useState<NonNullable<CustomFeatureConfig['frequency']>>('daily');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!memberId) return;
+    (async () => {
+      const existing = await loadCustomConfig(String(memberId));
+      if (existing?.customFields) setCustomFields(existing.customFields);
+      if (existing?.reminderEnabled != null) setReminderEnabled(existing.reminderEnabled);
+      if (existing?.frequency) setFrequency(existing.frequency);
+    })();
+  }, [memberId]);
+
+  const addCustomField = () => {
+    if (!newFieldLabel.trim()) return;
+    setCustomFields((prev) => [...prev, { id: genId(), label: newFieldLabel.trim(), type: newFieldType }]);
+    setNewFieldLabel('');
+  };
+
+  const removeCustomField = (id: string) => setCustomFields((prev) => prev.filter((f) => f.id !== id));
 
   const handleSave = async () => {
     if (!trackerName.trim()) {
@@ -35,7 +64,13 @@ export default function CustomTrackerSetupScreen() {
     }
     if (!memberId || saving) return;
     setSaving(true);
-    const newConfig: CustomFeatureConfig = { name: trackerName.trim(), icon: trackerIcon };
+    const newConfig: CustomFeatureConfig = {
+      name: trackerName.trim(),
+      icon: trackerIcon,
+      customFields,
+      reminderEnabled,
+      frequency,
+    };
     await saveCustomConfig(String(memberId), newConfig);
     router.back();
   };
@@ -84,6 +119,61 @@ export default function CustomTrackerSetupScreen() {
           ))}
         </View>
 
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCustom.customFieldsLabel')}</Text>
+        {customFields.map((f) => (
+          <View key={f.id} style={[styles.fieldRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.fieldRowText, { color: colors.text }]}>{f.label} · {t(`familyCustom.fieldType.${f.type}`)}</Text>
+            <Pressable onPress={() => removeCustomField(f.id)} hitSlop={10}>
+              <Ionicons name="trash-outline" size={16} color={colors.textTertiary} />
+            </Pressable>
+          </View>
+        ))}
+        <View style={styles.addFieldRow}>
+          <TextInput
+            style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            value={newFieldLabel}
+            onChangeText={setNewFieldLabel}
+            placeholder={t('familyCustom.fieldLabelPlaceholder')}
+            placeholderTextColor={colors.textTertiary}
+          />
+          <Pressable onPress={addCustomField} style={[styles.addFieldBtn, { backgroundColor: colors.accent }]}>
+            <Ionicons name="add" size={20} color="#FFF" />
+          </Pressable>
+        </View>
+        <View style={styles.typeRow}>
+          {FIELD_TYPES.map((ft) => (
+            <Pressable
+              key={ft}
+              onPress={() => setNewFieldType(ft)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, newFieldType === ft && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: newFieldType === ft ? '#FFF' : colors.textSecondary }]}>{t(`familyCustom.fieldType.${ft}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable onPress={() => setReminderEnabled(!reminderEnabled)} style={styles.toggleRow}>
+          <Ionicons name={reminderEnabled ? 'checkbox' : 'square-outline'} size={22} color={reminderEnabled ? colors.accent : colors.textTertiary} />
+          <Text style={[styles.toggleLabel, { color: colors.text }]}>{t('familyCustom.reminderToggleLabel')}</Text>
+        </Pressable>
+
+        {reminderEnabled && (
+          <>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCustom.frequencyLabel')}</Text>
+            <View style={styles.typeRow}>
+              {FREQUENCIES.map((f) => (
+                <Pressable
+                  key={f}
+                  onPress={() => setFrequency(f)}
+                  style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, frequency === f && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                >
+                  <Text style={[styles.smallChipText, { color: frequency === f ? '#FFF' : colors.textSecondary }]}>{t(`familyCustom.frequencyOption.${f}`)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
           <Text style={styles.primaryBtnLabel}>{t('common.save')}</Text>
         </Pressable>
@@ -107,4 +197,13 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   iconOption: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 8 },
+  fieldRowText: { fontFamily: 'Inter_500Medium', fontSize: 13 },
+  addFieldRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  addFieldBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  smallChip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  smallChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 8 },
+  toggleLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

@@ -151,6 +151,8 @@
     "expense": "செலவு",
     "income": "வருமானம்",
     "category": "வகை",
+    "categoryOtherExpense": "பிற செலவு",
+    "otherExpenseHint": "மற்றொரு நபருக்கு அனுப்பப்பட்ட அல்லது உங்கள் சொந்தக் கணக்குகளுக்கு இடையே மாற்றப்பட்ட பணம். லீக் பகுப்பாய்வில் இது கணக்கிடப்படாது.",
     "for": "யாருக்காக",
     "me": "நான்",
     "moreOptions": "மேலும் விருப்பங்கள்",
@@ -211,6 +213,7 @@
     "filterHealth": "ஆரோக்கியம்",
     "filterEdu": "கல்வி",
     "filterInvest": "முதலீடு",
+    "filterOtherExpense": "பிற செலவு",
     "filterOthers": "மற்றவை",
     "timeAll": "எல்லா நேரமும்",
     "timeToday": "இன்று",
@@ -365,7 +368,22 @@
     "tapToSetUpTracker": "உங்கள் டிராக்கரை அமைக்க தட்டவும்",
     "customNothingLoggedYet": "{{name}} — இதுவரை எதுவும் பதிவு செய்யப்படவில்லை",
     "customEntries_one": "{{name}} — {{count}} பதிவு",
-    "customEntries_other": "{{name}} — {{count}} பதிவுகள்"
+    "customEntries_other": "{{name}} — {{count}} பதிவுகள்",
+    "noDietPlanSetYet": "இன்னும் உணவுத் திட்டம் அமைக்கப்படவில்லை",
+    "noWorkoutsScheduled": "பயிற்சிகள் எதுவும் திட்டமிடப்படவில்லை",
+    "activeWorkouts_one": "{{count}} செயலில் உள்ள பயிற்சி",
+    "activeWorkouts_other": "{{count}} செயலில் உள்ள பயிற்சிகள்",
+    "noExamsUpcoming": "வரவிருக்கும் தேர்வுகள் இல்லை",
+    "examsUpcoming_one": "{{count}} தேர்வு வரவிருக்கிறது",
+    "examsUpcoming_other": "{{count}} தேர்வுகள் வரவிருக்கின்றன",
+    "noWellnessDataYet": "இன்னும் நல்வாழ்வு தரவு இல்லை",
+    "wellnessSummary": "{{moodCount}} மனநிலை பதிவுகள் · {{reminderCount}} செயலில் உள்ள நினைவூட்டல்கள்",
+    "noVehiclesTrackedYet": "இன்னும் வாகனங்கள் எதுவும் கண்காணிக்கப்படவில்லை",
+    "vehiclesTracked_one": "{{count}} வாகனம் கண்காணிக்கப்படுகிறது",
+    "vehiclesTracked_other": "{{count}} வாகனங்கள் கண்காணிக்கப்படுகின்றன",
+    "noHomeTasksTrackedYet": "இன்னும் வீட்டு பணிகள் எதுவும் கண்காணிக்கப்படவில்லை",
+    "homeTasksTracked_one": "{{count}} பணி கண்காணிக்கப்படுகிறது",
+    "homeTasksTracked_other": "{{count}} பணிகள் கண்காணிக்கப்படுகின்றன"
   },
   "familyCheckin": {
     "title": "அழைப்பு & செக்-இன்",
@@ -388,7 +406,24 @@
     "timeLabel": "நேரம்",
     "repeatOnLabel": "எந்த நாட்களில் மீண்டும் நிகழ வேண்டும் (தினமும் என்றால் காலியாக விடவும்)",
     "saveChanges": "மாற்றங்களைச் சேமி",
-    "errorDescribeCheckin": "இந்த செக்-இனை விவரிக்கவும் (எ.கா. \"தினசரி அழைப்பு\")"
+    "errorDescribeCheckin": "இந்த செக்-இனை விவரிக்கவும் (எ.கா. \"தினசரி அழைப்பு\")",
+    "frequencyLabel": "அழைப்பு அதிர்வெண்",
+    "frequencyOption": {
+      "daily": "தினமும்",
+      "every_2_days": "ஒவ்வொரு 2 நாட்களுக்கும்",
+      "weekly": "வாராந்திரம்",
+      "custom": "தனிப்பயன்"
+    },
+    "callTypeLabel": "அழைப்பு வகை",
+    "callTypeOption": {
+      "regular_call": "வழக்கமான அழைப்பு",
+      "video_call": "வீடியோ அழைப்பு",
+      "whatsapp_call": "WhatsApp அழைப்பு"
+    },
+    "contactNumberLabel": "தொடர்பு எண்",
+    "contactNumberPlaceholder": "தொலைபேசி எண்",
+    "missedCallAlertLabel": "2 மணி நேரத்தில் அழைக்கவில்லை என்றால் எனக்கு தெரிவிக்கவும்",
+    "missedCallWarning": "தவறவிட்டது — அழைத்ததாக குறிக்கப்படவில்லை"
   },
   "familyMember": {
     "addTitle": "புதிய உறுப்பினரைச் சேர்க்கவும்",
@@ -413,6 +448,12 @@
     "caregiverHintSuffix": "ஆகியவற்றை இயக்கியுள்ளோம் — தேவையில்லை எனில் இவற்றை அணைக்கலாம்.",
     "dateOfBirth": "பிறந்த தேதி",
     "selectBirthday": "பிறந்தநாளைத் தேர்ந்தெடுக்கவும்",
+    "age": "வயது",
+    "agePlaceholder": "கணக்கிட பிறந்த தேதியை அமைக்கவும்",
+    "ageYears": "{{count}} ஆண்டு",
+    "ageYears_plural": "{{count}} ஆண்டுகள்",
+    "bloodGroup": "இரத்த வகை",
+    "selectBloodGroup": "இரத்த வகையைத் தேர்ந்தெடுக்கவும்",
     "selectWhatToManage": "எதை நிர்வகிக்க வேண்டும் என்பதைத் தேர்ந்தெடுக்கவும்",
     "managedFeatures": "நிர்வகிக்கப்படும் அம்சங்கள்",
     "selectWhatToManageHint": "ஒன்று அல்லது அதற்கு மேற்பட்டவற்றைத் தேர்ந்தெடுக்கவும். நீங்கள் தேர்ந்தெடுத்தவை மட்டுமே {{name}} இன் டாஷ்போர்டில் தோன்றும்.",
@@ -482,7 +523,39 @@
     "saveBill": "பில்லைச் சேமி",
     "errorSelectCategory": "தயவுசெய்து ஒரு வகையைத் தேர்ந்தெடுக்கவும்",
     "errorEnterName": "தயவுசெய்து பில் பெயரை உள்ளிடவும்",
-    "errorInvalidAmount": "தயவுசெய்து சரியான தொகையை உள்ளிடவும்"
+    "errorInvalidAmount": "தயவுசெய்து சரியான தொகையை உள்ளிடவும்",
+    "categoryGas": "எரிவாயு",
+    "categoryWater": "தண்ணீர்",
+    "categoryInternet": "இணையம்",
+    "categoryMobilePostpaid": "மொபைல் போஸ்ட்பெய்ட்",
+    "categoryCableTv": "கேபிள் டிவி",
+    "categorySocietyMaintenance": "சொசைட்டி பராமரிப்பு",
+    "categoryRent": "வாடகை",
+    "categoryLoanEmi": "கடன் EMI",
+    "categoryCreditCard": "கிரெடிட் கார்டு",
+    "placeholderGas": "எ.கா. பைப் எரிவாயு",
+    "placeholderWater": "எ.கா. நகராட்சி தண்ணீர்",
+    "placeholderInternet": "எ.கா. Jio Fiber",
+    "placeholderMobilePostpaid": "எ.கா. Airtel போஸ்ட்பெய்ட்",
+    "placeholderCableTv": "எ.கா. Tata Play",
+    "placeholderSocietyMaintenance": "எ.கா. சொசைட்டி பராமரிப்பு",
+    "placeholderRent": "எ.கா. வீட்டு வாடகை",
+    "placeholderLoanEmi": "எ.கா. கார் கடன் EMI",
+    "placeholderCreditCard": "எ.கா. HDFC கிரெடிட் கார்டு",
+    "fieldAccountNumber": "கணக்கு எண்",
+    "accountNumberPlaceholder": "விருப்பத்தேர்வு",
+    "fieldPaymentMethod": "கட்டண முறை",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "நெட் பேங்கிங்",
+      "credit_card": "கிரெடிட் கார்டு",
+      "auto_debit": "ஆட்டோ-டெபிட்",
+      "cash": "பணம்"
+    },
+    "fieldReminderDaysBefore": "எனக்கு நினைவூட்டு",
+    "daysBefore_one": "{{count}} நாள் முன்பு",
+    "daysBefore_other": "{{count}} நாட்கள் முன்பு",
+    "dayOfReminderLabel": "செலுத்த வேண்டிய தேதியிலும் நினைவூட்டு"
   },
   "familyFeatures": {
     "medicines": {
@@ -565,25 +638,40 @@
     "locationPlaceholder": "மருத்துவமனை / கிளினிக் பெயர்",
     "followUpCheckbox": "இது ஒரு பின்தொடர் வருகை",
     "saveChanges": "மாற்றங்களைச் சேமி",
-    "saveAppointment": "சந்திப்பைச் சேமி"
-  },
-  "familyCustom": {
-    "defaultTitle": "தனிப்பயன் அம்சம்",
-    "forMember": "{{name}} க்காக",
-    "emptyTitle": "இதுவரை எதுவும் கண்காணிக்கப்படவில்லை",
-    "emptyDesc": "{{name}} க்கான உங்கள் முதல் பதிவைச் சேர்க்க + ஐத் தட்டவும்.",
-    "thisTracker": "இந்த டிராக்கர்",
-    "errorEnterEntry": "தயவுசெய்து ஒரு பதிவை உள்ளிடவும்",
-    "newEntry": "புதிய பதிவு",
-    "entryLabel": "பதிவு",
-    "entryPlaceholder": "நீங்கள் எதைப் பதிவு செய்ய விரும்புகிறீர்கள்?",
-    "addButton": "சேர்",
-    "setupTitle": "உங்கள் டிராக்கருக்குப் பெயரிடுங்கள்",
-    "setupHint": "இதற்கு ஒரு பெயர் கொடுத்து ஒரு ஐகானைத் தேர்ந்தெடுக்கவும். இதை பின்னர் மாற்றலாம்.",
-    "errorNameTracker": "தயவுசெய்து உங்கள் தனிப்பயன் டிராக்கருக்குப் பெயரிடவும்",
-    "trackerNameLabel": "டிராக்கர் பெயர்",
-    "trackerNamePlaceholder": "எ.கா. பிசியோதெரபி அமர்வுகள்",
-    "iconLabel": "ஐகான்"
+    "saveAppointment": "சந்திப்பைச் சேமி",
+    "specialization": {
+      "general": "பொது",
+      "cardiologist": "இதய நிபுணர்",
+      "orthopedic": "எலும்பு நிபுணர்",
+      "neurologist": "நரம்பியல் நிபுணர்",
+      "pediatric": "குழந்தை நல நிபுணர்",
+      "dermatologist": "தோல் நிபுணர்",
+      "gynecologist": "மகளிர் நல நிபுணர்",
+      "dentist": "பல் மருத்துவர்",
+      "ent": "ENT",
+      "ophthalmologist": "கண் நிபுணர்",
+      "psychiatrist": "மனநல மருத்துவர்",
+      "other": "மற்றவை"
+    },
+    "hospitalNameLabel": "மருத்துவமனை / கிளினிக் பெயர்",
+    "hospitalNamePlaceholder": "எ.கா. சன்ஷைன் மருத்துவமனை",
+    "notesLabel": "குறிப்புகள் / அறிகுறிகள்",
+    "notesPlaceholder": "விருப்பத்தேர்வு",
+    "reminderLeadLabel": "எனக்கு நினைவூட்டு",
+    "reminderLead": {
+      "1_day": "1 நாள் முன்பு",
+      "3_hours": "3 மணி நேரம் முன்பு",
+      "1_hour": "1 மணி நேரம் முன்பு",
+      "30_min": "30 நிமிடம் முன்பு"
+    },
+    "recurringCheckbox": "இது வழக்கமான சந்திப்பு",
+    "recurrence": {
+      "monthly": "மாதாந்திரம்",
+      "quarterly": "காலாண்டு",
+      "every_6_months": "ஒவ்வொரு 6 மாதங்களுக்கும்",
+      "yearly": "ஆண்டுதோறும்"
+    },
+    "followUpDatePlaceholder": "பின்தொடர் தேதியை அமைக்கவும்"
   },
   "familyDocuments": {
     "headerTitle": "காப்பீடு மற்றும் ஆவணங்கள்",
@@ -601,15 +689,74 @@
     "errorEnterTitle": "ஆவணத் தலைப்பை உள்ளிடவும்",
     "type": {
       "insurance": "காப்பீட்டு பாலிசி",
-      "id": "அடையாள ஆவணம்",
       "medical": "மருத்துவ பதிவு",
-      "other": "மற்றவை"
+      "other": "மற்றவை",
+      "aadhaar": "ஆதார் அட்டை",
+      "pan": "PAN அட்டை",
+      "passport": "கடவுச்சீட்டு",
+      "driving_license": "ஓட்டுநர் உரிமம்",
+      "birth_certificate": "பிறப்புச் சான்றிதழ்",
+      "marriage_certificate": "திருமணச் சான்றிதழ்",
+      "property": "சொத்து ஆவணங்கள்",
+      "vehicle_rc": "வாகன RC"
     },
     "placeholder": {
       "insurance": "எ.கா. உடல்நல காப்பீட்டு பாலிசி",
-      "id": "எ.கா. ஆதார் அட்டை",
       "medical": "எ.கா. இரத்த பரிசோதனை அறிக்கை",
-      "other": "எ.கா. ஆவணத் தலைப்பு"
+      "other": "எ.கா. ஆவணத் தலைப்பு",
+      "aadhaar": "எ.கா. அப்பாவின் ஆதார்",
+      "pan": "எ.கா. அப்பாவின் PAN",
+      "passport": "எ.கா. அப்பாவின் கடவுச்சீட்டு",
+      "driving_license": "எ.கா. அப்பாவின் ஓட்டுநர் உரிமம்",
+      "birth_certificate": "எ.கா. பிறப்புச் சான்றிதழ்",
+      "marriage_certificate": "எ.கா. திருமணச் சான்றிதழ்",
+      "property": "எ.கா. வீட்டு கிரயப் பத்திரம்",
+      "vehicle_rc": "எ.கா. கார் RC"
+    },
+    "documentNumberLabel": "ஆவண எண்",
+    "documentNumberPlaceholder": "விருப்பத்தேர்வு",
+    "issueDateLabel": "வழங்கப்பட்ட தேதி",
+    "setExpiryCheckbox": "இந்த ஆவணம் காலாவதியாகும்",
+    "expiryReminderLabel": "காலாவதிக்கு முன் நினைவூட்டு",
+    "expiryReminderLead": {
+      "6_months": "6 மாதங்கள்",
+      "3_months": "3 மாதங்கள்",
+      "1_month": "1 மாதம்"
+    },
+    "notSet": "அமைக்கப்படவில்லை"
+  },
+  "familyCustom": {
+    "defaultTitle": "தனிப்பயன் அம்சம்",
+    "forMember": "{{name}} க்காக",
+    "emptyTitle": "இதுவரை எதுவும் கண்காணிக்கப்படவில்லை",
+    "emptyDesc": "{{name}} க்கான உங்கள் முதல் பதிவைச் சேர்க்க + ஐத் தட்டவும்.",
+    "thisTracker": "இந்த டிராக்கர்",
+    "errorEnterEntry": "தயவுசெய்து ஒரு பதிவை உள்ளிடவும்",
+    "newEntry": "புதிய பதிவு",
+    "entryLabel": "பதிவு",
+    "entryPlaceholder": "நீங்கள் எதைப் பதிவு செய்ய விரும்புகிறீர்கள்?",
+    "addButton": "சேர்",
+    "setupTitle": "உங்கள் டிராக்கருக்குப் பெயரிடுங்கள்",
+    "setupHint": "இதற்கு ஒரு பெயர் கொடுத்து ஒரு ஐகானைத் தேர்ந்தெடுக்கவும். இதை பின்னர் மாற்றலாம்.",
+    "errorNameTracker": "தயவுசெய்து உங்கள் தனிப்பயன் டிராக்கருக்குப் பெயரிடவும்",
+    "trackerNameLabel": "டிராக்கர் பெயர்",
+    "trackerNamePlaceholder": "எ.கா. பிசியோதெரபி அமர்வுகள்",
+    "iconLabel": "ஐகான்",
+    "customFieldsLabel": "தனிப்பயன் புலங்கள்",
+    "fieldLabelPlaceholder": "புலத்தின் பெயர்",
+    "fieldType": {
+      "text": "உரை",
+      "date": "தேதி",
+      "time": "நேரம்",
+      "number": "எண்"
+    },
+    "reminderToggleLabel": "நினைவூட்டலை இயக்கு",
+    "frequencyLabel": "அதிர்வெண்",
+    "frequencyOption": {
+      "daily": "தினமும்",
+      "weekly": "வாராந்திரம்",
+      "monthly": "மாதாந்திரம்",
+      "custom": "தனிப்பயன்"
     }
   },
   "familyHealth": {
@@ -632,7 +779,18 @@
     "dateLabel": "தேதி",
     "notesLabel": "குறிப்புகள் (விருப்பம்)",
     "notesPlaceholder": "எ.கா. காலை நடைக்குப் பிறகு",
-    "saveReading": "அளவை சேமி"
+    "saveReading": "அளவை சேமி",
+    "systolicPlaceholder": "சிஸ்டோலிக்",
+    "diastolicPlaceholder": "டயஸ்டோலிக்",
+    "pulsePlaceholder": "நாடித்துடிப்பு",
+    "sugarReadingType": {
+      "fasting": "வெறும் வயிற்றில்",
+      "post_meal": "உணவுக்குப் பின்"
+    },
+    "targetRangeLabel": "இயல்பான வரம்பு எச்சரிக்கை (விருப்பத்தேர்வு)",
+    "targetRangeLowPlaceholder": "குறைந்தபட்சம்",
+    "targetRangeHighPlaceholder": "அதிகபட்சம்",
+    "outOfRangeWarning": "இலக்கு வரம்பிற்கு வெளியே"
   },
   "familyRoutine": {
     "headerTitle": "தினசரி வழக்கம்",
@@ -654,7 +812,11 @@
     "routineNamePlaceholder": "எ.கா. மாலை பிரார்த்தனை",
     "timeLabel": "நேரம்",
     "repeatOnLabel": "மீண்டும் நடக்கும் நாட்கள் (தினமும் என்றால் காலியாக விடவும்)",
-    "saveChanges": "மாற்றங்களை சேமி"
+    "saveChanges": "மாற்றங்களை சேமி",
+    "presetAllDays": "எல்லா நாட்களும்",
+    "presetWeekdays": "வார நாட்கள்",
+    "presetWeekends": "வார இறுதி",
+    "weeklyCompliance": "இந்த வாரம் {{percent}}%"
   },
   "familyStock": {
     "headerTitle": "மருந்து கையிருப்பு",
@@ -679,7 +841,10 @@
     "quantityPlaceholder": "எ.கா. 30",
     "dailyUsageLabel": "தினசரி பயன்பாடு",
     "lowStockAlertLabel": "இவ்வளவு குறையும்போது எச்சரிக்கவும்",
-    "saveChanges": "மாற்றங்களை சேமி"
+    "saveChanges": "மாற்றங்களை சேமி",
+    "linkMedicineLabel": "மருந்துடன் இணை",
+    "pharmacyNameLabel": "மருந்தகம்",
+    "pharmacyNamePlaceholder": "விருப்பத்தேர்வு"
   },
   "familySubscriptions": {
     "headerTitle": "சந்தாக்கள்",
@@ -704,7 +869,35 @@
     "amountLabel": "தொகை",
     "renewalDateLabel": "புதுப்பிக்கும் தேதி",
     "billingCycleLabel": "பில்லிங் சுழற்சி",
-    "saveChanges": "மாற்றங்களை சேமி"
+    "saveChanges": "மாற்றங்களை சேமி",
+    "customService": "தனிப்பயன்",
+    "planTypeLabel": "திட்ட வகை",
+    "planTypePlaceholder": "எ.கா. குடும்பத் திட்டம்",
+    "cycle": {
+      "monthly": "மாதாந்திரம்",
+      "quarterly": "காலாண்டு",
+      "yearly": "ஆண்டுதோறும்"
+    },
+    "autoRenewsLabel": "தானாகப் புதுப்பிக்கும்",
+    "paymentMethodLabel": "கட்டண முறை",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "நெட் பேங்கிங்",
+      "credit_card": "கிரெடிட் கார்டு",
+      "debit_card": "டெபிட் கார்டு",
+      "other": "மற்றவை"
+    },
+    "reminderLabel": "எனக்கு நினைவூட்டு",
+    "daysBefore_one": "{{count}} நாள் முன்பு",
+    "daysBefore_other": "{{count}} நாட்கள் முன்பு",
+    "categoryLabel": "வகை",
+    "category": {
+      "entertainment": "பொழுதுபோக்கு",
+      "productivity": "உற்பத்தித்திறன்",
+      "health": "உடல்நலம்",
+      "education": "கல்வி",
+      "other": "மற்றவை"
+    }
   },
   "familyTasks": {
     "headerTitle": "நினைவூட்டல் பணிகள்",
@@ -747,7 +940,205 @@
     "dateLabel": "தேதி",
     "locationLabel": "இடம்",
     "locationPlaceholder": "விருப்பம்",
+    "saveChanges": "மாற்றங்களை சேமி",
+    "timeLabel": "நேரம்",
+    "notesLabel": "நோக்கம் / குறிப்புகள்",
+    "notesPlaceholder": "விருப்பத்தேர்வு",
+    "reminderLabel": "எனக்கு நினைவூட்டு",
+    "hoursBefore_one": "{{count}} மணி நேரம் முன்பு",
+    "hoursBefore_other": "{{count}} மணி நேரம் முன்பு",
+    "recurringCheckbox": "இது மீண்டும் நிகழும்",
+    "recurrence": {
+      "weekly": "வாராந்திரம்",
+      "monthly": "மாதாந்திரம்",
+      "yearly": "ஆண்டுதோறும்"
+    },
+    "returnDateLabel": "திரும்பும் தேதி",
+    "companionLabel": "யாருடன் பயணம்",
+    "notSet": "அமைக்கப்படவில்லை"
+  },
+  "familyDiet": {
+    "headerTitle": "உணவு & உணவுத் திட்டமிடல்",
+    "forMember": "{{name}} க்காக",
+    "dietTypeLabel": "உணவு வகை",
+    "type": {
+      "normal": "சாதாரண",
+      "diabetic": "நீரிழிவு",
+      "low_salt": "குறைந்த உப்பு",
+      "low_fat": "குறைந்த கொழுப்பு",
+      "vegetarian": "சைவம்",
+      "vegan": "வீகன்",
+      "custom": "தனிப்பயன்"
+    },
+    "customDietNameLabel": "தனிப்பயன் உணவு பெயர்",
+    "customDietNamePlaceholder": "எ.கா. கீட்டோ",
+    "mealsLabel": "உணவுகள்",
+    "meal": {
+      "breakfast": "காலை உணவு",
+      "lunch": "மதிய உணவு",
+      "evening_snack": "மாலை சிற்றுண்டி",
+      "dinner": "இரவு உணவு"
+    },
+    "mealTimePlaceholder": "எ.கா. காலை 8:00",
+    "mealNotesPlaceholder": "உணவு குறிப்புகள் / திட்டம் (விருப்பம்)",
+    "calorieTargetLabel": "தினசரி கலோரி இலக்கு (விருப்பம்)",
+    "calorieTargetPlaceholder": "எ.கா. 1800",
+    "foodRestrictionsLabel": "உணவு கட்டுப்பாடுகள்",
+    "foodRestrictionsPlaceholder": "எ.கா. சர்க்கரை, உப்பு, பொரியல் உணவு சாப்பிட முடியாது",
+    "waterReminderLabel": "தண்ணீர் குடிக்கும் நினைவூட்டல்",
+    "waterReminderHourlyLabel": "எத்தனை மணி நேரத்திற்கு ஒருமுறை நினைவூட்ட வேண்டும்",
+    "doctorNotesLabel": "மருத்துவர் / உணவியல் நிபுணர் குறிப்புகள்",
+    "doctorNotesPlaceholder": "விருப்ப குறிப்புகள்",
     "saveChanges": "மாற்றங்களை சேமி"
+  },
+  "familyFitness": {
+    "headerTitle": "உடற்பயிற்சி கண்காணிப்பு",
+    "forMember": "{{name}} க்காக",
+    "emptyTitle": "இன்னும் பயிற்சிகள் எதுவும் திட்டமிடப்படவில்லை",
+    "emptyDesc": "பயிற்சி அட்டவணையைச் சேர்க்க + ஐ தட்டவும்.",
+    "type": {
+      "walking": "நடைபயிற்சி",
+      "running": "ஓட்டம்",
+      "yoga": "யோகா",
+      "gym": "ஜிம்",
+      "swimming": "நீச்சல்",
+      "cycling": "சைக்கிள் ஓட்டுதல்",
+      "other": "மற்றவை"
+    },
+    "editHeaderTitle": "பயிற்சியைத் திருத்து",
+    "newHeaderTitle": "புதிய பயிற்சி",
+    "errorSelectType": "தயவுசெய்து ஒரு பயிற்சி வகையைத் தேர்ந்தெடுக்கவும்",
+    "timeLabel": "நேரம்",
+    "repeatOnLabel": "இந்த நாட்களில் மீண்டும் செய்யவும்",
+    "durationGoalLabel": "கால இலக்கு (நிமிடங்கள்)",
+    "durationGoalPlaceholder": "எ.கா. 30",
+    "stepGoalLabel": "படி இலக்கு",
+    "stepGoalPlaceholder": "எ.கா. 5000",
+    "notesLabel": "பயிற்சியாளர்/மருத்துவர் குறிப்புகள்",
+    "notesPlaceholder": "விருப்பம்",
+    "isRestDayLabel": "ஓய்வு நாளாகக் குறிக்கவும்",
+    "reminderEnabledLabel": "நினைவூட்டல் இயக்கப்பட்டது",
+    "saveChanges": "மாற்றங்களை சேமி",
+    "minutesGoal_one": "{{count}} நிமிட இலக்கு",
+    "minutesGoal_other": "{{count}} நிமிட இலக்கு",
+    "streakDays_one": "{{count}} நாள் தொடர்ச்சி",
+    "streakDays_other": "{{count}} நாள் தொடர்ச்சி"
+  },
+  "familyStudy": {
+    "headerTitle": "படிப்பு & கல்வி",
+    "forMember": "{{name}} க்காக",
+    "gradeLabel": "மாணவர் வகுப்பு / தரம்",
+    "gradePlaceholder": "எ.கா. தரம் 10",
+    "subjectsLabel": "பாடங்கள்",
+    "subjectPlaceholder": "ஒரு பாடத்தைச் சேர்க்கவும்",
+    "examsLabel": "தேர்வுகள்",
+    "examSubjectPlaceholder": "தேர்வு பாடம்",
+    "eventsLabel": "பள்ளி/கல்லூரி நிகழ்வுகள்",
+    "eventTitlePlaceholder": "நிகழ்வு தலைப்பு",
+    "feesLabel": "கட்டண செலுத்துதல்",
+    "feeTitlePlaceholder": "கட்டணத் தலைப்பு",
+    "feeAmountPlaceholder": "தொகை"
+  },
+  "familyWellness": {
+    "headerTitle": "மனநலம் & நல்வாழ்வு",
+    "forMember": "{{name}} க்காக",
+    "moodTodayLabel": "இன்றைய மனநிலை",
+    "moodLoggedToday": "இன்றைய மனநிலை பதிவு செய்யப்பட்டது",
+    "remindersLabel": "சுய-பராமரிப்பு நினைவூட்டல்கள்",
+    "emptyDesc": "தியானம், மூச்சுப் பயிற்சி, நாட்குறிப்பு, சுய-பராமரிப்பு அல்லது சிகிச்சை நினைவூட்டலைச் சேர்க்க + ஐ தட்டவும்.",
+    "kind": {
+      "meditation": "தியானம்",
+      "breathing": "மூச்சுப் பயிற்சி",
+      "journal": "நாட்குறிப்பு",
+      "self_care": "சுய-பராமரிப்பு",
+      "therapy": "சிகிச்சை / ஆலோசனை"
+    },
+    "editHeaderTitle": "நினைவூட்டலைத் திருத்து",
+    "newHeaderTitle": "புதிய நினைவூட்டல்",
+    "errorEnterTitle": "தயவுசெய்து ஒரு தலைப்பை உள்ளிடவும்",
+    "titleLabel": "தலைப்பு",
+    "titlePlaceholder": "எ.கா. மாலை தியானம்",
+    "timeLabel": "நேரம்",
+    "frequencyDaysLabel": "அதிர்வெண் (ஒவ்வொரு N நாட்களுக்கும்)",
+    "frequencyDaysPlaceholder": "எ.கா. 2",
+    "sessionDateLabel": "அமர்வு தேதி & நேரம்",
+    "doctorNameLabel": "மருத்துவர் / ஆலோசகர் பெயர்",
+    "doctorNamePlaceholder": "விருப்பம்",
+    "notSet": "அமைக்கப்படவில்லை",
+    "saveChanges": "மாற்றங்களை சேமி"
+  },
+  "familyVehicles": {
+    "headerTitle": "வாகன மேலாண்மை",
+    "forMember": "{{name}} க்காக",
+    "emptyTitle": "இன்னும் வாகனங்கள் எதுவும் கண்காணிக்கப்படவில்லை",
+    "emptyDesc": "ஒரு கார், பைக் அல்லது ஸ்கூட்டரைச் சேர்க்க + ஐ தட்டவும்.",
+    "type": {
+      "car": "கார்",
+      "bike": "பைக்",
+      "scooter": "ஸ்கூட்டர்",
+      "other": "மற்றவை"
+    },
+    "editHeaderTitle": "வாகனத்தைத் திருத்து",
+    "newHeaderTitle": "புதிய வாகனம்",
+    "errorEnterName": "தயவுசெய்து வாகனத்தின் பெயரை உள்ளிடவும்",
+    "nameLabel": "வாகனத்தின் பெயர் / மாடல்",
+    "namePlaceholder": "எ.கா. ஹோண்டா சிட்டி",
+    "registrationLabel": "பதிவு எண்",
+    "registrationPlaceholder": "எ.கா. GJ01AB1234",
+    "insuranceExpiryLabel": "காப்பீடு காலாவதி தேதி",
+    "pucExpiryLabel": "PUC காலாவதி தேதி",
+    "serviceDueDateLabel": "சர்வீஸ் நிலுவைத் தேதி",
+    "serviceDueNoteLabel": "சர்வீஸ் குறிப்பு (அல்லது KM அடிப்படையில்)",
+    "serviceDueNotePlaceholder": "எ.கா. 45,000 கிமீ இல் நிலுவை",
+    "loanEmiAmountLabel": "கடன் EMI தொகை",
+    "loanEmiAmountPlaceholder": "விருப்பம்",
+    "loanEmiDueDateLabel": "கடன் EMI நிலுவைத் தேதி",
+    "notSet": "அமைக்கப்படவில்லை",
+    "saveChanges": "மாற்றங்களை சேமி",
+    "insuranceExpires": "காப்பீடு {{date}} அன்று காலாவதியாகிறது",
+    "pucExpires": "PUC {{date}} அன்று காலாவதியாகிறது",
+    "serviceDue": "சர்வீஸ் {{date}} அன்று நிலுவை"
+  },
+  "familyHomeMaintenance": {
+    "headerTitle": "வீட்டு பராமரிப்பு",
+    "forMember": "{{name}} க்காக",
+    "emptyTitle": "இன்னும் வீட்டு பணிகள் எதுவும் கண்காணிக்கப்படவில்லை",
+    "emptyDesc": "சர்வீஸ், AMC அல்லது பராமரிப்பு பணியைச் சேர்க்க + ஐ தட்டவும்.",
+    "type": {
+      "ac_service": "AC சர்வீஸ்",
+      "water_purifier": "வாட்டர் பியூரிஃபையர் சர்வீஸ்",
+      "pest_control": "பூச்சி கட்டுப்பாடு",
+      "plumbing": "குழாய் வேலை",
+      "electrical": "மின்சாரம்",
+      "painting": "பெயிண்டிங்",
+      "other": "மற்றவை"
+    },
+    "editHeaderTitle": "பணியைத் திருத்து",
+    "newHeaderTitle": "புதிய பணி",
+    "errorEnterTaskName": "தயவுசெய்து பணியின் பெயரை உள்ளிடவும்",
+    "taskNameLabel": "பணியின் பெயர்",
+    "taskNamePlaceholder": "எ.கா. AC சர்வீஸ்",
+    "vendorNameLabel": "விற்பனையாளர் / தொழில்நுட்பர்",
+    "vendorNamePlaceholder": "பெயர்",
+    "vendorPhoneLabel": "விற்பனையாளர் தொலைபேசி",
+    "vendorPhonePlaceholder": "தொலைபேசி எண்",
+    "lastDoneDateLabel": "கடைசியாக செய்யப்பட்ட தேதி",
+    "nextDueDateLabel": "அடுத்த நிலுவைத் தேதி",
+    "frequencyLabel": "அதிர்வெண்",
+    "frequency": {
+      "monthly": "மாதாந்திரம்",
+      "quarterly": "காலாண்டு",
+      "yearly": "ஆண்டுதோறும்",
+      "custom": "தனிப்பயன்"
+    },
+    "hasAmcLabel": "AMC ஒப்பந்தம் உள்ளது",
+    "amcExpiryDateLabel": "AMC காலாவதி தேதி",
+    "costLabel": "செலவு",
+    "costPlaceholder": "விருப்பம்",
+    "notSet": "அமைக்கப்படவில்லை",
+    "saveChanges": "மாற்றங்களை சேமி",
+    "nextDue": "அடுத்த நிலுவை {{date}}",
+    "amcExpires": "AMC {{date}} அன்று காலாவதியாகிறது"
   },
   "familyCaregivers": {
     "headerTitle": "பராமரிப்பாளர்கள்",
@@ -783,6 +1174,26 @@
     "infoBannerPrefix": "எச்சரிக்கைகள் ",
     "thisDevice": "இந்த சாதனத்தில்",
     "infoBannerSuffix": " அறிவிப்பாக வரும். மற்ற குடும்ப உறுப்பினர்களின் தொலைபேசிகளுக்கு எச்சரிக்கைகளை அனுப்ப ஒரு சிறிய பேக்எண்ட் சேர்க்கை தேவை — இந்த ஆப்பின் திட்ட ஆவணங்களில் உள்ள குறிப்புகளைப் பார்க்கவும்.",
+    "contactsSection": "அவசரத் தொடர்புகள்",
+    "contactNamePlaceholder": "தொடர்பு பெயர்",
+    "contactPhonePlaceholder": "தொலைபேசி எண்",
+    "contactRelationPlaceholder": "உறவு",
+    "addContact": "தொடர்பைச் சேர்",
+    "medicalInfoSection": "மருத்துவத் தகவல்",
+    "knownAllergiesLabel": "தெரிந்த ஒவ்வாமைகள்",
+    "knownAllergiesPlaceholder": "எ.கா. பென்சிலின், நிலக்கடலை",
+    "medicalConditionsLabel": "தற்போதைய மருத்துவ நிலைகள்",
+    "medicalConditionsPlaceholder": "எ.கா. நீரிழிவு, உயர் ரத்த அழுத்தம்",
+    "currentMedicationsLabel": "தற்போதைய மருந்துகள் குறிப்பு",
+    "currentMedicationsPlaceholder": "விருப்பக் குறிப்பு (அல்லது மருந்து கண்காணிப்பைப் பார்க்கவும்)",
+    "doctorNameLabel": "மருத்துவரின் அவசரத் தொடர்பு",
+    "doctorNamePlaceholder": "மருத்துவர் பெயர்",
+    "doctorPhoneLabel": "மருத்துவர் தொலைபேசி",
+    "doctorPhonePlaceholder": "தொலைபேசி எண்",
+    "hospitalPreferenceLabel": "விரும்பும் மருத்துவமனை",
+    "hospitalPreferencePlaceholder": "விரும்பும் மருத்துவமனை பெயர்",
+    "insurancePolicyLabel": "காப்பீட்டுப் பாலிசி எண்",
+    "insurancePolicyPlaceholder": "விருப்பத்தேர்வு",
     "settingsSection": "அமைப்புகள்",
     "missedMedicineAlertTitle": "தவறவிட்ட மருந்து எச்சரிக்கை",
     "missedMedicineAlertSub": "மருந்தளவு {{hours}}மணி+ தாமதமானால் எச்சரிக்கவும்",
@@ -1077,7 +1488,7 @@
     "howItWorksBullet2": "• ஒரு தொடர் கட்டணம் திடீரென அதிகரிக்கிறது",
     "howItWorksBullet3": "• ஒரு சந்தா பில் செய்யப்படுகிறது ஆனால் 45+ நாட்களாக பயன்படுத்தப்படவில்லை",
     "neverCountedTitle": "கசிவாக ஒருபோதும் கருதப்படாதவை",
-    "neverCountedText": "அத்தியாவசிய மற்றும் முக்கியமான கட்டணங்கள் எப்போதும் விலக்கப்படும் — பில்கள், EMI/கடன்கள், காப்பீடு, மருத்துவம்/சுகாதாரம், கல்வி, வாடகை, வரிகள், மற்றும் முதலீடுகள் அல்லது சேமிப்புகள். தேவையற்ற அல்லது கூடுதல் செலவு மட்டுமே கருதப்படும்.",
+    "neverCountedText": "அத்தியாவசிய மற்றும் முக்கியமான கட்டணங்கள் எப்போதும் விலக்கப்படும் — பில்கள், EMI/கடன்கள், காப்பீடு, மருத்துவம்/சுகாதாரம், கல்வி, வாடகை, வரிகள், மற்றும் முதலீடுகள் அல்லது சேமிப்புகள். நீங்கள் பிற செலவு எனக் குறிக்கும் பரிவர்த்தனைகளும் (மற்றொரு நபருக்கு அனுப்பிய பணம், அல்லது உங்கள் சொந்தக் கணக்குகளுக்கு இடையேயான பரிமாற்றம்) விலக்கப்படும். தேவையற்ற அல்லது கூடுதல் செலவு மட்டுமே கருதப்படும்.",
     "leaksDetectedCount_one": "{{count}} கசிவு கண்டறியப்பட்டது",
     "leaksDetectedCount_other": "{{count}} கசிவுகள் கண்டறியப்பட்டன",
     "allClearTitle": "எல்லாம் சரி!",
@@ -1202,32 +1613,32 @@
     },
     "planBenefits": {
       "free": [
-        "2 குடும்ப உறுப்பினர்கள்",
-        "ஒரு உறுப்பினருக்கு 3 தொகுதிகள்",
-        "10 நினைவூட்டல்கள் • 7-நாள் வரலாறு",
-        "பில் ஸ்கேன் மற்றும் குரல் உள்ளீடு (வரம்புடையது)",
-        "எப்போதும் விளம்பரங்கள் இல்லை"
+        "2 family members",
+        "3 modules per member",
+        "10 reminders • 7-day history",
+        "Bill scan & voice entry (limited)",
+        "No ads, ever"
       ],
       "starter": [
-        "4 குடும்ப உறுப்பினர்கள்",
-        "ஒரு உறுப்பினருக்கு 8 தொகுதிகள்",
-        "50 நினைவூட்டல்கள் • 3-மாத வரலாறு",
-        "வங்கி பிடிஎஃப் இறக்குமதி • சிஎஸ்வி இறக்குமதி",
-        "10 ஆவணங்கள் • 1 பராமரிப்பாளர்/உறுப்பினர்"
+        "4 family members",
+        "8 modules per member",
+        "50 reminders • 3-month history",
+        "Bank PDF import • CSV import",
+        "10 documents • 1 caregiver/member"
       ],
       "family": [
-        "வரம்பற்ற உறுப்பினர்கள் மற்றும் தொகுதிகள்",
-        "வரம்பற்ற நினைவூட்டல்கள் • 12-மாத வரலாறு",
-        "பிடிஎஃப் அறிக்கைகள் • பண கசிவு எச்சரிக்கைகள்",
-        "பட்ஜெட் எச்சரிக்கைகள் • இருப்பிட பகிர்வு (6)",
-        "WiseAI 100 செய்திகள்/மாதம் • 50 ஆவணங்கள்"
+        "Unlimited members & modules",
+        "Unlimited reminders • 12-month history",
+        "PDF reports • Money leak alerts",
+        "Budget alerts • Location sharing (6)",
+        "WiseAI 100 msgs/mo • 50 documents"
       ],
       "pro": [
-        "ஃபேமிலியில் உள்ள அனைத்தும்",
-        "வரம்பற்ற ஆவணங்கள் மற்றும் வரலாறு",
-        "WiseAI 300 செய்திகள்/மாதம்",
-        "மருந்து இடைவினை மற்றும் மாத்திரை அடையாளம்",
-        "தரவு ஏற்றுமதி • முன்னுரிமை ஆதரவு"
+        "Everything in Family",
+        "Unlimited documents & history",
+        "WiseAI 300 msgs/mo",
+        "Medicine interaction & pill ID",
+        "Data export • Priority support"
       ]
     },
     "compare": {
@@ -1253,111 +1664,114 @@
         "title": "நீங்கள் ஒரு பெரிய ஃபேமிலி ஹப்பை உருவாக்குகிறீர்கள்!",
         "message": "நீங்கள் ஒரு பெரிய ஃபேமிலி ஹப்பை உருவாக்குகிறீர்கள்! LifeWise ஃபேமிலியுடன் வரம்பற்ற உறுப்பினர்களைச் சேர்க்கவும்.",
         "benefits": [
-          "வரம்பற்ற குடும்ப உறுப்பினர்கள்",
-          "ஒரு உறுப்பினருக்கு அனைத்து 20 தொகுதிகள்",
-          "முழு ஃபேமிலி டாஷ்போர்டு"
+          "Unlimited family members",
+          "All 20 modules per member",
+          "Full family dashboard"
         ]
       },
       "fourthModule": {
         "title": "முக்கியமானவற்றை இன்னும் அதிகமாக நிர்வகிக்கவும்",
         "message": "இது ஒரு பிரீமியம் அம்சம். உங்கள் குடும்ப உறுப்பினரின் வாழ்க்கையின் மேலும் அம்சங்களை நிர்வகிக்க அப்கிரேட் செய்யவும்.",
         "benefits": [
-          "ஒரு உறுப்பினருக்கு 8 தொகுதிகள்",
-          "ஒரு நபருக்கு அதிக கண்காணிப்பு",
-          "உங்கள் குடும்பத்துடன் வளர்கிறது"
+          "8 modules per member",
+          "More tracking per person",
+          "Grows with your family"
         ]
       },
       "eleventhReminder": {
         "title": "நீங்கள் எல்லாவற்றையும் கண்காணித்து வருகிறீர்கள்!",
         "message": "நீங்கள் எல்லாவற்றையும் கண்காணித்து வருகிறீர்கள்! ஸ்டார்ட்டர் மற்றும் அதற்கு மேல் வரம்பற்ற நினைவூட்டல்கள் கிடைக்கின்றன.",
         "benefits": [
-          "ஸ்டார்ட்டரில் 50 நினைவூட்டல்கள்",
-          "ஃபேமிலியில் வரம்பற்றது",
-          "எந்த பில் அல்லது மருந்தையும் தவறவிடாதீர்கள்"
+          "50 reminders on Starter",
+          "Unlimited on Family",
+          "Never miss a bill or dose"
         ]
       },
       "expenseHistory": {
         "title": "முழு படத்தையும் பாருங்கள்",
         "message": "பழைய செலவுகள் பாதுகாப்பாக சேமிக்கப்படுகின்றன. முழு படத்தையும் பார்க்க 12-மாத வரலாற்றைத் திறக்கவும்.",
         "benefits": [
-          "ஸ்டார்ட்டரில் 3 மாதங்கள்",
-          "ஃபேமிலியில் 12 மாதங்கள்",
-          "நீண்டகால போக்குகளைக் கண்டறியவும்"
+          "3 months on Starter",
+          "12 months on Family",
+          "Spot long-term trends"
         ]
       },
       "pdfExport": {
         "title": "உங்கள் குடும்பத்தின் அறிக்கையைப் பதிவிறக்கவும்",
         "message": "உங்கள் குடும்பத்தின் ஆரோக்கியம் மற்றும் நிதி அறிக்கையைப் பதிவிறக்கவும். ஃபேமிலி திட்டம் மற்றும் அதற்கு மேல் கிடைக்கும்.",
         "benefits": [
-          "மாதாந்திர பிடிஎஃப் அறிக்கைகள்",
-          "ஆண்டு கண்ணோட்டம்",
-          "யாருடனும் பகிரவும்"
+          "Monthly PDF reports",
+          "Annual overview",
+          "Share with anyone"
         ]
       },
       "bankImport": {
         "title": "ஒரு தட்டு, முழு மாதமும் முடிந்தது",
         "message": "உங்கள் வங்கி அறிக்கையிலிருந்து அனைத்து செலவுகளையும் தானாக நிரப்பவும். ஒரு தட்டு, முழு மாதமும் முடிந்தது.",
         "benefits": [
-          "வங்கி பிடிஎஃப் அறிக்கைகளை இறக்குமதி செய்யவும்",
-          "தானாக வகைப்படுத்தப்பட்ட செலவுகள்",
-          "தட்டச்சு நேரத்தை மிச்சப்படுத்தவும்"
+          "Import bank PDF statements",
+          "Auto-categorised expenses",
+          "Save hours of typing"
         ]
       },
       "budgetAlerts": {
         "title": "உங்கள் குடும்ப நிதியை கண்காணிப்பில் வையுங்கள்",
         "message": "ஒவ்வொரு குடும்ப உறுப்பினருக்கும் செலவு வரம்புகளை அமைக்கவும். உங்கள் குடும்ப நிதியை கண்காணிப்பில் வையுங்கள்.",
         "benefits": [
-          "வகை வாரியாக பட்ஜெட்",
-          "உறுப்பினர் வாரியாக வரம்புகள்",
-          "அதிக செலவு எச்சரிக்கைகள்"
+          "Per-category budgets",
+          "Per-member limits",
+          "Overspend alerts"
         ]
       },
       "fourthBillScan": {
         "title": "வரம்பற்ற பில்களை ஸ்கேன் செய்யவும்",
         "message": "ஃபேமிலி திட்டத்துடன் வரம்பற்ற பில்கள் மற்றும் ரசீதுகளை ஸ்கேன் செய்யவும்.",
         "benefits": [
-          "வரம்பற்ற ரசீது ஸ்கேன்கள்",
-          "சாதனத்திலேயே ஓசிஆர்",
-          "ரசீது புகைப்படங்களை இணைக்கவும்"
+          "Unlimited receipt scans",
+          "On-device OCR",
+          "Attach receipt photos"
         ]
       },
       "sixthWiseAi": {
         "title": "நீங்கள் WiseAI உடன் அரட்டையடிக்கிறீர்கள்!",
         "message": "நீங்கள் WiseAI உடன் அரட்டையடிக்கிறீர்கள்! LifeWise ஃபேமிலியுடன் மாதம் 100 செய்திகளைப் பெறுங்கள்.",
         "benefits": [
-          "ஃபேமிலியில் மாதம் 100 செய்திகள்",
-          "ப்ரோவில் 300",
-          "ஸ்மார்ட் குடும்ப நுண்ணறிவுகள்"
+          "100 messages/month on Family",
+          "300 on Pro",
+          "Smart family insights"
         ]
       },
       "secondDocument": {
         "title": "உங்கள் குடும்பத்தின் அனைத்து ஆவணங்களையும் சேமிக்கவும்",
         "message": "உங்கள் குடும்பத்தின் ஆதார், பான், பாஸ்போர்ட்டை பாதுகாப்பாக சேமிக்கவும். ஃபேமிலி திட்டம் = 50 ஆவணங்கள்.",
         "benefits": [
-          "ஃபேமிலியில் 50 ஆவணங்கள்",
-          "அனைத்து ஆவண வகைகளும்",
-          "காலாவதி நினைவூட்டல்கள்"
+          "50 documents on Family",
+          "All document types",
+          "Expiry reminders"
         ]
       },
       "locationSharing": {
         "title": "பாதுகாப்பாக இணைந்திருங்கள்",
         "message": "உங்கள் குடும்ப உறுப்பினர்கள் நிகழ்நேரத்தில் எங்கே இருக்கிறார்கள் என்பதைப் பாருங்கள். பாதுகாப்பாக இணைந்திருங்கள்.",
         "benefits": [
-          "6 பேர் வரை நேரடி இருப்பிடம்",
-          "அவசர SOS",
-          "மன அமைதி"
+          "Live location for up to 6",
+          "Emergency SOS",
+          "Peace of mind"
         ]
       },
       "medicineInteraction": {
         "title": "உங்கள் குடும்பத்தை பாதுகாப்பாக வையுங்கள்",
         "message": "மருந்துகள் ஒன்றாக பாதுகாப்பானதா என்று சரிபார்க்கவும். ப்ரோ திட்டம் உங்கள் குடும்பத்தை பாதுகாப்பாக வைக்கிறது.",
         "benefits": [
-          "மருந்து இடைவினை சரிபார்ப்பான்",
-          "மாத்திரை புகைப்பட அடையாளம் காண்பான்",
-          "மருத்துவருக்கு தயாராக அறிக்கைகள்"
+          "Medicine interaction checker",
+          "Pill photo identifier",
+          "Doctor-ready reports"
         ]
       }
-    }
+    },
+    "testActivateTitle": "{{planName}} ஐ செயல்படுத்தவா?",
+    "testActivateMessage": "இது ஒரு TEST செயல்படுத்தல் — எந்த கட்டணமும் வசூலிக்கப்படாது, உண்மையான சந்தா உருவாக்கப்படாது. இந்த சாதனத்தில் {{planName}} அம்சங்கள் திறக்கப்படும்.",
+    "testActivateButton": "{{planName}} ஐ செயல்படுத்து"
   },
   "planBadge": {
     "trialPrefix": "டிரையல் · "
@@ -1562,7 +1976,21 @@
     "startDate": "தொடக்க தேதி",
     "endDate": "முடிவு தேதி",
     "adding": "சேர்க்கிறது...",
-    "addMedicineButton": "மருந்து சேர்க்கவும்"
+    "addMedicineButton": "மருந்து சேர்க்கவும்",
+    "frequency": "அதிர்வெண்",
+    "frequencyOption": {
+      "daily": "தினமும்",
+      "alternate_days": "ஒரு நாள் விட்டு",
+      "weekly": "வாராந்திரம்",
+      "monthly": "மாதாந்திரம்",
+      "as_needed": "தேவைக்கேற்ப"
+    },
+    "reminderToggle": "நினைவூட்டல் இயக்கப்பட்டுள்ளது",
+    "snoozeDuration": "ஸ்நூஸ் கால அளவு",
+    "snoozeMinutes": "{{count}} நிமிடம்",
+    "doctorNotes": "மருத்துவரின் குறிப்புகள்",
+    "doctorNotesPlaceholder": "மருத்துவரிடமிருந்து விருப்பக் குறிப்புகள்",
+    "addAnotherMedicine": "மற்றொரு மருந்தைச் சேர்"
   },
   "medicineDetails": {
     "title": "மருந்து விவரம்",
@@ -1847,5 +2275,42 @@
     "tryAgain": "மீண்டும் முயற்சிக்கவும்",
     "viewErrorDetails": "பிழை விவரங்களைப் பார்க்கவும்",
     "errorDetails": "பிழை விவரங்கள்"
+  },
+  "notificationDetails": {
+    "title": "அறிவிப்பு",
+    "unavailableTitle": "கிடைக்கவில்லை",
+    "unavailableMessage": "இந்த உருப்படி இனி கிடைக்கவில்லை.",
+    "viewRelatedItem": "தொடர்புடைய உருப்படியைப் பார்க்கவும்",
+    "contentUnavailable": "உள்ளடக்கம் இனி கிடைக்கவில்லை."
+  },
+  "smsSync": {
+    "preparing": "SMS ஒத்திசைவு தயார் செய்யப்படுகிறது...",
+    "iosTitle": "இங்கே ஆட்டோ டிராக் வித்தியாசமாக செயல்படுகிறது",
+    "iosMessage": "எந்த ஆப்பையும் உங்கள் SMS-ஐ படிக்க Apple அனுமதிக்காது. அதற்கு பதிலாக, உங்கள் வங்கி அறிக்கையை இறக்குமதி செய்யவும் — ஒரு CSV ஏற்றுமதி ஒரு முழு மாதத்தையும் நிரப்பும். நீங்கள் ரசீதுகளை ஸ்கேன் செய்யலாம் அல்லது பேசி ஒரு செலவைச் சேர்க்கலாம்.",
+    "notNow": "இப்போது வேண்டாம்",
+    "importStatement": "அறிக்கையை இறக்குமதி செய்யவும்",
+    "iosStatus": "iPhone-இல், வங்கி அறிக்கையை இறக்குமதி செய்யவும் அல்லது ஸ்கேன்/குரல் மூலம் செலவுகளைச் சேர்க்கவும்.",
+    "requestingPermission": "SMS அனுமதி கோரப்படுகிறது...",
+    "permissionBlockedTitle": "அனுமதி தடுக்கப்பட்டது",
+    "permissionBlockedMessage": "SMS அனுமதி தடுக்கப்பட்டுள்ளது. அமைப்புகள் > அனுமதிகளைத் திறந்து SMS-ஐ அனுமதிக்கவும்.",
+    "openSettings": "அமைப்புகளைத் திறக்கவும்",
+    "permissionNeededTitle": "அனுமதி தேவை",
+    "permissionNeededMessage": "ஆட்டோ டிராக்கை இயக்க SMS அனுமதியை வழங்கவும்.",
+    "readingInbox": "SMS இன்பாக்ஸ் படிக்கப்படுகிறது...",
+    "identifyingTransactions": "பரிவர்த்தனைகள் அடையாளம் காணப்படுகின்றன...",
+    "syncingToCloud": "க்ளவுட்டுக்கு பாதுகாப்பாக ஒத்திசைக்கப்படுகிறது...",
+    "syncComplete_one": "ஒத்திசைவு முடிந்தது. {{count}} பரிவர்த்தனை ஒத்திசைக்கப்பட்டது.",
+    "syncComplete_other": "ஒத்திசைவு முடிந்தது. {{count}} பரிவர்த்தனைகள் ஒத்திசைக்கப்பட்டன.",
+    "polishingCategories": "AI மூலம் வகைகள் மேம்படுத்தப்படுகின்றன...",
+    "sessionExpiredStatus": "உங்கள் அமர்வு காலாவதியானது. வெளியேறி மீண்டும் உள்நுழையவும்.",
+    "sessionExpiredTitle": "அமர்வு காலாவதியானது",
+    "sessionExpiredMessage": "வெளியேறி மீண்டும் உள்நுழையவும், பின்னர் ஆட்டோ டிராக்கை மீண்டும் முயற்சிக்கவும்.",
+    "couldNotReadTitle": "SMS-ஐ படிக்க முடியவில்லை",
+    "failedServerError": "ஆட்டோ டிராக் தோல்வியடைந்தது (சர்வர் பிழை {{status}}). மீண்டும் முயற்சிக்கவும்.",
+    "failedGeneric": "ஆட்டோ டிராக் தோல்வியடைந்தது. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+    "unexpectedFailure": "SMS ஒத்திசைவு எதிர்பாராதவிதமாக தோல்வியடைந்தது."
+  },
+  "addExpenseFab": {
+    "closeMenu": "சேர் மெனுவை மூடு"
   }
 }

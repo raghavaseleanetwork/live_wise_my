@@ -1,3 +1,9 @@
+> **SUPERSEDED (2026-08-14).** This doc has the invite/remove endpoints at the
+> wrong path (`/api/family/:memberId/caregivers/...`). The shipped frontend
+> calls `/api/family/:memberId/connected-caregivers/...` instead. Build from
+> `CAREGIVER-CONNECTED-SYSTEM-backend-requirements.md` — kept here for
+> history only.
+
 # Connected Caregiver System — Backend Requirements
 
 **Audience:** Backend team

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import { useCurrency } from '@/lib/currency-context';
 import Money from '@/components/Money';
 import {
@@ -19,6 +20,15 @@ import {
 
 const CATEGORY_LABELS: Record<FamilyBill['category'], { labelKey: string; icon: string }> = {
   electricity: { labelKey: 'familyBills.categoryElectricity', icon: 'flash' },
+  gas: { labelKey: 'familyBills.categoryGas', icon: 'flame' },
+  water: { labelKey: 'familyBills.categoryWater', icon: 'water' },
+  internet: { labelKey: 'familyBills.categoryInternet', icon: 'wifi' },
+  mobile_postpaid: { labelKey: 'familyBills.categoryMobilePostpaid', icon: 'phone-portrait' },
+  cable_tv: { labelKey: 'familyBills.categoryCableTv', icon: 'tv' },
+  society_maintenance: { labelKey: 'familyBills.categorySocietyMaintenance', icon: 'business' },
+  rent: { labelKey: 'familyBills.categoryRent', icon: 'home' },
+  loan_emi: { labelKey: 'familyBills.categoryLoanEmi', icon: 'cash' },
+  credit_card: { labelKey: 'familyBills.categoryCreditCard', icon: 'card' },
   medical: { labelKey: 'familyBills.categoryMedical', icon: 'medkit' },
   insurance: { labelKey: 'familyBills.categoryInsurance', icon: 'shield-checkmark' },
   other: { labelKey: 'familyBills.categoryOther', icon: 'receipt' },
@@ -40,6 +50,16 @@ export default function FamilyBillsScreen() {
   }, [memberId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // A connected caregiver marking something done elsewhere pushes a silent
+  // { type: 'sync', memberId } notification. Refetch on receipt so an open
+  // list updates live instead of waiting for the next focus.
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) load();
+    });
+    return () => sub.remove();
+  }, [memberId, load]);
 
   const openAdd = () => {
     router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });

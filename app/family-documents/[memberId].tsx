@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 import {
@@ -36,6 +37,16 @@ export default function FamilyDocumentsScreen() {
   }, [memberId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // A connected caregiver marking something done elsewhere pushes a silent
+  // { type: 'sync', memberId } notification. Refetch on receipt so an open
+  // list updates live instead of waiting for the next focus.
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) load();
+    });
+    return () => sub.remove();
+  }, [memberId, load]);
 
   // Gate: storing another document beyond the plan's limit shows the paywall
   // (doc §5.1 — "2nd document on Free"). Opens the add page only if allowed.

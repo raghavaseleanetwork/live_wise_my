@@ -31,7 +31,10 @@ function LeakCard({ leak, index, colors, formatAmount, t }: { leak: MoneyLeak; i
             <Ionicons name={cat.icon as any} size={22} color={cat.color} />
           </View>
           <View style={styles.leakInfo}>
-            <Text style={[styles.leakMerchant, { color: colors.text }]}>{leak.merchant}</Text>
+            {/* Merchant names arrive from SMS parsing and can be long raw UPI
+                handles. Left unbounded they wrap to three or four lines and
+                make one leak card tower over the rest. */}
+            <Text style={[styles.leakMerchant, { color: colors.text }]} numberOfLines={2}>{leak.merchant}</Text>
             <View style={styles.leakMeta}>
               <View style={[styles.freqBadge, { backgroundColor: colors.warningDim }]}>
                 <Ionicons name="time-outline" size={10} color={colors.warning} style={{ marginRight: 3 }} />
@@ -294,6 +297,7 @@ const styles = StyleSheet.create({
   },
   leakInfo: {
     flex: 1,
+    minWidth: 0,
   },
   leakMerchant: {
     fontFamily: 'Inter_600SemiBold',
@@ -321,8 +325,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
   },
+  // Capped at 45% of the card so a long amount cannot squeeze the merchant name
+  // beside it down to a couple of ellipsed characters. Within that cap the
+  // amount shrinks, then becomes swipeable — so it stays whole either way.
   leakAmountBox: {
     alignItems: 'flex-end',
+    maxWidth: '45%',
+    flexShrink: 1,
   },
   leakAmount: {
     fontFamily: 'Inter_700Bold',

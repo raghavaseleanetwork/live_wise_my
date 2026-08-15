@@ -994,7 +994,10 @@ export default function ReportsScreen() {
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.summaryTop }>
-              <View style={{ flex: 1 }}>
+              {/* `minWidth: 0` lets this column shrink below its content width,
+                  so a long total shrinks (then scrolls) instead of shoving the
+                  savings circle beside it off the card. */}
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>{t('reports.totalSpending')}</Text>
                 <Money style={[styles.summaryAmount, { color: colors.text }]}>{formatAmount(totalSpent)}</Money>
                 <Text style={[styles.deltaText, { color: colors.textTertiary, lineHeight: 18 }]}>

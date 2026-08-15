@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,10 +8,12 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import {
   MedicationStockItem,
   loadStock,
   adjustStock,
+  logStockPurchase,
   deleteStockItem,
   daysOfStockLeft,
   isLowStock,
@@ -32,6 +34,16 @@ export default function MedicationStockScreen() {
   }, [memberId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // A connected caregiver marking something done elsewhere pushes a silent
+  // { type: 'sync', memberId } notification. Refetch on receipt so an open
+  // list updates live instead of waiting for the next focus.
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) load();
+    });
+    return () => sub.remove();
+  }, [memberId, load]);
 
   const openAdd = () => {
     router.push({ pathname: '/family-stock/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
@@ -81,7 +93,7 @@ export default function MedicationStockScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.cardTitle, { color: colors.text }]}>{item.medicineName}</Text>
                     <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
-                      {t('familyStock.quantityLeft', { count: item.quantityRemaining })}{daysLeft !== null ? ` · ${t('familyStock.daysOfStock', { count: daysLeft })}` : ''}
+                      {t('familyStock.quantityLeft', { count: item.quantityRemaining })}{daysLeft !== null ? ` · ${t('familyStock.daysOfStock', { count: daysLeft })}` : ''}{item.pharmacyName ? ` · ${item.pharmacyName}` : ''}
                     </Text>
                   </View>
                   {low && (
@@ -104,7 +116,7 @@ export default function MedicationStockScreen() {
                     <Ionicons name="remove" size={18} color={colors.text} />
                   </Pressable>
                   <Pressable
-                    onPress={async () => { await adjustStock(String(memberId), item.id, 10); load(); }}
+                    onPress={async () => { await logStockPurchase(String(memberId), item.id, 10); load(); }}
                     style={[styles.stockBtn, styles.stockBtnWide, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' }]}
                   >
                     <Ionicons name="refresh" size={16} color={colors.accent} />

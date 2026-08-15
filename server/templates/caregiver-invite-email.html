@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LifeWise Caregiver Invite</title>
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #F8FAFC; color: #1E293B; }
+        .wrapper { width: 100%; table-layout: fixed; background-color: #F8FAFC; padding-bottom: 40px; }
+        .main { background-color: #FFFFFF; margin: 0 auto; width: 100%; max-width: 600px; border-spacing: 0; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .header { background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%); padding: 40px 30px; text-align: center; color: #FFFFFF; }
+        .content { padding: 40px 30px; }
+        .invite-card { background-color: #F1F5F9; border-radius: 20px; padding: 30px; margin-bottom: 30px; border: 1px solid #E2E8F0; text-align: center; }
+        .member-name { font-size: 22px; font-weight: 800; color: #0F172A; margin: 0 0 6px 0; }
+        .member-sub { font-size: 14px; color: #64748B; margin: 0; }
+        .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E2E8F0; }
+        .detail-row:last-child { border-bottom: none; }
+        .label { color: #64748B; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .value { color: #1E293B; font-size: 15px; font-weight: 700; }
+        .btn-container { text-align: center; margin-top: 10px; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: #FFFFFF !important; text-decoration: none; padding: 16px 40px; border-radius: 16px; font-weight: 800; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
+        .footer { padding: 30px; text-align: center; color: #94A3B8; font-size: 12px; line-height: 1.6; }
+        .chip { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; background-color: #EEF2FF; color: #4F46E5; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div style="height: 40px;"></div>
+        <table class="main" cellpadding="0" cellspacing="0">
+            <tr>
+                <td class="header">
+                    <img src="https://lifewise.app/assets/logo.png" alt="LifeWise" width="80" style="margin-bottom: 15px; border-radius: 20px;">
+                    <h1 style="margin: 0; font-size: 26px; font-weight: 800;">You've been invited</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;"><strong>{{INVITER_NAME}}</strong> wants you to help care for {{MEMBER_NAME}} on LifeWise.</p>
+                </td>
+            </tr>
+            <tr>
+                <td class="content">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <span class="chip">CAREGIVER INVITE</span>
+                    </div>
+
+                    <div class="invite-card">
+                        <p class="member-name">{{MEMBER_NAME}}</p>
+                        <p class="member-sub">Shared by {{INVITER_NAME}} ({{INVITER_EMAIL}})</p>
+
+                        <div class="detail-row">
+                            <span class="label">Invited Email</span>
+                            <span class="value">{{INVITEE_EMAIL}}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Role</span>
+                            <span class="value">Caregiver</span>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 14px; line-height: 22px; color: #475569; text-align: center; margin-bottom: 25px;">
+                        As a caregiver you'll receive the same reminders and alerts as {{INVITER_NAME}} for {{MEMBER_NAME}},
+                        and can mark medicines and reminders as done. Open the LifeWise app to accept or decline.
+                    </p>
+
+                    <div class="btn-container">
+                        <a href="{{APP_URL}}" class="btn">Open LifeWise App</a>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="footer">
+                    <p style="margin-bottom: 10px;">Safe, secure, and intelligent life management with LifeWise.</p>
+                    <p>If the button doesn't work, copy this link:<br>
+                    <a href="{{APP_URL}}" style="color: #4F46E5; text-decoration: underline;">{{APP_URL}}</a></p>
+                    <div style="height: 20px; border-top: 1px solid #E2E8F0; margin-top: 20px;"></div>
+                    <p>If you weren't expecting this invite, you can safely ignore this email — nothing will change until it's accepted.</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

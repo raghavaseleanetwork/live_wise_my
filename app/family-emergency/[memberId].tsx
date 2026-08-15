@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, Switch } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, Pressable, Switch, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,12 +8,15 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { scheduleLocalNotification } from '@/lib/notifications';
 import {
   EmergencySettings,
   EmergencyLogEntry,
+  EmergencyMedicalProfile,
+  EmergencyContact,
   DEFAULT_EMERGENCY_SETTINGS,
   loadEmergencySettings,
   saveEmergencySettings,
@@ -21,7 +24,13 @@ import {
   addEmergencyLogEntry,
   acknowledgeEmergencyLogEntry,
   findMissedMedicines,
+  loadEmergencyMedicalProfile,
+  saveEmergencyMedicalProfile,
 } from '@/lib/family-records';
+
+function genId(): string {
+  return Date.now().toString() + Math.random().toString(36).slice(2, 9);
+}
 
 export default function FamilyEmergencyScreen() {
   const router = useRouter();
@@ -34,15 +43,48 @@ export default function FamilyEmergencyScreen() {
   const [settings, setSettings] = useState<EmergencySettings>(DEFAULT_EMERGENCY_SETTINGS);
   const [log, setLog] = useState<EmergencyLogEntry[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const [profile, setProfile] = useState<EmergencyMedicalProfile>({ contacts: [] });
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactRelation, setContactRelation] = useState('');
 
   const load = useCallback(async () => {
     if (!memberId) return;
-    const [s, l] = await Promise.all([loadEmergencySettings(String(memberId)), loadEmergencyLog(String(memberId))]);
+    const [s, l, p] = await Promise.all([loadEmergencySettings(String(memberId)), loadEmergencyLog(String(memberId)), loadEmergencyMedicalProfile(String(memberId))]);
     setSettings(s);
     setLog(l);
+    setProfile(p);
   }, [memberId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // A connected caregiver marking something done elsewhere pushes a silent
+  // { type: 'sync', memberId } notification. Refetch on receipt so an open
+  // list updates live instead of waiting for the next focus.
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) load();
+    });
+    return () => sub.remove();
+  }, [memberId, load]);
+
+  const persistProfile = async (next: EmergencyMedicalProfile) => {
+    setProfile(next);
+    if (memberId) await saveEmergencyMedicalProfile(String(memberId), next);
+  };
+
+  const addContact = () => {
+    if (!contactName.trim() || !contactPhone.trim() || profile.contacts.length >= 5) return;
+    const contact: EmergencyContact = { id: genId(), name: contactName.trim(), phone: contactPhone.trim(), relation: contactRelation.trim() };
+    persistProfile({ ...profile, contacts: [...profile.contacts, contact] });
+    setContactName('');
+    setContactPhone('');
+    setContactRelation('');
+  };
+
+  const removeContact = (id: string) => {
+    persistProfile({ ...profile, contacts: profile.contacts.filter((c) => c.id !== id) });
+  };
 
   const updateSetting = async <K extends keyof EmergencySettings>(key: K, value: EmergencySettings[K]) => {
     if (!memberId) return;
@@ -112,7 +154,141 @@ export default function FamilyEmergencyScreen() {
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyEmergency.settingsSection')}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyEmergency.contactsSection')}</Text>
+        {profile.contacts.map((c) => (
+          <View key={c.id} style={[styles.contactCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.contactIconWrap, { backgroundColor: colors.accentDim }]}>
+              <Ionicons name="person" size={16} color={colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.contactName, { color: colors.text }]}>{c.name}{c.relation ? ` · ${c.relation}` : ''}</Text>
+              <Text style={[styles.contactPhone, { color: colors.textTertiary }]}>{c.phone}</Text>
+            </View>
+            <Pressable onPress={() => removeContact(c.id)} hitSlop={10}>
+              <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
+            </Pressable>
+          </View>
+        ))}
+        {profile.contacts.length < 5 && (
+          <View style={[styles.addContactCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.smallInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={contactName}
+              onChangeText={setContactName}
+              placeholder={t('familyEmergency.contactNamePlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+            />
+            <View style={styles.formRow}>
+              <TextInput
+                style={[styles.smallInput, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                value={contactPhone}
+                onChangeText={setContactPhone}
+                placeholder={t('familyEmergency.contactPhonePlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="phone-pad"
+              />
+              <TextInput
+                style={[styles.smallInput, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                value={contactRelation}
+                onChangeText={setContactRelation}
+                placeholder={t('familyEmergency.contactRelationPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
+            <Pressable onPress={addContact} style={[styles.addContactBtn, { backgroundColor: colors.accent }]}>
+              <Ionicons name="add" size={16} color="#FFF" />
+              <Text style={styles.addContactBtnText}>{t('familyEmergency.addContact')}</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyEmergency.medicalInfoSection')}</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border, padding: 14, gap: 10 }]}>
+          <View>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyEmergency.knownAllergiesLabel')}</Text>
+            <TextInput
+              style={[styles.smallInput, styles.textArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={profile.knownAllergies ?? ''}
+              onChangeText={(v) => setProfile({ ...profile, knownAllergies: v })}
+              onEndEditing={() => persistProfile(profile)}
+              placeholder={t('familyEmergency.knownAllergiesPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              multiline
+            />
+          </View>
+          <View>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyEmergency.medicalConditionsLabel')}</Text>
+            <TextInput
+              style={[styles.smallInput, styles.textArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={profile.existingMedicalConditions ?? ''}
+              onChangeText={(v) => setProfile({ ...profile, existingMedicalConditions: v })}
+              onEndEditing={() => persistProfile(profile)}
+              placeholder={t('familyEmergency.medicalConditionsPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              multiline
+            />
+          </View>
+          <View>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyEmergency.currentMedicationsLabel')}</Text>
+            <TextInput
+              style={[styles.smallInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={profile.currentMedicationsNote ?? ''}
+              onChangeText={(v) => setProfile({ ...profile, currentMedicationsNote: v })}
+              onEndEditing={() => persistProfile(profile)}
+              placeholder={t('familyEmergency.currentMedicationsPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+            />
+          </View>
+          <View style={styles.formRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyEmergency.doctorNameLabel')}</Text>
+              <TextInput
+                style={[styles.smallInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                value={profile.doctorName ?? ''}
+                onChangeText={(v) => setProfile({ ...profile, doctorName: v })}
+                onEndEditing={() => persistProfile(profile)}
+                placeholder={t('familyEmergency.doctorNamePlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyEmergency.doctorPhoneLabel')}</Text>
+              <TextInput
+                style={[styles.smallInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                value={profile.doctorPhone ?? ''}
+                onChangeText={(v) => setProfile({ ...profile, doctorPhone: v })}
+                onEndEditing={() => persistProfile(profile)}
+                placeholder={t('familyEmergency.doctorPhonePlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="phone-pad"
+              />
+            </View>
+          </View>
+          <View>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyEmergency.hospitalPreferenceLabel')}</Text>
+            <TextInput
+              style={[styles.smallInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={profile.hospitalPreference ?? ''}
+              onChangeText={(v) => setProfile({ ...profile, hospitalPreference: v })}
+              onEndEditing={() => persistProfile(profile)}
+              placeholder={t('familyEmergency.hospitalPreferencePlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+            />
+          </View>
+          <View>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyEmergency.insurancePolicyLabel')}</Text>
+            <TextInput
+              style={[styles.smallInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={profile.insurancePolicyNumber ?? ''}
+              onChangeText={(v) => setProfile({ ...profile, insurancePolicyNumber: v })}
+              onEndEditing={() => persistProfile(profile)}
+              placeholder={t('familyEmergency.insurancePolicyPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+            />
+          </View>
+        </View>
+
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyEmergency.settingsSection')}</Text>
         <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.settingRow}>
             <View style={{ flex: 1 }}>
@@ -207,4 +383,15 @@ const styles = StyleSheet.create({
   logCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
   logMessage: { fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 18 },
   logTime: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
+  contactCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, borderWidth: 1, padding: 12, marginBottom: 8 },
+  contactIconWrap: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  contactName: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  contactPhone: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },
+  addContactCard: { borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', padding: 12, gap: 8 },
+  addContactBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10, paddingVertical: 10 },
+  addContactBtnText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: '#FFF' },
+  smallInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontFamily: 'Inter_500Medium', fontSize: 13 },
+  textArea: { minHeight: 60, textAlignVertical: 'top' },
+  fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginBottom: 6 },
+  formRow: { flexDirection: 'row', gap: 10 },
 });

@@ -8,9 +8,18 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
-import { addCheckin, loadCheckins, updateCheckin } from '@/lib/family-records';
+import { addCheckin, loadCheckins, updateCheckin, CheckinFrequency, CheckinCallType } from '@/lib/family-records';
 
 const DAY_LABEL_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const FREQUENCIES: CheckinFrequency[] = ['daily', 'every_2_days', 'weekly', 'custom'];
+const CALL_TYPES: CheckinCallType[] = ['regular_call', 'video_call', 'whatsapp_call'];
+
+/** Frequency presets that map onto the day-of-week model the record already uses. */
+function daysForFrequency(freq: CheckinFrequency): number[] {
+  if (freq === 'daily') return [];
+  if (freq === 'weekly') return [1];
+  return [];
+}
 
 export default function AddCheckinScreen() {
   const router = useRouter();
@@ -23,6 +32,10 @@ export default function AddCheckinScreen() {
   const [label, setLabel] = useState('');
   const [time, setTime] = useState(new Date());
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [frequency, setFrequency] = useState<CheckinFrequency>('daily');
+  const [callType, setCallType] = useState<CheckinCallType>('regular_call');
+  const [contactNumber, setContactNumber] = useState('');
+  const [missedCallAlertEnabled, setMissedCallAlertEnabled] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -42,6 +55,10 @@ export default function AddCheckinScreen() {
       if (!found || cancelled) return;
       setLabel(found.label);
       setSelectedDays(found.days ?? []);
+      setFrequency(found.frequency ?? 'daily');
+      setCallType(found.callType ?? 'regular_call');
+      setContactNumber(found.contactNumber ?? '');
+      setMissedCallAlertEnabled(found.missedCallAlertEnabled ?? true);
       // Stored as "HH:MM AM/PM"; the picker needs a Date, so parse it back
       // or editing would silently reset the time to now.
       const parts = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(found.time?.trim() ?? '');
@@ -64,7 +81,15 @@ export default function AddCheckinScreen() {
     if (!memberId || saving) return;
     setSaving(true);
     const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const data = { label: label.trim(), time: timeStr, days: selectedDays };
+    const data = {
+      label: label.trim(),
+      time: timeStr,
+      days: frequency === 'custom' ? selectedDays : daysForFrequency(frequency),
+      frequency,
+      callType,
+      contactNumber: contactNumber.trim(),
+      missedCallAlertEnabled,
+    };
     if (isEditing) {
       await updateCheckin(String(memberId), String(editId), data);
     } else {
@@ -106,18 +131,63 @@ export default function AddCheckinScreen() {
           <Text style={{ color: colors.text }}>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
         </Pressable>
 
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.repeatOnLabel')}</Text>
-        <View style={styles.dayRow}>
-          {DAY_LABEL_KEYS.map((d, idx) => (
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.frequencyLabel')}</Text>
+        <View style={styles.chipRow}>
+          {FREQUENCIES.map((f) => (
             <Pressable
-              key={d}
-              onPress={() => toggleDay(idx)}
-              style={[styles.dayChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.includes(idx) && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+              key={f}
+              onPress={() => setFrequency(f)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, frequency === f && { backgroundColor: colors.accent, borderColor: colors.accent }]}
             >
-              <Text style={[styles.dayChipText, { color: selectedDays.includes(idx) ? '#FFF' : colors.textSecondary }]}>{t(`familyCheckin.day.${d}`)}</Text>
+              <Text style={[styles.smallChipText, { color: frequency === f ? '#FFF' : colors.textSecondary }]}>{t(`familyCheckin.frequencyOption.${f}`)}</Text>
             </Pressable>
           ))}
         </View>
+
+        {frequency === 'custom' && (
+          <>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.repeatOnLabel')}</Text>
+            <View style={styles.dayRow}>
+              {DAY_LABEL_KEYS.map((d, idx) => (
+                <Pressable
+                  key={d}
+                  onPress={() => toggleDay(idx)}
+                  style={[styles.dayChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.includes(idx) && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                >
+                  <Text style={[styles.dayChipText, { color: selectedDays.includes(idx) ? '#FFF' : colors.textSecondary }]}>{t(`familyCheckin.day.${d}`)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.callTypeLabel')}</Text>
+        <View style={styles.chipRow}>
+          {CALL_TYPES.map((ct) => (
+            <Pressable
+              key={ct}
+              onPress={() => setCallType(ct)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, callType === ct && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: callType === ct ? '#FFF' : colors.textSecondary }]}>{t(`familyCheckin.callTypeOption.${ct}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyCheckin.contactNumberLabel')}</Text>
+        <TextInput
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+          value={contactNumber}
+          onChangeText={setContactNumber}
+          placeholder={t('familyCheckin.contactNumberPlaceholder')}
+          placeholderTextColor={colors.textTertiary}
+          keyboardType="phone-pad"
+        />
+
+        <Pressable onPress={() => setMissedCallAlertEnabled(!missedCallAlertEnabled)} style={styles.toggleRow}>
+          <Ionicons name={missedCallAlertEnabled ? 'checkbox' : 'square-outline'} size={22} color={missedCallAlertEnabled ? colors.accent : colors.textTertiary} />
+          <Text style={[styles.toggleLabel, { color: colors.text }]}>{t('familyCheckin.missedCallAlertLabel')}</Text>
+        </Pressable>
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
           <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyCheckin.saveChanges') : t('common.save')}</Text>
@@ -152,4 +222,9 @@ const styles = StyleSheet.create({
   dayRow: { flexDirection: 'row', gap: 6 },
   dayChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
   dayChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  smallChip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  smallChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
+  toggleLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

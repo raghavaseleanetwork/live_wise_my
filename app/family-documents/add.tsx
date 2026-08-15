@@ -8,15 +8,24 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
-import { FamilyDocument, DOCUMENT_TYPE_LABELS, addFamilyDocument, loadFamilyDocuments, updateFamilyDocument } from '@/lib/family-records';
+import { FamilyDocument, FamilyDocumentType, DocumentExpiryReminderLead, DOCUMENT_TYPE_LABELS, addFamilyDocument, loadFamilyDocuments, updateFamilyDocument } from '@/lib/family-records';
 
 /** Example title per document type, so the hint matches the selected chip. */
-const TYPE_PLACEHOLDER_KEYS: Record<FamilyDocument['type'], string> = {
+const TYPE_PLACEHOLDER_KEYS: Record<FamilyDocumentType, string> = {
+  aadhaar: 'familyDocuments.placeholder.aadhaar',
+  pan: 'familyDocuments.placeholder.pan',
+  passport: 'familyDocuments.placeholder.passport',
+  driving_license: 'familyDocuments.placeholder.driving_license',
+  birth_certificate: 'familyDocuments.placeholder.birth_certificate',
+  marriage_certificate: 'familyDocuments.placeholder.marriage_certificate',
+  property: 'familyDocuments.placeholder.property',
+  vehicle_rc: 'familyDocuments.placeholder.vehicle_rc',
   insurance: 'familyDocuments.placeholder.insurance',
-  id: 'familyDocuments.placeholder.id',
   medical: 'familyDocuments.placeholder.medical',
   other: 'familyDocuments.placeholder.other',
 };
+
+const EXPIRY_REMINDER_LEADS: DocumentExpiryReminderLead[] = ['6_months', '3_months', '1_month'];
 
 export default function AddFamilyDocumentScreen() {
   const router = useRouter();
@@ -25,14 +34,18 @@ export default function AddFamilyDocumentScreen() {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
 
-  const documentTypeLabel = (type: FamilyDocument['type']) => t(`familyDocuments.type.${type}`);
+  const documentTypeLabel = (type: FamilyDocumentType) => t(`familyDocuments.type.${type}`);
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showIssueDatePicker, setShowIssueDatePicker] = useState(false);
+  const [showExpiryDatePicker, setShowExpiryDatePicker] = useState(false);
   const [title, setTitle] = useState('');
   // Nothing preselected on a new document; editing seeds it from the record.
-  const [type, setType] = useState<FamilyDocument['type'] | null>(null);
-  const [hasReminder, setHasReminder] = useState(false);
-  const [reminderDate, setReminderDate] = useState(new Date());
+  const [type, setType] = useState<FamilyDocumentType | null>(null);
+  const [documentNumber, setDocumentNumber] = useState('');
+  const [issueDate, setIssueDate] = useState<Date | null>(null);
+  const [hasExpiry, setHasExpiry] = useState(false);
+  const [expiryDate, setExpiryDate] = useState(new Date());
+  const [expiryReminderLead, setExpiryReminderLead] = useState<DocumentExpiryReminderLead>('1_month');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -49,8 +62,11 @@ export default function AddFamilyDocumentScreen() {
       if (!found || cancelled) return;
       setTitle(found.title);
       setType(found.type);
-      setHasReminder(!!found.reminderDate);
-      if (found.reminderDate) setReminderDate(new Date(found.reminderDate));
+      setDocumentNumber(found.documentNumber ?? '');
+      setIssueDate(found.issueDate ? new Date(found.issueDate) : null);
+      setHasExpiry(!!found.expiryDate);
+      if (found.expiryDate) setExpiryDate(new Date(found.expiryDate));
+      setExpiryReminderLead(found.expiryReminderLead ?? '1_month');
       setNotes(found.notes ?? '');
     })();
     return () => { cancelled = true; };
@@ -70,7 +86,12 @@ export default function AddFamilyDocumentScreen() {
     const data = {
       title: title.trim(),
       type,
-      reminderDate: hasReminder ? reminderDate.toISOString() : null,
+      documentNumber: documentNumber.trim(),
+      issueDate: issueDate ? issueDate.toISOString() : null,
+      expiryDate: hasExpiry ? expiryDate.toISOString() : null,
+      expiryReminderLead: hasExpiry ? expiryReminderLead : undefined,
+      // Kept in sync with expiryDate for older screens/back-compat readers.
+      reminderDate: hasExpiry ? expiryDate.toISOString() : null,
       notes: notes.trim(),
     };
     if (isEditing) {
@@ -105,7 +126,7 @@ export default function AddFamilyDocumentScreen() {
           style={styles.typeScroll}
           contentContainerStyle={styles.typeGrid}
         >
-          {(Object.keys(DOCUMENT_TYPE_LABELS) as FamilyDocument['type'][]).map((docType) => (
+          {(Object.keys(DOCUMENT_TYPE_LABELS) as FamilyDocumentType[]).map((docType) => (
             <Pressable
               key={docType}
               onPress={() => setType(docType)}
@@ -127,15 +148,51 @@ export default function AddFamilyDocumentScreen() {
           autoFocus
         />
 
-        <Pressable onPress={() => setHasReminder(!hasReminder)} style={styles.reminderRow}>
-          <Ionicons name={hasReminder ? 'checkbox' : 'square-outline'} size={22} color={hasReminder ? colors.accent : colors.textTertiary} />
-          <Text style={[styles.reminderText, { color: colors.text }]}>{t('familyDocuments.setReminderCheckbox')}</Text>
+        <View style={styles.formRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyDocuments.documentNumberLabel')}</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={documentNumber}
+              onChangeText={setDocumentNumber}
+              placeholder={t('familyDocuments.documentNumberPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyDocuments.issueDateLabel')}</Text>
+            <Pressable onPress={() => setShowIssueDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
+              <Text style={{ color: issueDate ? colors.text : colors.textTertiary }}>
+                {issueDate ? issueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : t('familyDocuments.notSet')}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <Pressable onPress={() => setHasExpiry(!hasExpiry)} style={styles.reminderRow}>
+          <Ionicons name={hasExpiry ? 'checkbox' : 'square-outline'} size={22} color={hasExpiry ? colors.accent : colors.textTertiary} />
+          <Text style={[styles.reminderText, { color: colors.text }]}>{t('familyDocuments.setExpiryCheckbox')}</Text>
         </Pressable>
 
-        {hasReminder && (
-          <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center', marginTop: 10 }]}>
-            <Text style={{ color: colors.text }}>{reminderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
-          </Pressable>
+        {hasExpiry && (
+          <>
+            <Pressable onPress={() => setShowExpiryDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center', marginTop: 10 }]}>
+              <Text style={{ color: colors.text }}>{expiryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+            </Pressable>
+
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyDocuments.expiryReminderLabel')}</Text>
+            <View style={styles.typeGridWrap}>
+              {EXPIRY_REMINDER_LEADS.map((lead) => (
+                <Pressable
+                  key={lead}
+                  onPress={() => setExpiryReminderLead(lead)}
+                  style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, expiryReminderLead === lead && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                >
+                  <Text style={[styles.smallChipText, { color: expiryReminderLead === lead ? '#FFF' : colors.textSecondary }]}>{t(`familyDocuments.expiryReminderLead.${lead}`)}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
         )}
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyDocuments.notesLabel')}</Text>
@@ -152,13 +209,22 @@ export default function AddFamilyDocumentScreen() {
         </Pressable>
       </ScrollView>
 
-      {showDatePicker && (
+      {showIssueDatePicker && (
         <DateTimePicker
-          value={reminderDate}
+          value={issueDate ?? new Date()}
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           themeVariant={isDark ? 'dark' : 'light'}
-          onChange={(event, date) => { setShowDatePicker(false); if (date) setReminderDate(date); }}
+          onChange={(event, date) => { setShowIssueDatePicker(false); if (date) setIssueDate(date); }}
+        />
+      )}
+      {showExpiryDatePicker && (
+        <DateTimePicker
+          value={expiryDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          themeVariant={isDark ? 'dark' : 'light'}
+          onChange={(event, date) => { setShowExpiryDatePicker(false); if (date) setExpiryDate(date); }}
         />
       )}
     </View>
@@ -185,4 +251,8 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   reminderText: { fontFamily: 'Inter_500Medium', fontSize: 14 },
+  formRow: { flexDirection: 'row', gap: 12 },
+  typeGridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  smallChip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  smallChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
 });

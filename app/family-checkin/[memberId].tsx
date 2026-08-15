@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,12 +8,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import {
   CheckinItem,
   loadCheckins,
   markCheckinDone,
   toggleCheckin,
   deleteCheckin,
+  isCheckinMissed,
 } from '@/lib/family-records';
 
 const DAY_LABEL_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -33,6 +35,16 @@ export default function FamilyCheckinScreen() {
   }, [memberId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // A connected caregiver marking something done elsewhere pushes a silent
+  // { type: 'sync', memberId } notification. Refetch on receipt so an open
+  // list updates live instead of waiting for the next focus.
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) load();
+    });
+    return () => sub.remove();
+  }, [memberId, load]);
 
   const openAdd = () => {
     router.push({ pathname: '/family-checkin/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
@@ -72,16 +84,18 @@ export default function FamilyCheckinScreen() {
         ) : (
           items.map((item) => {
             const done = isDoneToday(item);
+            const missed = isCheckinMissed(item);
             return (
-              <Animated.View key={item.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <View style={[styles.iconWrap, { backgroundColor: colors.accentDim }]}>
-                  <Ionicons name="call" size={18} color={colors.accent} />
+              <Animated.View key={item.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: missed ? colors.warning : colors.border }]}>
+                <View style={[styles.iconWrap, { backgroundColor: missed ? colors.warningDim : colors.accentDim }]}>
+                  <Ionicons name="call" size={18} color={missed ? colors.warning : colors.accent} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }, !item.enabled && { opacity: 0.4 }]}>{item.label}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
                     {item.time}{item.days.length > 0 ? ` · ${item.days.map((d) => t(`familyCheckin.day.${DAY_LABEL_KEYS[d]}`)).join(', ')}` : ` · ${t('familyCheckin.everyDay')}`}
                   </Text>
+                  {missed && <Text style={[styles.missedText, { color: colors.warning }]}>{t('familyCheckin.missedCallWarning')}</Text>}
                 </View>
                 <Pressable
                   onPress={async () => { await markCheckinDone(String(memberId), item.id); load(); }}
@@ -123,4 +137,5 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },
   doneBtn: { width: 32, height: 32, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  missedText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 2 },
 });

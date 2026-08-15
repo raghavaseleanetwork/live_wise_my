@@ -151,6 +151,8 @@
     "expense": "ખર્ચ",
     "income": "આવક",
     "category": "શ્રેણી",
+    "categoryOtherExpense": "અન્ય ખર્ચ",
+    "otherExpenseHint": "અન્ય વ્યક્તિને મોકલેલા અથવા તમારા પોતાના ખાતાં વચ્ચે ખસેડેલા પૈસા. લીક વિશ્લેષણમાં તેની ગણતરી થતી નથી.",
     "for": "કોના માટે",
     "me": "હું",
     "moreOptions": "વધુ વિકલ્પો",
@@ -211,6 +213,7 @@
     "filterHealth": "આરોગ્ય",
     "filterEdu": "શિક્ષણ",
     "filterInvest": "રોકાણ",
+    "filterOtherExpense": "અન્ય ખર્ચ",
     "filterOthers": "અન્ય",
     "timeAll": "બધો સમય",
     "timeToday": "આજે",
@@ -365,7 +368,22 @@
     "tapToSetUpTracker": "તમારું ટ્રેકર સેટ કરવા ટેપ કરો",
     "customNothingLoggedYet": "{{name}} — હજુ સુધી કંઈ નોંધાયેલ નથી",
     "customEntries_one": "{{name}} — {{count}} એન્ટ્રી",
-    "customEntries_other": "{{name}} — {{count}} એન્ટ્રીઓ"
+    "customEntries_other": "{{name}} — {{count}} એન્ટ્રીઓ",
+    "noDietPlanSetYet": "હજુ સુધી કોઈ ડાયટ પ્લાન સેટ નથી",
+    "noWorkoutsScheduled": "કોઈ વર્કઆઉટ શેડ્યૂલ નથી",
+    "activeWorkouts_one": "{{count}} સક્રિય વર્કઆઉટ",
+    "activeWorkouts_other": "{{count}} સક્રિય વર્કઆઉટ",
+    "noExamsUpcoming": "કોઈ પરીક્ષા આવનારી નથી",
+    "examsUpcoming_one": "{{count}} પરીક્ષા આવનારી",
+    "examsUpcoming_other": "{{count}} પરીક્ષાઓ આવનારી",
+    "noWellnessDataYet": "હજુ સુધી કોઈ વેલનેસ ડેટા નથી",
+    "wellnessSummary": "{{moodCount}} મૂડ લોગ · {{reminderCount}} સક્રિય રિમાઇન્ડર",
+    "noVehiclesTrackedYet": "હજુ સુધી કોઈ વાહન ટ્રેક કરેલું નથી",
+    "vehiclesTracked_one": "{{count}} વાહન ટ્રેક કરેલું",
+    "vehiclesTracked_other": "{{count}} વાહનો ટ્રેક કરેલા",
+    "noHomeTasksTrackedYet": "હજુ સુધી કોઈ ઘરકામ ટ્રેક કરેલું નથી",
+    "homeTasksTracked_one": "{{count}} કામ ટ્રેક કરેલું",
+    "homeTasksTracked_other": "{{count}} કામો ટ્રેક કરેલા"
   },
   "familyCheckin": {
     "title": "કૉલ અને ચેક-ઇન",
@@ -388,7 +406,24 @@
     "timeLabel": "સમય",
     "repeatOnLabel": "કયા દિવસોમાં પુનરાવર્તન કરવું (દરરોજ માટે ખાલી રાખો)",
     "saveChanges": "ફેરફારો સાચવો",
-    "errorDescribeCheckin": "કૃપા કરી આ ચેક-ઇનનું વર્ણન આપો (દા.ત. \"રોજિંદો કૉલ\")"
+    "errorDescribeCheckin": "કૃપા કરી આ ચેક-ઇનનું વર્ણન આપો (દા.ત. \"રોજિંદો કૉલ\")",
+    "frequencyLabel": "કૉલની આવૃત્તિ",
+    "frequencyOption": {
+      "daily": "દરરોજ",
+      "every_2_days": "દર 2 દિવસે",
+      "weekly": "સાપ્તાહિક",
+      "custom": "કસ્ટમ"
+    },
+    "callTypeLabel": "કૉલનો પ્રકાર",
+    "callTypeOption": {
+      "regular_call": "સામાન્ય કૉલ",
+      "video_call": "વિડિયો કૉલ",
+      "whatsapp_call": "WhatsApp કૉલ"
+    },
+    "contactNumberLabel": "સંપર્ક નંબર",
+    "contactNumberPlaceholder": "ફોન નંબર",
+    "missedCallAlertLabel": "2 કલાકમાં કૉલ ન થાય તો મને જાણ કરો",
+    "missedCallWarning": "ચૂકી ગયું — કૉલ તરીકે ચિહ્નિત નથી"
   },
   "familyMember": {
     "addTitle": "નવો સભ્ય ઉમેરો",
@@ -413,6 +448,12 @@
     "caregiverHintSuffix": "ચાલુ કરી દીધા છે — જો જરૂર ન હોય તો તમે તેમને બંધ કરી શકો છો.",
     "dateOfBirth": "જન્મ તારીખ",
     "selectBirthday": "જન્મદિવસ પસંદ કરો",
+    "age": "ઉંમર",
+    "agePlaceholder": "ગણતરી માટે જન્મ તારીખ સેટ કરો",
+    "ageYears": "{{count}} વર્ષ",
+    "ageYears_plural": "{{count}} વર્ષ",
+    "bloodGroup": "બ્લડ ગ્રુપ",
+    "selectBloodGroup": "બ્લડ ગ્રુપ પસંદ કરો",
     "selectWhatToManage": "શું મેનેજ કરવું છે તે પસંદ કરો",
     "managedFeatures": "મેનેજ કરેલા ફીચર્સ",
     "selectWhatToManageHint": "એક અથવા વધુ પસંદ કરો. તમે પસંદ કરેલ ફીચર્સ જ {{name}}ના ડેશબોર્ડ પર દેખાશે.",
@@ -482,7 +523,39 @@
     "saveBill": "બિલ સાચવો",
     "errorSelectCategory": "કૃપા કરી એક કેટેગરી પસંદ કરો",
     "errorEnterName": "કૃપા કરી બિલનું નામ દાખલ કરો",
-    "errorInvalidAmount": "કૃપા કરી માન્ય રકમ દાખલ કરો"
+    "errorInvalidAmount": "કૃપા કરી માન્ય રકમ દાખલ કરો",
+    "categoryGas": "ગૅસ",
+    "categoryWater": "પાણી",
+    "categoryInternet": "ઇન્ટરનેટ",
+    "categoryMobilePostpaid": "મોબાઇલ પોસ્ટપેડ",
+    "categoryCableTv": "કેબલ ટીવી",
+    "categorySocietyMaintenance": "સોસાયટી મેન્ટેનન્સ",
+    "categoryRent": "ભાડું",
+    "categoryLoanEmi": "લોન EMI",
+    "categoryCreditCard": "ક્રેડિટ કાર્ડ",
+    "placeholderGas": "દા.ત. પાઇપ્ડ ગૅસ",
+    "placeholderWater": "દા.ત. મ્યુનિસિપલ પાણી",
+    "placeholderInternet": "દા.ત. Jio Fiber",
+    "placeholderMobilePostpaid": "દા.ત. Airtel પોસ્ટપેડ",
+    "placeholderCableTv": "દા.ત. Tata Play",
+    "placeholderSocietyMaintenance": "દા.ત. સોસાયટી મેન્ટેનન્સ",
+    "placeholderRent": "દા.ત. ઘરનું ભાડું",
+    "placeholderLoanEmi": "દા.ત. કાર લોન EMI",
+    "placeholderCreditCard": "દા.ત. HDFC ક્રેડિટ કાર્ડ",
+    "fieldAccountNumber": "ખાતા નંબર",
+    "accountNumberPlaceholder": "વૈકલ્પિક",
+    "fieldPaymentMethod": "ચુકવણીની રીત",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "નેટ બેન્કિંગ",
+      "credit_card": "ક્રેડિટ કાર્ડ",
+      "auto_debit": "ઑટો-ડેબિટ",
+      "cash": "રોકડ"
+    },
+    "fieldReminderDaysBefore": "મને યાદ કરાવો",
+    "daysBefore_one": "{{count}} દિવસ પહેલાં",
+    "daysBefore_other": "{{count}} દિવસ પહેલાં",
+    "dayOfReminderLabel": "નિયત તારીખે પણ યાદ કરાવો"
   },
   "familyFeatures": {
     "medicines": {
@@ -565,25 +638,40 @@
     "locationPlaceholder": "ક્લિનિક / હોસ્પિટલનું નામ",
     "followUpCheckbox": "આ એક ફોલો-અપ મુલાકાત છે",
     "saveChanges": "ફેરફારો સેવ કરો",
-    "saveAppointment": "એપોઇન્ટમેન્ટ સેવ કરો"
-  },
-  "familyCustom": {
-    "defaultTitle": "કસ્ટમ ફીચર",
-    "forMember": "{{name}} માટે",
-    "emptyTitle": "હજુ સુધી કંઈ ટ્રેક કરાયું નથી",
-    "emptyDesc": "{{name}} માટે તમારી પહેલી એન્ટ્રી લોગ કરવા + પર ટેપ કરો.",
-    "thisTracker": "આ ટ્રેકર",
-    "errorEnterEntry": "કૃપા કરી એક એન્ટ્રી દાખલ કરો",
-    "newEntry": "નવી એન્ટ્રી",
-    "entryLabel": "એન્ટ્રી",
-    "entryPlaceholder": "તમે શું લોગ કરવા માંગો છો?",
-    "addButton": "ઉમેરો",
-    "setupTitle": "તમારા ટ્રેકરનું નામ રાખો",
-    "setupHint": "તેને એક નામ આપો અને એક આઇકન પસંદ કરો. તમે તેને પછીથી બદલી શકો છો.",
-    "errorNameTracker": "કૃપા કરી તમારા કસ્ટમ ટ્રેકરનું નામ દાખલ કરો",
-    "trackerNameLabel": "ટ્રેકરનું નામ",
-    "trackerNamePlaceholder": "દા.ત. ફિઝિયોથેરાપી સેશન્સ",
-    "iconLabel": "આઇકન"
+    "saveAppointment": "એપોઇન્ટમેન્ટ સેવ કરો",
+    "specialization": {
+      "general": "સામાન્ય",
+      "cardiologist": "હૃદયરોગ નિષ્ણાત",
+      "orthopedic": "હાડકાંના નિષ્ણાત",
+      "neurologist": "ન્યુરોલોજિસ્ટ",
+      "pediatric": "બાળરોગ નિષ્ણાત",
+      "dermatologist": "ત્વચારોગ નિષ્ણાત",
+      "gynecologist": "સ્ત્રીરોગ નિષ્ણાત",
+      "dentist": "દંત ચિકિત્સક",
+      "ent": "ENT",
+      "ophthalmologist": "આંખના નિષ્ણાત",
+      "psychiatrist": "માનસચિકિત્સક",
+      "other": "અન્ય"
+    },
+    "hospitalNameLabel": "હોસ્પિટલ / ક્લિનિકનું નામ",
+    "hospitalNamePlaceholder": "દા.ત. સનશાઇન હોસ્પિટલ",
+    "notesLabel": "નોંધ / લક્ષણો",
+    "notesPlaceholder": "વૈકલ્પિક",
+    "reminderLeadLabel": "મને યાદ કરાવો",
+    "reminderLead": {
+      "1_day": "1 દિવસ પહેલાં",
+      "3_hours": "3 કલાક પહેલાં",
+      "1_hour": "1 કલાક પહેલાં",
+      "30_min": "30 મિનિટ પહેલાં"
+    },
+    "recurringCheckbox": "આ નિયમિત એપોઇન્ટમેન્ટ છે",
+    "recurrence": {
+      "monthly": "માસિક",
+      "quarterly": "ત્રિમાસિક",
+      "every_6_months": "દર 6 મહિને",
+      "yearly": "વાર્ષિક"
+    },
+    "followUpDatePlaceholder": "ફોલો-અપ તારીખ સેટ કરો"
   },
   "familyDocuments": {
     "headerTitle": "વીમો અને દસ્તાવેજો",
@@ -601,15 +689,74 @@
     "errorEnterTitle": "કૃપા કરીને દસ્તાવેજનું શીર્ષક દાખલ કરો",
     "type": {
       "insurance": "વીમા પોલિસી",
-      "id": "ઓળખ દસ્તાવેજ",
       "medical": "તબીબી રેકોર્ડ",
-      "other": "અન્ય"
+      "other": "અન્ય",
+      "aadhaar": "આધાર કાર્ડ",
+      "pan": "PAN કાર્ડ",
+      "passport": "પાસપોર્ટ",
+      "driving_license": "ડ્રાઇવિંગ લાઇસન્સ",
+      "birth_certificate": "જન્મ પ્રમાણપત્ર",
+      "marriage_certificate": "લગ્ન પ્રમાણપત્ર",
+      "property": "મિલકતના દસ્તાવેજો",
+      "vehicle_rc": "વાહન RC"
     },
     "placeholder": {
       "insurance": "દા.ત. આરોગ્ય વીમા પોલિસી",
-      "id": "દા.ત. આધાર કાર્ડ",
       "medical": "દા.ત. બ્લડ ટેસ્ટ રિપોર્ટ",
-      "other": "દા.ત. દસ્તાવેજનું શીર્ષક"
+      "other": "દા.ત. દસ્તાવેજનું શીર્ષક",
+      "aadhaar": "દા.ત. પપ્પાનું આધાર",
+      "pan": "દા.ત. પપ્પાનું PAN",
+      "passport": "દા.ત. પપ્પાનો પાસપોર્ટ",
+      "driving_license": "દા.ત. પપ્પાનું ડ્રાઇવિંગ લાઇસન્સ",
+      "birth_certificate": "દા.ત. જન્મ પ્રમાણપત્ર",
+      "marriage_certificate": "દા.ત. લગ્ન પ્રમાણપત્ર",
+      "property": "દા.ત. ફ્લેટનો વેચાણ દસ્તાવેજ",
+      "vehicle_rc": "દા.ત. કારનું RC"
+    },
+    "documentNumberLabel": "દસ્તાવેજ નંબર",
+    "documentNumberPlaceholder": "વૈકલ્પિક",
+    "issueDateLabel": "જારી તારીખ",
+    "setExpiryCheckbox": "આ દસ્તાવેજની મુદત પૂરી થાય છે",
+    "expiryReminderLabel": "મુદત પૂરી થતાં પહેલાં યાદ કરાવો",
+    "expiryReminderLead": {
+      "6_months": "6 મહિના",
+      "3_months": "3 મહિના",
+      "1_month": "1 મહિનો"
+    },
+    "notSet": "સેટ કરેલ નથી"
+  },
+  "familyCustom": {
+    "defaultTitle": "કસ્ટમ ફીચર",
+    "forMember": "{{name}} માટે",
+    "emptyTitle": "હજુ સુધી કંઈ ટ્રેક કરાયું નથી",
+    "emptyDesc": "{{name}} માટે તમારી પહેલી એન્ટ્રી લોગ કરવા + પર ટેપ કરો.",
+    "thisTracker": "આ ટ્રેકર",
+    "errorEnterEntry": "કૃપા કરી એક એન્ટ્રી દાખલ કરો",
+    "newEntry": "નવી એન્ટ્રી",
+    "entryLabel": "એન્ટ્રી",
+    "entryPlaceholder": "તમે શું લોગ કરવા માંગો છો?",
+    "addButton": "ઉમેરો",
+    "setupTitle": "તમારા ટ્રેકરનું નામ રાખો",
+    "setupHint": "તેને એક નામ આપો અને એક આઇકન પસંદ કરો. તમે તેને પછીથી બદલી શકો છો.",
+    "errorNameTracker": "કૃપા કરી તમારા કસ્ટમ ટ્રેકરનું નામ દાખલ કરો",
+    "trackerNameLabel": "ટ્રેકરનું નામ",
+    "trackerNamePlaceholder": "દા.ત. ફિઝિયોથેરાપી સેશન્સ",
+    "iconLabel": "આઇકન",
+    "customFieldsLabel": "કસ્ટમ ફીલ્ડ",
+    "fieldLabelPlaceholder": "ફીલ્ડનું નામ",
+    "fieldType": {
+      "text": "ટેક્સ્ટ",
+      "date": "તારીખ",
+      "time": "સમય",
+      "number": "સંખ્યા"
+    },
+    "reminderToggleLabel": "રિમાઇન્ડર ચાલુ કરો",
+    "frequencyLabel": "આવૃત્તિ",
+    "frequencyOption": {
+      "daily": "દરરોજ",
+      "weekly": "સાપ્તાહિક",
+      "monthly": "માસિક",
+      "custom": "કસ્ટમ"
     }
   },
   "familyHealth": {
@@ -632,7 +779,18 @@
     "dateLabel": "તારીખ",
     "notesLabel": "નોંધ (વૈકલ્પિક)",
     "notesPlaceholder": "દા.ત. સવારના ચાલ્યા પછી",
-    "saveReading": "રીડિંગ સેવ કરો"
+    "saveReading": "રીડિંગ સેવ કરો",
+    "systolicPlaceholder": "સિસ્ટોલિક",
+    "diastolicPlaceholder": "ડાયસ્ટોલિક",
+    "pulsePlaceholder": "નાડી",
+    "sugarReadingType": {
+      "fasting": "ખાલી પેટે",
+      "post_meal": "જમ્યા પછી"
+    },
+    "targetRangeLabel": "સામાન્ય શ્રેણી ચેતવણી (વૈકલ્પિક)",
+    "targetRangeLowPlaceholder": "ન્યૂનતમ",
+    "targetRangeHighPlaceholder": "મહત્તમ",
+    "outOfRangeWarning": "લક્ષ્ય શ્રેણીની બહાર"
   },
   "familyRoutine": {
     "headerTitle": "દૈનિક દિનચર્યા",
@@ -654,7 +812,11 @@
     "routineNamePlaceholder": "દા.ત. સાંજની પ્રાર્થના",
     "timeLabel": "સમય",
     "repeatOnLabel": "પુનરાવર્તન (દરરોજ માટે ખાલી છોડો)",
-    "saveChanges": "ફેરફારો સેવ કરો"
+    "saveChanges": "ફેરફારો સેવ કરો",
+    "presetAllDays": "બધા દિવસો",
+    "presetWeekdays": "અઠવાડિયાના દિવસો",
+    "presetWeekends": "સપ્તાહાંત",
+    "weeklyCompliance": "આ અઠવાડિયે {{percent}}%"
   },
   "familyStock": {
     "headerTitle": "દવાનો સ્ટોક",
@@ -679,7 +841,10 @@
     "quantityPlaceholder": "દા.ત. 30",
     "dailyUsageLabel": "દૈનિક વપરાશ",
     "lowStockAlertLabel": "આટલું ઓછું થાય ત્યારે એલર્ટ કરો",
-    "saveChanges": "ફેરફારો સેવ કરો"
+    "saveChanges": "ફેરફારો સેવ કરો",
+    "linkMedicineLabel": "દવા સાથે લિંક કરો",
+    "pharmacyNameLabel": "ફાર્મસી",
+    "pharmacyNamePlaceholder": "વૈકલ્પિક"
   },
   "familySubscriptions": {
     "headerTitle": "સબ્સ્ક્રિપ્શન",
@@ -704,7 +869,35 @@
     "amountLabel": "રકમ",
     "renewalDateLabel": "નવીકરણ તારીખ",
     "billingCycleLabel": "બિલિંગ સાયકલ",
-    "saveChanges": "ફેરફારો સેવ કરો"
+    "saveChanges": "ફેરફારો સેવ કરો",
+    "customService": "કસ્ટમ",
+    "planTypeLabel": "પ્લાનનો પ્રકાર",
+    "planTypePlaceholder": "દા.ત. ફેમિલી પ્લાન",
+    "cycle": {
+      "monthly": "માસિક",
+      "quarterly": "ત્રિમાસિક",
+      "yearly": "વાર્ષિક"
+    },
+    "autoRenewsLabel": "સ્વતઃ નવીકરણ",
+    "paymentMethodLabel": "ચુકવણીની રીત",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "નેટ બેન્કિંગ",
+      "credit_card": "ક્રેડિટ કાર્ડ",
+      "debit_card": "ડેબિટ કાર્ડ",
+      "other": "અન્ય"
+    },
+    "reminderLabel": "મને યાદ કરાવો",
+    "daysBefore_one": "{{count}} દિવસ પહેલાં",
+    "daysBefore_other": "{{count}} દિવસ પહેલાં",
+    "categoryLabel": "શ્રેણી",
+    "category": {
+      "entertainment": "મનોરંજન",
+      "productivity": "ઉત્પાદકતા",
+      "health": "આરોગ્ય",
+      "education": "શિક્ષણ",
+      "other": "અન્ય"
+    }
   },
   "familyTasks": {
     "headerTitle": "રિમાઇન્ડર ટાસ્ક",
@@ -747,7 +940,205 @@
     "dateLabel": "તારીખ",
     "locationLabel": "સ્થળ",
     "locationPlaceholder": "વૈકલ્પિક",
+    "saveChanges": "ફેરફારો સેવ કરો",
+    "timeLabel": "સમય",
+    "notesLabel": "હેતુ / નોંધ",
+    "notesPlaceholder": "વૈકલ્પિક",
+    "reminderLabel": "મને યાદ કરાવો",
+    "hoursBefore_one": "{{count}} કલાક પહેલાં",
+    "hoursBefore_other": "{{count}} કલાક પહેલાં",
+    "recurringCheckbox": "આ પુનરાવર્તિત થાય છે",
+    "recurrence": {
+      "weekly": "સાપ્તાહિક",
+      "monthly": "માસિક",
+      "yearly": "વાર્ષિક"
+    },
+    "returnDateLabel": "પરત આવવાની તારીખ",
+    "companionLabel": "કોની સાથે મુસાફરી",
+    "notSet": "સેટ કરેલ નથી"
+  },
+  "familyDiet": {
+    "headerTitle": "ડાયટ અને મીલ પ્લાનિંગ",
+    "forMember": "{{name}} માટે",
+    "dietTypeLabel": "ડાયટ પ્રકાર",
+    "type": {
+      "normal": "સામાન્ય",
+      "diabetic": "ડાયાબિટીક",
+      "low_salt": "ઓછું મીઠું",
+      "low_fat": "ઓછી ચરબી",
+      "vegetarian": "શાકાહારી",
+      "vegan": "વીગન",
+      "custom": "કસ્ટમ"
+    },
+    "customDietNameLabel": "કસ્ટમ ડાયટનું નામ",
+    "customDietNamePlaceholder": "દા.ત. કીટો",
+    "mealsLabel": "ભોજન",
+    "meal": {
+      "breakfast": "નાસ્તો",
+      "lunch": "બપોરનું ભોજન",
+      "evening_snack": "સાંજનો નાસ્તો",
+      "dinner": "રાત્રિ ભોજન"
+    },
+    "mealTimePlaceholder": "દા.ત. 8:00 AM",
+    "mealNotesPlaceholder": "ભોજન નોંધ / યોજના (વૈકલ્પિક)",
+    "calorieTargetLabel": "દૈનિક કેલરી લક્ષ્ય (વૈકલ્પિક)",
+    "calorieTargetPlaceholder": "દા.ત. 1800",
+    "foodRestrictionsLabel": "ભોજન પ્રતિબંધો",
+    "foodRestrictionsPlaceholder": "દા.ત. ખાંડ, મીઠું, તળેલું ખાવાનું ટાળવું",
+    "waterReminderLabel": "પાણી પીવાનું રિમાઇન્ડર",
+    "waterReminderHourlyLabel": "કેટલા કલાકે યાદ અપાવવું",
+    "doctorNotesLabel": "ડૉક્ટર / ડાયટીશિયન નોંધ",
+    "doctorNotesPlaceholder": "વૈકલ્પિક નોંધ",
     "saveChanges": "ફેરફારો સેવ કરો"
+  },
+  "familyFitness": {
+    "headerTitle": "ફિટનેસ ટ્રેકિંગ",
+    "forMember": "{{name}} માટે",
+    "emptyTitle": "હજુ સુધી કોઈ વર્કઆઉટ શેડ્યૂલ નથી",
+    "emptyDesc": "વર્કઆઉટ શેડ્યૂલ ઉમેરવા માટે + પર ટેપ કરો.",
+    "type": {
+      "walking": "વૉકિંગ",
+      "running": "રનિંગ",
+      "yoga": "યોગ",
+      "gym": "જીમ",
+      "swimming": "તરવું",
+      "cycling": "સાયકલિંગ",
+      "other": "અન્ય"
+    },
+    "editHeaderTitle": "વર્કઆઉટ સંપાદિત કરો",
+    "newHeaderTitle": "નવું વર્કઆઉટ",
+    "errorSelectType": "કૃપા કરી વર્કઆઉટ પ્રકાર પસંદ કરો",
+    "timeLabel": "સમય",
+    "repeatOnLabel": "આ દિવસોમાં પુનરાવર્તન કરો",
+    "durationGoalLabel": "સમયગાળા લક્ષ્ય (મિનિટ)",
+    "durationGoalPlaceholder": "દા.ત. 30",
+    "stepGoalLabel": "સ્ટેપ લક્ષ્ય",
+    "stepGoalPlaceholder": "દા.ત. 5000",
+    "notesLabel": "ટ્રેનર/ડૉક્ટરની નોંધ",
+    "notesPlaceholder": "વૈકલ્પિક",
+    "isRestDayLabel": "આરામનો દિવસ તરીકે ચિહ્નિત કરો",
+    "reminderEnabledLabel": "રિમાઇન્ડર ચાલુ",
+    "saveChanges": "ફેરફારો સેવ કરો",
+    "minutesGoal_one": "{{count}} મિનિટનું લક્ષ્ય",
+    "minutesGoal_other": "{{count}} મિનિટનું લક્ષ્ય",
+    "streakDays_one": "{{count}} દિવસની સ્ટ્રીક",
+    "streakDays_other": "{{count}} દિવસની સ્ટ્રીક"
+  },
+  "familyStudy": {
+    "headerTitle": "અભ્યાસ અને શિક્ષણ",
+    "forMember": "{{name}} માટે",
+    "gradeLabel": "વિદ્યાર્થીનું ધોરણ / વર્ગ",
+    "gradePlaceholder": "દા.ત. ધોરણ 10",
+    "subjectsLabel": "વિષયો",
+    "subjectPlaceholder": "વિષય ઉમેરો",
+    "examsLabel": "પરીક્ષાઓ",
+    "examSubjectPlaceholder": "પરીક્ષાનો વિષય",
+    "eventsLabel": "શાળા/કૉલેજ ઇવેન્ટ્સ",
+    "eventTitlePlaceholder": "ઇવેન્ટનું શીર્ષક",
+    "feesLabel": "ફી ચુકવણી",
+    "feeTitlePlaceholder": "ફીનું શીર્ષક",
+    "feeAmountPlaceholder": "રકમ"
+  },
+  "familyWellness": {
+    "headerTitle": "માનસિક સ્વાસ્થ્ય અને વેલનેસ",
+    "forMember": "{{name}} માટે",
+    "moodTodayLabel": "આજનો મૂડ",
+    "moodLoggedToday": "આજ માટે મૂડ લોગ થયો",
+    "remindersLabel": "સેલ્ફ-કેર રિમાઇન્ડર",
+    "emptyDesc": "મેડિટેશન, બ્રીધિંગ, જર્નલ, સેલ્ફ-કેર અથવા થેરાપી રિમાઇન્ડર ઉમેરવા માટે + પર ટેપ કરો.",
+    "kind": {
+      "meditation": "મેડિટેશન",
+      "breathing": "બ્રીધિંગ એક્સરસાઇઝ",
+      "journal": "જર્નલ",
+      "self_care": "સેલ્ફ-કેર",
+      "therapy": "થેરાપી / કાઉન્સેલિંગ"
+    },
+    "editHeaderTitle": "રિમાઇન્ડર સંપાદિત કરો",
+    "newHeaderTitle": "નવું રિમાઇન્ડર",
+    "errorEnterTitle": "કૃપા કરી શીર્ષક દાખલ કરો",
+    "titleLabel": "શીર્ષક",
+    "titlePlaceholder": "દા.ત. સાંજનું મેડિટેશન",
+    "timeLabel": "સમય",
+    "frequencyDaysLabel": "આવર્તન (દર N દિવસે)",
+    "frequencyDaysPlaceholder": "દા.ત. 2",
+    "sessionDateLabel": "સેશનની તારીખ અને સમય",
+    "doctorNameLabel": "ડૉક્ટર / કાઉન્સેલરનું નામ",
+    "doctorNamePlaceholder": "વૈકલ્પિક",
+    "notSet": "સેટ નથી",
+    "saveChanges": "ફેરફારો સેવ કરો"
+  },
+  "familyVehicles": {
+    "headerTitle": "વાહન વ્યવસ્થાપન",
+    "forMember": "{{name}} માટે",
+    "emptyTitle": "હજુ સુધી કોઈ વાહન ટ્રેક કરેલું નથી",
+    "emptyDesc": "કાર, બાઇક અથવા સ્કૂટર ઉમેરવા માટે + પર ટેપ કરો.",
+    "type": {
+      "car": "કાર",
+      "bike": "બાઇક",
+      "scooter": "સ્કૂટર",
+      "other": "અન્ય"
+    },
+    "editHeaderTitle": "વાહન સંપાદિત કરો",
+    "newHeaderTitle": "નવું વાહન",
+    "errorEnterName": "કૃપા કરી વાહનનું નામ દાખલ કરો",
+    "nameLabel": "વાહનનું નામ / મોડલ",
+    "namePlaceholder": "દા.ત. હોન્ડા સિટી",
+    "registrationLabel": "રજિસ્ટ્રેશન નંબર",
+    "registrationPlaceholder": "દા.ત. GJ01AB1234",
+    "insuranceExpiryLabel": "વીમા સમાપ્તિ તારીખ",
+    "pucExpiryLabel": "PUC સમાપ્તિ તારીખ",
+    "serviceDueDateLabel": "સર્વિસ બાકી તારીખ",
+    "serviceDueNoteLabel": "સર્વિસ નોંધ (અથવા KM આધારિત)",
+    "serviceDueNotePlaceholder": "દા.ત. 45,000 km પર બાકી",
+    "loanEmiAmountLabel": "લોન EMI રકમ",
+    "loanEmiAmountPlaceholder": "વૈકલ્પિક",
+    "loanEmiDueDateLabel": "લોન EMI બાકી તારીખ",
+    "notSet": "સેટ નથી",
+    "saveChanges": "ફેરફારો સેવ કરો",
+    "insuranceExpires": "વીમો {{date}} ના રોજ સમાપ્ત થાય છે",
+    "pucExpires": "PUC {{date}} ના રોજ સમાપ્ત થાય છે",
+    "serviceDue": "સર્વિસ {{date}} ના રોજ બાકી છે"
+  },
+  "familyHomeMaintenance": {
+    "headerTitle": "ઘરની જાળવણી",
+    "forMember": "{{name}} માટે",
+    "emptyTitle": "હજુ સુધી કોઈ ઘરકામ ટ્રેક કરેલું નથી",
+    "emptyDesc": "સર્વિસ, AMC અથવા જાળવણી કાર્ય ઉમેરવા માટે + પર ટેપ કરો.",
+    "type": {
+      "ac_service": "AC સર્વિસ",
+      "water_purifier": "વોટર પ્યુરિફાયર સર્વિસ",
+      "pest_control": "પેસ્ટ કંટ્રોલ",
+      "plumbing": "પ્લમ્બિંગ",
+      "electrical": "ઇલેક્ટ્રિકલ",
+      "painting": "પેઇન્ટિંગ",
+      "other": "અન્ય"
+    },
+    "editHeaderTitle": "કાર્ય સંપાદિત કરો",
+    "newHeaderTitle": "નવું કાર્ય",
+    "errorEnterTaskName": "કૃપા કરી કાર્યનું નામ દાખલ કરો",
+    "taskNameLabel": "કાર્યનું નામ",
+    "taskNamePlaceholder": "દા.ત. AC સર્વિસ",
+    "vendorNameLabel": "વેન્ડર / ટેકનિશિયન",
+    "vendorNamePlaceholder": "નામ",
+    "vendorPhoneLabel": "વેન્ડર ફોન",
+    "vendorPhonePlaceholder": "ફોન નંબર",
+    "lastDoneDateLabel": "છેલ્લે કરેલી તારીખ",
+    "nextDueDateLabel": "આગામી બાકી તારીખ",
+    "frequencyLabel": "આવર્તન",
+    "frequency": {
+      "monthly": "માસિક",
+      "quarterly": "ત્રિમાસિક",
+      "yearly": "વાર્ષિક",
+      "custom": "કસ્ટમ"
+    },
+    "hasAmcLabel": "AMC કોન્ટ્રાક્ટ છે",
+    "amcExpiryDateLabel": "AMC સમાપ્તિ તારીખ",
+    "costLabel": "ખર્ચ",
+    "costPlaceholder": "વૈકલ્પિક",
+    "notSet": "સેટ નથી",
+    "saveChanges": "ફેરફારો સેવ કરો",
+    "nextDue": "આગામી બાકી {{date}}",
+    "amcExpires": "AMC {{date}} ના રોજ સમાપ્ત થાય છે"
   },
   "familyCaregivers": {
     "headerTitle": "કેરગિવર",
@@ -783,6 +1174,26 @@
     "infoBannerPrefix": "એલર્ટ ",
     "thisDevice": "આ ડિવાઇસ",
     "infoBannerSuffix": " પર નોટિફિકેશન તરીકે આવે છે. અન્ય કુટુંબના સભ્યોના ફોન પર એલર્ટ મોકલવા માટે નાનું બેકએન્ડ ઉમેરવું જરૂરી છે — આ એપના પ્રોજેક્ટ દસ્તાવેજોમાં નોંધ જુઓ.",
+    "contactsSection": "કટોકટી સંપર્કો",
+    "contactNamePlaceholder": "સંપર્કનું નામ",
+    "contactPhonePlaceholder": "ફોન નંબર",
+    "contactRelationPlaceholder": "સંબંધ",
+    "addContact": "સંપર્ક ઉમેરો",
+    "medicalInfoSection": "તબીબી માહિતી",
+    "knownAllergiesLabel": "જાણીતી એલર્જી",
+    "knownAllergiesPlaceholder": "દા.ત. પેનિસિલિન, મગફળી",
+    "medicalConditionsLabel": "હાલની તબીબી સ્થિતિઓ",
+    "medicalConditionsPlaceholder": "દા.ત. ડાયાબિટીસ, હાઈ બ્લડ પ્રેશર",
+    "currentMedicationsLabel": "હાલની દવાઓની નોંધ",
+    "currentMedicationsPlaceholder": "વૈકલ્પિક નોંધ (અથવા દવા ટ્રેકિંગ જુઓ)",
+    "doctorNameLabel": "ડૉક્ટરનો કટોકટી સંપર્ક",
+    "doctorNamePlaceholder": "ડૉક્ટરનું નામ",
+    "doctorPhoneLabel": "ડૉક્ટરનો ફોન",
+    "doctorPhonePlaceholder": "ફોન નંબર",
+    "hospitalPreferenceLabel": "પસંદગીની હોસ્પિટલ",
+    "hospitalPreferencePlaceholder": "પસંદગીની હોસ્પિટલનું નામ",
+    "insurancePolicyLabel": "વીમા પોલિસી નંબર",
+    "insurancePolicyPlaceholder": "વૈકલ્પિક",
     "settingsSection": "સેટિંગ્સ",
     "missedMedicineAlertTitle": "ચૂકેલી દવા એલર્ટ",
     "missedMedicineAlertSub": "જો ડોઝ {{hours}}કલાક+ મોડો હોય તો એલર્ટ કરો",
@@ -1077,7 +1488,7 @@
     "howItWorksBullet2": "• કોઈ આવર્તક ચાર્જ અચાનક વધી જાય",
     "howItWorksBullet3": "• કોઈ સબસ્ક્રિપ્શન બિલ થાય છે પણ 45+ દિવસથી વપરાયું નથી",
     "neverCountedTitle": "જે ક્યારેય લીક ગણાતું નથી",
-    "neverCountedText": "આવશ્યક અને મહત્વપૂર્ણ ચુકવણીઓ હંમેશા બાકાત રાખવામાં આવે છે — બિલો, EMI/લોન, વીમો, તબીબી/આરોગ્ય, શિક્ષણ, ભાડું, કર, અને રોકાણ કે બચત. ફક્ત બિનજરૂરી અથવા વધારાના ખર્ચને જ ધ્યાનમાં લેવામાં આવે છે.",
+    "neverCountedText": "આવશ્યક અને મહત્વપૂર્ણ ચુકવણીઓ હંમેશા બાકાત રાખવામાં આવે છે — બિલો, EMI/લોન, વીમો, તબીબી/આરોગ્ય, શિક્ષણ, ભાડું, કર, અને રોકાણ કે બચત. તમે અન્ય ખર્ચ તરીકે ચિહ્નિત કરેલા કોઈપણ વ્યવહારો (અન્ય વ્યક્તિને મોકલેલા પૈસા, અથવા તમારા પોતાના ખાતાં વચ્ચેનું સ્થાનાંતરણ) પણ બાકાત રાખવામાં આવે છે. ફક્ત બિનજરૂરી અથવા વધારાના ખર્ચને જ ધ્યાનમાં લેવામાં આવે છે.",
     "leaksDetectedCount_one": "{{count}} લીક મળી",
     "leaksDetectedCount_other": "{{count}} લીક મળી",
     "allClearTitle": "બધું ક્લિયર છે!",
@@ -1202,32 +1613,32 @@
     },
     "planBenefits": {
       "free": [
-        "2 પરિવારના સભ્યો",
-        "પ્રતિ સભ્ય 3 મોડ્યુલ",
-        "10 રિમાઇન્ડર • 7-દિવસનો ઇતિહાસ",
-        "બિલ સ્કેન અને વૉઇસ એન્ટ્રી (મર્યાદિત)",
-        "કોઈ જાહેરાત નહીં, ક્યારેય નહીં"
+        "2 family members",
+        "3 modules per member",
+        "10 reminders • 7-day history",
+        "Bill scan & voice entry (limited)",
+        "No ads, ever"
       ],
       "starter": [
-        "4 પરિવારના સભ્યો",
-        "પ્રતિ સભ્ય 8 મોડ્યુલ",
-        "50 રિમાઇન્ડર • 3-મહિનાનો ઇતિહાસ",
-        "બેંક પીડીએફ ઇમ્પોર્ટ • સીએસવી ઇમ્પોર્ટ",
-        "10 દસ્તાવેજો • 1 સંભાળ રાખનાર/સભ્ય"
+        "4 family members",
+        "8 modules per member",
+        "50 reminders • 3-month history",
+        "Bank PDF import • CSV import",
+        "10 documents • 1 caregiver/member"
       ],
       "family": [
-        "અમર્યાદિત સભ્યો અને મોડ્યુલ",
-        "અમર્યાદિત રિમાઇન્ડર • 12-મહિનાનો ઇતિહાસ",
-        "પીડીએફ રિપોર્ટ • મની લીક એલર્ટ",
-        "બજેટ એલર્ટ • લોકેશન શેરિંગ (6)",
-        "WiseAI 100 સંદેશા/મહિનો • 50 દસ્તાવેજો"
+        "Unlimited members & modules",
+        "Unlimited reminders • 12-month history",
+        "PDF reports • Money leak alerts",
+        "Budget alerts • Location sharing (6)",
+        "WiseAI 100 msgs/mo • 50 documents"
       ],
       "pro": [
-        "ફેમિલીની બધી સુવિધાઓ",
-        "અમર્યાદિત દસ્તાવેજો અને ઇતિહાસ",
-        "WiseAI 300 સંદેશા/મહિનો",
-        "દવા ઇન્ટરેક્શન અને ગોળી ઓળખ",
-        "ડેટા એક્સપોર્ટ • પ્રાયોરિટી સપોર્ટ"
+        "Everything in Family",
+        "Unlimited documents & history",
+        "WiseAI 300 msgs/mo",
+        "Medicine interaction & pill ID",
+        "Data export • Priority support"
       ]
     },
     "compare": {
@@ -1253,111 +1664,114 @@
         "title": "તમે મોટો ફેમિલી હબ બનાવી રહ્યા છો!",
         "message": "તમે મોટો ફેમિલી હબ બનાવી રહ્યા છો! LifeWise ફેમિલી સાથે અમર્યાદિત સભ્યો ઉમેરો.",
         "benefits": [
-          "અમર્યાદિત પરિવારના સભ્યો",
-          "પ્રતિ સભ્ય બધા 20 મોડ્યુલ",
-          "સંપૂર્ણ ફેમિલી ડેશબોર્ડ"
+          "Unlimited family members",
+          "All 20 modules per member",
+          "Full family dashboard"
         ]
       },
       "fourthModule": {
         "title": "જે મહત્વનું છે તેને વધુ મેનેજ કરો",
         "message": "આ એક પ્રીમિયમ સુવિધા છે. તમારા પરિવારના સભ્યના જીવનના વધુ પાસાઓ મેનેજ કરવા અપગ્રેડ કરો.",
         "benefits": [
-          "પ્રતિ સભ્ય 8 મોડ્યુલ",
-          "વ્યક્તિ દીઠ વધુ ટ્રેકિંગ",
-          "તમારા પરિવાર સાથે વધે છે"
+          "8 modules per member",
+          "More tracking per person",
+          "Grows with your family"
         ]
       },
       "eleventhReminder": {
         "title": "તમે દરેક બાબત પર ધ્યાન રાખી રહ્યા છો!",
         "message": "તમે દરેક બાબત પર ધ્યાન રાખી રહ્યા છો! સ્ટાર્ટર અને તેથી ઉપરમાં અમર્યાદિત રિમાઇન્ડર ઉપલબ્ધ છે.",
         "benefits": [
-          "સ્ટાર્ટર પર 50 રિમાઇન્ડર",
-          "ફેમિલી પર અમર્યાદિત",
-          "કોઈ બિલ કે ડોઝ ચૂકશો નહીં"
+          "50 reminders on Starter",
+          "Unlimited on Family",
+          "Never miss a bill or dose"
         ]
       },
       "expenseHistory": {
         "title": "સંપૂર્ણ ચિત્ર જુઓ",
         "message": "જૂના ખર્ચ સુરક્ષિત રીતે સંગ્રહાય છે. સંપૂર્ણ ચિત્ર જોવા 12-મહિનાનો ઇતિહાસ અનલૉક કરો.",
         "benefits": [
-          "સ્ટાર્ટર પર 3 મહિના",
-          "ફેમિલી પર 12 મહિના",
-          "લાંબા ગાળાના વલણો જુઓ"
+          "3 months on Starter",
+          "12 months on Family",
+          "Spot long-term trends"
         ]
       },
       "pdfExport": {
         "title": "તમારા પરિવારનો રિપોર્ટ ડાઉનલોડ કરો",
         "message": "તમારા પરિવારનો આરોગ્ય અને નાણાકીય રિપોર્ટ ડાઉનલોડ કરો. ફેમિલી પ્લાન અને તેથી ઉપરમાં ઉપલબ્ધ.",
         "benefits": [
-          "માસિક પીડીએફ રિપોર્ટ",
-          "વાર્ષિક સારાંશ",
-          "કોઈની પણ સાથે શેર કરો"
+          "Monthly PDF reports",
+          "Annual overview",
+          "Share with anyone"
         ]
       },
       "bankImport": {
         "title": "એક ટેપ, આખો મહિનો પૂરો",
         "message": "તમારા બેંક સ્ટેટમેન્ટમાંથી બધા ખર્ચ આપોઆપ ભરો. એક ટેપ, આખો મહિનો પૂરો.",
         "benefits": [
-          "બેંક પીડીએફ સ્ટેટમેન્ટ ઇમ્પોર્ટ કરો",
-          "આપોઆપ વર્ગીકૃત ખર્ચ",
-          "ટાઇપિંગના કલાકો બચાવો"
+          "Import bank PDF statements",
+          "Auto-categorised expenses",
+          "Save hours of typing"
         ]
       },
       "budgetAlerts": {
         "title": "તમારા પરિવારના નાણાંને ટ્રેક પર રાખો",
         "message": "દરેક પરિવારના સભ્ય માટે ખર્ચ મર્યાદા સેટ કરો. તમારા પરિવારના નાણાંને ટ્રેક પર રાખો.",
         "benefits": [
-          "કેટેગરી પ્રમાણે બજેટ",
-          "સભ્ય પ્રમાણે મર્યાદા",
-          "વધુ ખર્ચ થાય ત્યારે એલર્ટ"
+          "Per-category budgets",
+          "Per-member limits",
+          "Overspend alerts"
         ]
       },
       "fourthBillScan": {
         "title": "અમર્યાદિત બિલ સ્કેન કરો",
         "message": "ફેમિલી પ્લાન સાથે અમર્યાદિત બિલ અને રસીદો સ્કેન કરો.",
         "benefits": [
-          "અમર્યાદિત રસીદ સ્કેન",
-          "ઓન-ડિવાઇસ ઓસીઆર",
-          "રસીદ ફોટા જોડો"
+          "Unlimited receipt scans",
+          "On-device OCR",
+          "Attach receipt photos"
         ]
       },
       "sixthWiseAi": {
         "title": "તમે WiseAI સાથે વાત કરી રહ્યા છો!",
         "message": "તમે WiseAI સાથે વાત કરી રહ્યા છો! LifeWise ફેમિલી સાથે 100 સંદેશા/મહિનો મેળવો.",
         "benefits": [
-          "ફેમિલી પર 100 સંદેશા/મહિનો",
-          "પ્રો પર 300",
-          "સ્માર્ટ ફેમિલી માહિતી"
+          "100 messages/month on Family",
+          "300 on Pro",
+          "Smart family insights"
         ]
       },
       "secondDocument": {
         "title": "તમારા પરિવારના બધા દસ્તાવેજો સંગ્રહો",
         "message": "તમારા પરિવારના આધાર, પાન, પાસપોર્ટ સુરક્ષિત રીતે સંગ્રહો. ફેમિલી પ્લાન = 50 દસ્તાવેજો.",
         "benefits": [
-          "ફેમિલી પર 50 દસ્તાવેજો",
-          "બધા દસ્તાવેજ પ્રકારો",
-          "સમાપ્તિ રિમાઇન્ડર"
+          "50 documents on Family",
+          "All document types",
+          "Expiry reminders"
         ]
       },
       "locationSharing": {
         "title": "સુરક્ષિત રીતે જોડાયેલા રહો",
         "message": "તમારા પરિવારના સભ્યો રિયલ-ટાઇમમાં ક્યાં છે તે જુઓ. સુરક્ષિત રીતે જોડાયેલા રહો.",
         "benefits": [
-          "6 લોકો સુધી લાઇવ લોકેશન",
-          "ઈમરજન્સી SOS",
-          "મનની શાંતિ"
+          "Live location for up to 6",
+          "Emergency SOS",
+          "Peace of mind"
         ]
       },
       "medicineInteraction": {
         "title": "તમારા પરિવારને સુરક્ષિત રાખો",
         "message": "તપાસો કે દવાઓ સાથે લેવી સુરક્ષિત છે કે નહીં. પ્રો પ્લાન તમારા પરિવારને સુરક્ષિત રાખે છે.",
         "benefits": [
-          "દવા ઇન્ટરેક્શન ચેકર",
-          "ગોળી ફોટો ઓળખકર્તા",
-          "ડોક્ટર-તૈયાર રિપોર્ટ"
+          "Medicine interaction checker",
+          "Pill photo identifier",
+          "Doctor-ready reports"
         ]
       }
-    }
+    },
+    "testActivateTitle": "{{planName}} સક્રિય કરવું છે?",
+    "testActivateMessage": "આ એક ટેસ્ટ સક્રિયકરણ છે — કોઈ ચુકવણી લેવામાં આવશે નહીં અને કોઈ વાસ્તવિક સબ્સ્ક્રિપ્શન બનાવવામાં આવશે નહીં. આ ડિવાઇસ પર {{planName}} ની સુવિધાઓ અનલૉક થશે.",
+    "testActivateButton": "{{planName}} સક્રિય કરો"
   },
   "planBadge": {
     "trialPrefix": "ટ્રાયલ · "
@@ -1562,7 +1976,21 @@
     "startDate": "શરૂઆતની તારીખ",
     "endDate": "અંતિમ તારીખ",
     "adding": "ઉમેરાઈ રહ્યું છે...",
-    "addMedicineButton": "દવા ઉમેરો"
+    "addMedicineButton": "દવા ઉમેરો",
+    "frequency": "આવૃત્તિ",
+    "frequencyOption": {
+      "daily": "દરરોજ",
+      "alternate_days": "એકાંતરે દિવસે",
+      "weekly": "સાપ્તાહિક",
+      "monthly": "માસિક",
+      "as_needed": "જરૂર પડ્યે"
+    },
+    "reminderToggle": "રિમાઇન્ડર ચાલુ છે",
+    "snoozeDuration": "સ્નૂઝ સમયગાળો",
+    "snoozeMinutes": "{{count}} મિનિટ",
+    "doctorNotes": "ડૉક્ટરની નોંધ",
+    "doctorNotesPlaceholder": "ડૉક્ટરની વૈકલ્પિક નોંધ",
+    "addAnotherMedicine": "બીજી દવા ઉમેરો"
   },
   "medicineDetails": {
     "title": "દવાની વિગત",
@@ -1847,5 +2275,42 @@
     "tryAgain": "ફરી પ્રયાસ કરો",
     "viewErrorDetails": "ભૂલની વિગતો જુઓ",
     "errorDetails": "ભૂલની વિગતો"
+  },
+  "notificationDetails": {
+    "title": "નોટિફિકેશન",
+    "unavailableTitle": "ઉપલબ્ધ નથી",
+    "unavailableMessage": "આ આઇટમ હવે ઉપલબ્ધ નથી.",
+    "viewRelatedItem": "સંબંધિત આઇટમ જુઓ",
+    "contentUnavailable": "સામગ્રી હવે ઉપલબ્ધ નથી."
+  },
+  "smsSync": {
+    "preparing": "SMS સિંકની તૈયારી થઈ રહી છે...",
+    "iosTitle": "અહીં ઓટો ટ્રેક અલગ રીતે કામ કરે છે",
+    "iosMessage": "Apple કોઈપણ એપને તમારો SMS વાંચવા દેતું નથી. તેના બદલે, તમારું બેંક સ્ટેટમેન્ટ ઇમ્પોર્ટ કરો — એક CSV એક્સપોર્ટ આખા મહિનાની માહિતી ભરી દે છે. તમે રસીદો સ્કેન પણ કરી શકો છો અથવા બોલીને ખર્ચ ઉમેરી શકો છો.",
+    "notNow": "હમણાં નહીં",
+    "importStatement": "સ્ટેટમેન્ટ ઇમ્પોર્ટ કરો",
+    "iosStatus": "iPhone પર, બેંક સ્ટેટમેન્ટ ઇમ્પોર્ટ કરો અથવા સ્કેન/વૉઇસથી ખર્ચ ઉમેરો.",
+    "requestingPermission": "SMS પરવાનગીની વિનંતી થઈ રહી છે...",
+    "permissionBlockedTitle": "પરવાનગી અવરોધિત છે",
+    "permissionBlockedMessage": "SMS પરવાનગી અવરોધિત છે. કૃપા કરીને સેટિંગ્સ > પરવાનગીઓ ખોલો અને SMS ને મંજૂરી આપો.",
+    "openSettings": "સેટિંગ્સ ખોલો",
+    "permissionNeededTitle": "પરવાનગી જરૂરી છે",
+    "permissionNeededMessage": "ઓટો ટ્રેક ચાલુ કરવા માટે કૃપા કરીને SMS પરવાનગી આપો.",
+    "readingInbox": "SMS ઇનબોક્સ વાંચવામાં આવી રહ્યું છે...",
+    "identifyingTransactions": "ટ્રાન્ઝેક્શન ઓળખવામાં આવી રહ્યા છે...",
+    "syncingToCloud": "ક્લાઉડમાં સુરક્ષિત રીતે સિંક થઈ રહ્યું છે...",
+    "syncComplete_one": "સિંક પૂર્ણ થયું. {{count}} ટ્રાન્ઝેક્શન સિંક થયું.",
+    "syncComplete_other": "સિંક પૂર્ણ થયું. {{count}} ટ્રાન્ઝેક્શન સિંક થયા.",
+    "polishingCategories": "AI વડે કેટેગરીઓ સુધારવામાં આવી રહી છે...",
+    "sessionExpiredStatus": "તમારું સેશન સમાપ્ત થઈ ગયું છે. કૃપા કરીને સાઇન આઉટ કરીને ફરીથી સાઇન ઇન કરો.",
+    "sessionExpiredTitle": "સેશન સમાપ્ત થયું",
+    "sessionExpiredMessage": "કૃપા કરીને સાઇન આઉટ કરીને ફરીથી સાઇન ઇન કરો, પછી ઓટો ટ્રેક ફરીથી અજમાવો.",
+    "couldNotReadTitle": "SMS વાંચી શકાયું નહીં",
+    "failedServerError": "ઓટો ટ્રેક નિષ્ફળ ગયું (સર્વર ભૂલ {{status}}). કૃપા કરીને ફરીથી પ્રયાસ કરો.",
+    "failedGeneric": "ઓટો ટ્રેક નિષ્ફળ ગયું. કૃપા કરીને તમારું જોડાણ તપાસો અને ફરીથી પ્રયાસ કરો.",
+    "unexpectedFailure": "SMS સિંક અણધારી રીતે નિષ્ફળ ગયું."
+  },
+  "addExpenseFab": {
+    "closeMenu": "ઉમેરો મેનૂ બંધ કરો"
   }
 }

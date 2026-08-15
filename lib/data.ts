@@ -1,6 +1,22 @@
 import Colors from '@/constants/colors';
 
-export type CategoryType = 'health' | 'bills' | 'family' | 'work' | 'tasks' | 'subscriptions' | 'finance' | 'habits' | 'travel' | 'events' | 'food' | 'shopping' | 'transport' | 'entertainment' | 'education' | 'investment' | 'others';
+export type CategoryType = 'health' | 'bills' | 'family' | 'work' | 'tasks' | 'subscriptions' | 'finance' | 'habits' | 'travel' | 'events' | 'food' | 'shopping' | 'transport' | 'entertainment' | 'education' | 'investment' | 'other_expense' | 'others';
+
+/**
+ * Categories that must never be treated as a money leak. `other_expense` is the
+ * user's explicit "this is not wasteful spending" escape hatch — person-to-person
+ * transfers, lending money, moving funds between own accounts.
+ *
+ * NOTE: this list is advisory on the client. Leak detection actually runs on the
+ * server (`GET /api/leaks`), which has its own exclusion list. Both must agree.
+ * See `backend-team/OTHER-EXPENSE-CATEGORY-backend-requirements.md`.
+ */
+export const LEAK_EXEMPT_CATEGORIES: CategoryType[] = ['investment', 'other_expense'];
+
+/** True when a transaction in this category should be skipped by leaks analysis. */
+export function isLeakExempt(category?: CategoryType | string | null): boolean {
+  return LEAK_EXEMPT_CATEGORIES.includes(String(category || '') as CategoryType);
+}
 
 export type ReminderType = 'bill' | 'subscription' | 'custom';
 export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -103,6 +119,7 @@ export const CATEGORIES: Record<CategoryType, { label: string; color: string; ic
   entertainment: { label: 'Fun', color: '#6366F1', icon: 'film' },
   education: { label: 'Education', color: '#6366F1', icon: 'book' },
   investment: { label: 'Investment', color: '#10B981', icon: 'trending-up' },
+  other_expense: { label: 'Other Expense', color: '#0EA5E9', icon: 'swap-horizontal' },
   others: { label: 'Others', color: '#6B7280', icon: 'apps' },
 };
 
@@ -193,6 +210,27 @@ export function fromLocalDateString(value: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec((value || '').trim());
   if (!match) return new Date(value);
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
+export type BloodGroup = (typeof BLOOD_GROUPS)[number];
+
+/**
+ * Whole years elapsed since a `YYYY-MM-DD` date of birth, as of today.
+ * Returns `null` when there's no date to work from, so callers can render a
+ * placeholder instead of "0" for a member with no DOB set yet.
+ */
+export function calculateAge(dateOfBirth?: string | null): number | null {
+  if (!dateOfBirth) return null;
+  const dob = fromLocalDateString(dateOfBirth);
+  if (Number.isNaN(dob.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : null;
 }
 
 export function formatDate(dateStr: string): string {

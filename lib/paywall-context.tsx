@@ -9,11 +9,11 @@ import React, {
 } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import {
   PlanId,
   PaywallTriggerKey,
   PAYWALL_TRIGGERS,
-  PLAN_META,
 } from '@/constants/plans';
 import { useSubscription } from '@/lib/subscription-context';
 import { useAlert } from '@/lib/alert-context';
@@ -51,6 +51,7 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
     isTestMode,
   } = useSubscription();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
 
   const [triggerKey, setTriggerKey] = useState<PaywallTriggerKey | null>(null);
   const [mode, setMode] = useState<'soft' | 'hard' | null>(null);
@@ -66,12 +67,12 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
       // presentPaywall() directly — e.g. off a server 403 — would bypass it.
       if (LIMITS_DISABLED) return;
 
-      const t = PAYWALL_TRIGGERS[key];
+      const triggerMeta = PAYWALL_TRIGGERS[key];
       setTriggerKey(key);
-      setSelectedPlan(t.recommendedPlan);
+      setSelectedPlan(triggerMeta.recommendedPlan);
       // Critical limits escalate to the hard paywall once the user has already
       // brushed off enough soft ones.
-      const goHard = t.critical && dismissCount.current >= SOFT_DISMISS_LIMIT;
+      const goHard = triggerMeta.critical && dismissCount.current >= SOFT_DISMISS_LIMIT;
       setMode(goHard ? 'hard' : 'soft');
     },
     [],
@@ -94,15 +95,15 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
       // unlock the exact tier the paywall is asking for, rather than being
       // diverted into the one-time trial.
       if (isTestMode) {
-        const meta = PLAN_META[plan];
+        const planName = t(`subscription.planNames.${plan}`);
         showAlert({
-          title: `Activate ${meta.name}?`,
-          message: `This is a TEST activation — no payment will be taken and no real subscription is created. ${meta.name} features will be unlocked on this device.`,
+          title: t('paywall.testActivateTitle', { planName }),
+          message: t('paywall.testActivateMessage', { planName }),
           type: 'warning',
           buttons: [
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: `Activate ${meta.name}`,
+              text: t('paywall.testActivateButton', { planName }),
               onPress: async () => {
                 await purchasePlan(plan);
                 close();
@@ -127,7 +128,7 @@ export function PaywallProvider({ children }: { children: ReactNode }) {
       // isn't dropped back into a blocked action with no explanation.
       if (result.success) close();
     },
-    [isTestMode, showAlert, canStartTrial, startTrial, purchasePlan, close],
+    [isTestMode, showAlert, canStartTrial, startTrial, purchasePlan, close, t],
   );
 
   const handleSeeAllPlans = useCallback(() => {

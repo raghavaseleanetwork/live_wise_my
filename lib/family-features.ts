@@ -26,7 +26,12 @@ export type FamilyFeatureKey =
   | 'stock'
   | 'diet'
   | 'insurance'
-  | 'custom';
+  | 'custom'
+  | 'fitness'
+  | 'study'
+  | 'wellness'
+  | 'vehicles'
+  | 'homeMaintenance';
 
 export interface FamilyFeatureDef {
   key: FamilyFeatureKey;
@@ -59,9 +64,14 @@ export const FAMILY_FEATURES: FamilyFeatureDef[] = [
   { key: 'checkin', label: 'Call & Check-in', emoji: '📞', icon: 'call', description: 'Call reminders & daily check-ins', built: true },
   { key: 'travel', label: 'Travel & Visits', emoji: '✈️', icon: 'airplane', description: 'Doctor visits & family visit reminders', built: true },
   { key: 'stock', label: 'Medication Stock', emoji: '📦', icon: 'cube', description: 'Refill reminders & low-stock alerts', built: true },
-  { key: 'diet', label: 'Diet & Food', emoji: '🍽️', icon: 'restaurant', description: 'Meal reminders & diet schedules', built: false },
+  { key: 'diet', label: 'Diet & Food', emoji: '🍽️', icon: 'restaurant', description: 'Meal reminders & diet schedules', built: true },
   { key: 'insurance', label: 'Insurance & Documents', emoji: '📄', icon: 'document-text', description: 'Policy reminders & document tracking', built: true },
   { key: 'custom', label: 'Custom Feature', emoji: '⚙️', icon: 'construct', description: 'Your own tracking option', built: true },
+  { key: 'fitness', label: 'Fitness Tracking', emoji: '🏋️', icon: 'barbell', description: 'Workout schedule & streak tracking', built: true },
+  { key: 'study', label: 'Study & Education', emoji: '📚', icon: 'school', description: 'Homework, exams & study schedule', built: true },
+  { key: 'wellness', label: 'Mental Health & Wellness', emoji: '🧘', icon: 'leaf', description: 'Mood tracking & self-care reminders', built: true },
+  { key: 'vehicles', label: 'Vehicle Management', emoji: '🚗', icon: 'car', description: 'Service, insurance & PUC reminders', built: true },
+  { key: 'homeMaintenance', label: 'Home Maintenance', emoji: '🏠', icon: 'construct-outline', description: 'AMC, appliance & service reminders', built: true },
 ];
 
 export const FAMILY_FEATURE_MAP: Record<FamilyFeatureKey, FamilyFeatureDef> = FAMILY_FEATURES.reduce(

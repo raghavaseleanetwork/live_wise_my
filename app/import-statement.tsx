@@ -103,7 +103,7 @@ function mimeForFile(name: string, fallback?: string | null): string {
 const EDIT_CATEGORIES: CategoryType[] = [
   'food', 'transport', 'health', 'bills', 'shopping',
   'entertainment', 'subscriptions', 'education', 'travel',
-  'investment', 'finance', 'family', 'others',
+  'investment', 'finance', 'family', 'other_expense', 'others',
 ];
 
 export default function ImportStatementScreen() {

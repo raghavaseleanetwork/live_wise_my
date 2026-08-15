@@ -9,22 +9,43 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
-import { FamilyBill, addFamilyBill, loadFamilyBills, updateFamilyBill } from '@/lib/family-records';
+import { FamilyBill, FamilyBillCategory, BillPaymentMethod, addFamilyBill, loadFamilyBills, updateFamilyBill } from '@/lib/family-records';
 
-const CATEGORY_LABELS: Record<FamilyBill['category'], { labelKey: string; icon: string }> = {
+const CATEGORY_LABELS: Record<FamilyBillCategory, { labelKey: string; icon: string }> = {
   electricity: { labelKey: 'familyBills.categoryElectricity', icon: 'flash' },
+  gas: { labelKey: 'familyBills.categoryGas', icon: 'flame' },
+  water: { labelKey: 'familyBills.categoryWater', icon: 'water' },
+  internet: { labelKey: 'familyBills.categoryInternet', icon: 'wifi' },
+  mobile_postpaid: { labelKey: 'familyBills.categoryMobilePostpaid', icon: 'phone-portrait' },
+  cable_tv: { labelKey: 'familyBills.categoryCableTv', icon: 'tv' },
+  society_maintenance: { labelKey: 'familyBills.categorySocietyMaintenance', icon: 'business' },
+  rent: { labelKey: 'familyBills.categoryRent', icon: 'home' },
+  loan_emi: { labelKey: 'familyBills.categoryLoanEmi', icon: 'cash' },
+  credit_card: { labelKey: 'familyBills.categoryCreditCard', icon: 'card' },
   medical: { labelKey: 'familyBills.categoryMedical', icon: 'medkit' },
   insurance: { labelKey: 'familyBills.categoryInsurance', icon: 'shield-checkmark' },
   other: { labelKey: 'familyBills.categoryOther', icon: 'receipt' },
 };
 
 /** Example bill name per category, so the hint matches the selected chip. */
-const CATEGORY_PLACEHOLDER_KEYS: Record<FamilyBill['category'], string> = {
+const CATEGORY_PLACEHOLDER_KEYS: Record<FamilyBillCategory, string> = {
   electricity: 'familyBills.placeholderElectricity',
+  gas: 'familyBills.placeholderGas',
+  water: 'familyBills.placeholderWater',
+  internet: 'familyBills.placeholderInternet',
+  mobile_postpaid: 'familyBills.placeholderMobilePostpaid',
+  cable_tv: 'familyBills.placeholderCableTv',
+  society_maintenance: 'familyBills.placeholderSocietyMaintenance',
+  rent: 'familyBills.placeholderRent',
+  loan_emi: 'familyBills.placeholderLoanEmi',
+  credit_card: 'familyBills.placeholderCreditCard',
   medical: 'familyBills.placeholderMedical',
   insurance: 'familyBills.placeholderInsurance',
   other: 'familyBills.placeholderOther',
 };
+
+const PAYMENT_METHODS: BillPaymentMethod[] = ['upi', 'net_banking', 'credit_card', 'auto_debit', 'cash'];
+const REMINDER_DAYS_OPTIONS = [1, 3, 5, 7];
 
 export default function AddFamilyBillScreen() {
   const router = useRouter();
@@ -38,8 +59,12 @@ export default function AddFamilyBillScreen() {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   // Nothing preselected on a new bill; editing seeds it from the record below.
-  const [category, setCategory] = useState<FamilyBill['category'] | null>(null);
+  const [category, setCategory] = useState<FamilyBillCategory | null>(null);
   const [dueDate, setDueDate] = useState(new Date());
+  const [accountNumber, setAccountNumber] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<BillPaymentMethod | null>(null);
+  const [reminderDaysBefore, setReminderDaysBefore] = useState<number>(3);
+  const [dayOfReminderEnabled, setDayOfReminderEnabled] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +82,10 @@ export default function AddFamilyBillScreen() {
       setAmount(String(Math.round(convertForDisplay(found.amount) * 100) / 100));
       setCategory(found.category);
       setDueDate(new Date(found.dueDate));
+      setAccountNumber(found.accountNumber ?? '');
+      setPaymentMethod(found.paymentMethod ?? null);
+      setReminderDaysBefore(found.reminderDaysBefore ?? 3);
+      setDayOfReminderEnabled(!!found.dayOfReminderEnabled);
     })();
     return () => { cancelled = true; };
   }, [editId, memberId]);
@@ -83,6 +112,10 @@ export default function AddFamilyBillScreen() {
       amount: convertForStorage(amt),
       category,
       dueDate: dueDate.toISOString(),
+      accountNumber: accountNumber.trim(),
+      paymentMethod: paymentMethod ?? undefined,
+      reminderDaysBefore,
+      dayOfReminderEnabled,
     };
     if (isEditing) {
       await updateFamilyBill(String(memberId), String(editId), data);
@@ -163,6 +196,46 @@ export default function AddFamilyBillScreen() {
           </View>
         </View>
 
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyBills.fieldAccountNumber')}</Text>
+        <TextInput
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+          value={accountNumber}
+          onChangeText={setAccountNumber}
+          placeholder={t('familyBills.accountNumberPlaceholder')}
+          placeholderTextColor={colors.textTertiary}
+        />
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyBills.fieldPaymentMethod')}</Text>
+        <View style={styles.chipGrid}>
+          {PAYMENT_METHODS.map((pm) => (
+            <Pressable
+              key={pm}
+              onPress={() => setPaymentMethod(paymentMethod === pm ? null : pm)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, paymentMethod === pm && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: paymentMethod === pm ? '#FFF' : colors.textSecondary }]}>{t(`familyBills.paymentMethod.${pm}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyBills.fieldReminderDaysBefore')}</Text>
+        <View style={styles.chipGrid}>
+          {REMINDER_DAYS_OPTIONS.map((d) => (
+            <Pressable
+              key={d}
+              onPress={() => setReminderDaysBefore(d)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, reminderDaysBefore === d && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: reminderDaysBefore === d ? '#FFF' : colors.textSecondary }]}>{t('familyBills.daysBefore', { count: d })}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable onPress={() => setDayOfReminderEnabled(!dayOfReminderEnabled)} style={styles.toggleRow}>
+          <Ionicons name={dayOfReminderEnabled ? 'checkbox' : 'square-outline'} size={22} color={dayOfReminderEnabled ? colors.accent : colors.textTertiary} />
+          <Text style={[styles.toggleLabel, { color: colors.text }]}>{t('familyBills.dayOfReminderLabel')}</Text>
+        </Pressable>
+
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
           <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyBills.saveChanges') : t('familyBills.saveBill')}</Text>
         </Pressable>
@@ -203,4 +276,9 @@ const styles = StyleSheet.create({
   amountWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, gap: 4 },
   amountPrefix: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   amountInput: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14, paddingVertical: 12 },
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  smallChip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  smallChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
+  toggleLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

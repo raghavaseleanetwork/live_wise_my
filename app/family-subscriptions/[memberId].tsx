@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import { useCurrency } from '@/lib/currency-context';
 import Money from '@/components/Money';
 import {
@@ -34,12 +35,22 @@ export default function FamilySubscriptionsScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // A connected caregiver marking something done elsewhere pushes a silent
+  // { type: 'sync', memberId } notification. Refetch on receipt so an open
+  // list updates live instead of waiting for the next focus.
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) load();
+    });
+    return () => sub.remove();
+  }, [memberId, load]);
+
   const openAdd = () => {
     router.push({ pathname: '/family-subscriptions/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
   };
 
   const sorted = [...items].sort((a, b) => new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime());
-  const monthlyTotal = items.reduce((sum, s) => sum + (s.cycle === 'monthly' ? s.amount : s.amount / 12), 0);
+  const monthlyTotal = items.reduce((sum, s) => sum + (s.cycle === 'monthly' ? s.amount : s.cycle === 'quarterly' ? s.amount / 3 : s.amount / 12), 0);
   const headerHeight = 110 + insets.top;
 
   return (
@@ -83,7 +94,7 @@ export default function FamilySubscriptionsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{sub.serviceName}</Text>
                   <Text style={[styles.cardSub, { color: overdue ? colors.danger : colors.textTertiary }]}>
-                    {overdue ? t('familySubscriptions.overdueBy', { count: Math.abs(days) }) : t('familySubscriptions.renewsIn', { count: days })} · {sub.cycle === 'monthly' ? t('familySubscriptions.cycleMonthly') : t('familySubscriptions.cycleYearly')}
+                    {overdue ? t('familySubscriptions.overdueBy', { count: Math.abs(days) }) : t('familySubscriptions.renewsIn', { count: days })} · {t(`familySubscriptions.cycle.${sub.cycle}`)}
                   </Text>
                 </View>
                 <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(sub.amount)}</Money>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking, Platform } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   Transaction,
   Bill,
@@ -13,6 +14,7 @@ import {
   CategoryType,
   PaymentMode,
   ExpenseSource,
+  isLeakExempt,
 } from './data';
 import { getApiUrl } from './query-client';
 import { useAuth } from './auth-context';
@@ -157,6 +159,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(DEFAULT_REMINDER_SETTINGS);
   const [lifeScore, setLifeScore] = useState<LifeScoreData | null>(null);
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
 
   const loadData = useCallback(async () => {
     if (!token) {
@@ -198,7 +201,16 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         setBills(Array.isArray(data) ? sortBillsNewestFirst(data) : []);
       }
       else setBills([]);
-      if (leaksRes.ok) setLeaks(await leaksRes.json());
+      if (leaksRes.ok) {
+        // Defensive second pass: `GET /api/leaks` is supposed to exclude
+        // leak-exempt categories server-side, but an older server build (or a
+        // leak grouped under a merchant whose category was later corrected to
+        // `other_expense`) can still return them. Dropping them here means the
+        // user-facing promise — "Other Expense is never a leak" — holds either
+        // way. Remove once the server-side exclusion is confirmed deployed.
+        const raw = (await leaksRes.json()) as MoneyLeak[];
+        setLeaks(Array.isArray(raw) ? raw.filter((l) => !isLeakExempt(l.category)) : []);
+      }
       else setLeaks([]);
       
       if (settingsRes.ok) {
@@ -231,7 +243,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     if (smsSyncInFlight.current) return;
     smsSyncInFlight.current = true;
     setIsSyncingSms(true);
-    setSmsSyncStatus('Preparing SMS sync...');
+    setSmsSyncStatus(t('smsSync.preparing'));
     setSmsSyncProgressCurrent(null);
     setSmsSyncProgressTotal(null);
     setSmsSampleSenders([]);
@@ -243,16 +255,15 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         // Point at the entry methods that DO work rather than dead-ending: an
         // "unsupported" alert with no alternative just tells the user to give up.
         showAlert({
-          title: 'Auto Track works differently here',
-          message:
-            'Apple does not let any app read your SMS. Instead, import your bank statement — one CSV export fills in a whole month at once. You can also scan receipts or speak an expense.',
+          title: t('smsSync.iosTitle'),
+          message: t('smsSync.iosMessage'),
           type: 'info',
           buttons: [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Import statement', onPress: () => router.push('/import-statement') },
+            { text: t('smsSync.notNow'), style: 'cancel' },
+            { text: t('smsSync.importStatement'), onPress: () => router.push('/import-statement') },
           ],
         });
-        setSmsSyncStatus('On iPhone, import a bank statement or add expenses by scan/voice.');
+        setSmsSyncStatus(t('smsSync.iosStatus'));
         setSmsSyncProgressCurrent(null);
         setSmsSyncProgressTotal(null);
         setLastSmsReadCount(0);
@@ -261,18 +272,18 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setSmsSyncStatus('Requesting SMS permission...');
+      setSmsSyncStatus(t('smsSync.requestingPermission'));
       const permission = await requestSmsPermissionDetails();
       if (permission.status !== 'granted') {
         if (permission.status === 'never_ask_again') {
           showAlert({
-            title: 'Permission blocked',
-            message: 'SMS permission is blocked. Please open Settings > Permissions and allow SMS.',
+            title: t('smsSync.permissionBlockedTitle'),
+            message: t('smsSync.permissionBlockedMessage'),
             type: 'warning',
             buttons: [
-              { text: 'Cancel', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               {
-                text: 'Open Settings',
+                text: t('smsSync.openSettings'),
                 onPress: () => {
                   Linking.openSettings().catch(() => { });
                 },
@@ -281,8 +292,8 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
           });
         } else {
           showAlert({
-            title: 'Permission needed',
-            message: 'Please allow SMS permission to enable Auto Track.',
+            title: t('smsSync.permissionNeededTitle'),
+            message: t('smsSync.permissionNeededMessage'),
             type: 'info',
           });
         }
@@ -296,18 +307,18 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       }
 
       setSmsSyncPhase('fetching');
-      setSmsSyncStatus('Reading SMS inbox...');
+      setSmsSyncStatus(t('smsSync.readingInbox'));
 
       console.log('[SMS-Debug] Starting sync...');
       const syncResult = await performSmsSync(token, (prog) => {
         setSmsSyncPhase(prog.phase);
         if (prog.phase === 'fetching') {
-          setSmsSyncStatus('Reading SMS inbox...');
+          setSmsSyncStatus(t('smsSync.readingInbox'));
         } else if (prog.phase === 'parsing') {
-          setSmsSyncStatus(`Identifying transactions...`);
+          setSmsSyncStatus(t('smsSync.identifyingTransactions'));
           setSmsSyncProgressTotal(prog.total || null);
         } else if (prog.phase === 'uploading') {
-          setSmsSyncStatus('Securely syncing to cloud...');
+          setSmsSyncStatus(t('smsSync.syncingToCloud'));
           setSmsSyncProgressCurrent(prog.current || null);
           setSmsSyncProgressTotal(prog.total || null);
           setSmsSyncDetail(prog.detail || null);
@@ -319,7 +330,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       if (syncResult.success) {
         setLastSmsSyncCount(syncResult.synced);
         setSmsSyncPhase('completed');
-        setSmsSyncStatus(`Sync complete. ${syncResult.synced} transactions synced.`);
+        setSmsSyncStatus(t('smsSync.syncComplete', { count: syncResult.synced }));
         
         // Show the new transactions FIRST. AI categorization re-labels hundreds
         // of rows and can take a long time (or stall); awaiting it before
@@ -331,7 +342,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         // Not awaited: the data is already correct on screen, only the category
         // labels improve.
         if (syncResult.synced > 0) {
-          setSmsSyncStatus('Polishing categories with AI...');
+          setSmsSyncStatus(t('smsSync.polishingCategories'));
           fetchWithAuth(token, '/api/transactions/categorize-others', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -349,27 +360,28 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         // real debugging down the wrong path.
         const { status, error: readError } = syncResult;
         if (status === 401 || status === 403) {
-          setSmsSyncStatus('Your session has expired. Please sign out and sign in again.');
+          setSmsSyncStatus(t('smsSync.sessionExpiredStatus'));
           showAlert({
-            title: 'Session expired',
-            message: 'Please sign out and sign in again, then retry Auto Track.',
+            title: t('smsSync.sessionExpiredTitle'),
+            message: t('smsSync.sessionExpiredMessage'),
             type: 'warning',
           });
         } else if (readError) {
           // The inbox could not be read at all — a missing native module (Expo
           // Go) or a revoked permission. Say so, instead of the generic
           // "check your connection", which points at the wrong thing entirely.
+          // readError is a message from lib/sms-reader.ts, not a literal here — left as dynamic data.
           setSmsSyncStatus(readError);
           showAlert({
-            title: 'Could not read SMS',
+            title: t('smsSync.couldNotReadTitle'),
             message: readError,
             type: 'warning',
           });
         } else {
           setSmsSyncStatus(
             status
-              ? `Auto Track failed (server error ${status}). Please try again.`
-              : 'Auto Track failed. Please check your connection and try again.',
+              ? t('smsSync.failedServerError', { status })
+              : t('smsSync.failedGeneric'),
           );
         }
         // Clear the error banner too. Without this the failure state was never
@@ -380,14 +392,14 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('SMS sync error:', err);
       setSmsSyncPhase('error');
-      setSmsSyncStatus('SMS sync failed unexpectedly.');
+      setSmsSyncStatus(t('smsSync.unexpectedFailure'));
       setTimeout(() => setSmsSyncPhase('idle'), 6000);
       await loadData();
     } finally {
       smsSyncInFlight.current = false;
       setIsSyncingSms(false);
     }
-  }, [token, loadData]);
+  }, [token, loadData, t]);
 
   useEffect(() => {
     loadData();

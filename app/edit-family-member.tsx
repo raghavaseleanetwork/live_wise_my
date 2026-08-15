@@ -23,7 +23,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
 import { apiRequest, getApiUrl } from '@/lib/query-client';
-import { toLocalDateString, fromLocalDateString } from '@/lib/data';
+import { toLocalDateString, fromLocalDateString, calculateAge, BLOOD_GROUPS, BloodGroup } from '@/lib/data';
 import { Avatar } from '../components/Avatar';
 import FeatureSelector from '@/components/FeatureSelector';
 import {
@@ -66,6 +66,8 @@ export default function EditFamilyMemberScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState(new Date(2000, 0, 1));
+  const [bloodGroup, setBloodGroup] = useState<BloodGroup | ''>('');
+  const [showBloodGroupPicker, setShowBloodGroupPicker] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<FamilyFeatureKey[]>([...DEFAULT_FEATURES]);
   const [showCaregiverHint, setShowCaregiverHint] = useState(false);
 
@@ -134,6 +136,9 @@ export default function EditFamilyMemberScreen() {
             const dob = fromLocalDateString(member.dateOfBirth);
             setDateOfBirth(toLocalDateString(dob));
             setDobDate(dob);
+          }
+          if (member.bloodGroup && (BLOOD_GROUPS as readonly string[]).includes(member.bloodGroup)) {
+            setBloodGroup(member.bloodGroup);
           }
           // Prefer locally-stored feature selection (Phase 1 source of truth);
           // fall back to whatever the server returned (legacy boolean shape or
@@ -246,6 +251,7 @@ export default function EditFamilyMemberScreen() {
           relationship: relationshipToSave,
           avatarUrl,
           dateOfBirth,
+          bloodGroup: bloodGroup || null,
           features: selectedFeatures,
         },
         token
@@ -417,6 +423,52 @@ export default function EditFamilyMemberScreen() {
                   }
                 }}
               />
+            )}
+
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('familyMember.age')}</Text>
+            <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}>
+              <Ionicons name="hourglass-outline" size={18} color={colors.textSecondary} />
+              <Text style={{ flex: 1, color: dateOfBirth ? colors.text : colors.textTertiary, fontFamily: 'Inter_500Medium' }} numberOfLines={1}>
+                {(() => {
+                  const age = calculateAge(dateOfBirth);
+                  return age === null ? t('familyMember.agePlaceholder') : t('familyMember.ageYears', { count: age });
+                })()}
+              </Text>
+            </View>
+
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('familyMember.bloodGroup')}</Text>
+            <Pressable
+              onPress={() => setShowBloodGroupPicker(true)}
+              style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 }]}
+            >
+              <Ionicons name="water-outline" size={18} color={colors.textSecondary} />
+              <Text style={{ flex: 1, color: bloodGroup ? colors.text : colors.textTertiary, fontFamily: 'Inter_500Medium' }}>
+                {bloodGroup || t('familyMember.selectBloodGroup')}
+              </Text>
+            </Pressable>
+
+            {showBloodGroupPicker && (
+              <Animated.View entering={FadeInDown} style={styles.bloodGroupGrid}>
+                {BLOOD_GROUPS.map((bg) => {
+                  const isSelected = bloodGroup === bg;
+                  return (
+                    <Pressable
+                      key={bg}
+                      onPress={() => {
+                        setBloodGroup(bg);
+                        setShowBloodGroupPicker(false);
+                      }}
+                      style={[
+                        styles.bloodGroupChip,
+                        { backgroundColor: colors.card, borderColor: colors.border },
+                        isSelected && { borderColor: colors.accent, backgroundColor: colors.accentDim },
+                      ]}
+                    >
+                      <Text style={[styles.bloodGroupChipText, { color: isSelected ? colors.accent : colors.textSecondary }]}>{bg}</Text>
+                    </Pressable>
+                  );
+                })}
+              </Animated.View>
             )}
 
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
@@ -653,6 +705,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
+  },
+  bloodGroupGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: 10,
+    columnGap: 10,
+    marginTop: -4,
+    marginBottom: 12,
+  },
+  bloodGroupChip: {
+    flexBasis: '22%',
+    flexGrow: 1,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  bloodGroupChipText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 14,
   },
   card: {
     borderRadius: 24,

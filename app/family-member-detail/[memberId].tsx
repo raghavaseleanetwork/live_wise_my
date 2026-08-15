@@ -41,8 +41,16 @@ import {
   loadEmergencyLog,
   loadCustomItems,
   loadCustomConfig,
+  loadFitnessItems,
+  loadStudyProfile,
+  loadWellnessReminders,
+  loadMoodLogs,
+  loadVehicles,
+  loadHomeMaintenanceItems,
+  loadDietProfile,
 } from '@/lib/family-records';
 import { useCurrency } from '@/lib/currency-context';
+import { calculateAge } from '@/lib/data';
 import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const RELATIONSHIPS = [
@@ -85,6 +93,7 @@ interface FamilyMember {
   relationship: string;
   avatarUrl?: string | null;
   dateOfBirth?: string;
+  bloodGroup?: string | null;
   features?: unknown;
   featureKeys: FamilyFeatureKey[];
   medicines: Medicine[];
@@ -102,6 +111,12 @@ interface FamilyMember {
     travel: { upcoming: number };
     emergency: { unacknowledged: number };
     custom: { name: string | null; total: number };
+    diet: { dietType: string | null };
+    fitness: { active: number };
+    study: { examCount: number };
+    wellness: { moodLogsTotal: number; remindersActive: number };
+    vehicles: { total: number };
+    homeMaintenance: { total: number };
   };
   isSharedWithMe?: boolean;
 }
@@ -139,7 +154,7 @@ export default function FamilyMemberDetailScreen() {
       const local = await loadMemberFeatures(id);
       const featureKeys = local && local.length ? local : normalizeFeatures(m.features);
 
-      const [appts, healthLogs, stockItems, routines, bills, subs, expenses, tasks, documents, checkins, travelItems, emergencyLog, customItems, customConfig] = await Promise.all([
+      const [appts, healthLogs, stockItems, routines, bills, subs, expenses, tasks, documents, checkins, travelItems, emergencyLog, customItems, customConfig, dietProfile, fitnessItems, studyProfile, wellnessReminders, moodLogs, vehicles, homeMaintenanceItems] = await Promise.all([
         loadAppointments(id),
         loadHealthLogs(id),
         loadStock(id),
@@ -154,6 +169,13 @@ export default function FamilyMemberDetailScreen() {
         loadEmergencyLog(id),
         loadCustomItems(id),
         loadCustomConfig(id),
+        loadDietProfile(id),
+        loadFitnessItems(id),
+        loadStudyProfile(id),
+        loadWellnessReminders(id),
+        loadMoodLogs(id),
+        loadVehicles(id),
+        loadHomeMaintenanceItems(id),
       ]);
 
       setMember({
@@ -178,6 +200,12 @@ export default function FamilyMemberDetailScreen() {
           travel: { upcoming: travelItems.filter((t) => !t.completed).length },
           emergency: { unacknowledged: emergencyLog.filter((e) => !e.acknowledged).length },
           custom: { name: customConfig?.name || null, total: customItems.length },
+          diet: { dietType: dietProfile.dietType !== 'normal' || Object.keys(dietProfile.meals).length > 0 ? dietProfile.dietType : null },
+          fitness: { active: fitnessItems.filter((f) => !f.isRestDay).length },
+          study: { examCount: studyProfile.exams.length },
+          wellness: { moodLogsTotal: moodLogs.length, remindersActive: wellnessReminders.filter((w) => w.enabled).length },
+          vehicles: { total: vehicles.length },
+          homeMaintenance: { total: homeMaintenanceItems.length },
         },
       } as FamilyMember);
     } catch (e) {
@@ -260,7 +288,12 @@ export default function FamilyMemberDetailScreen() {
                 <Text style={[styles.headerRel, { color: colors.textSecondary }]}>
                   {(() => {
                     const rel = RELATIONSHIPS.find((r) => r.key === member.relationship);
-                    return rel ? t(rel.labelKey) : member.relationship;
+                    const relLabel = rel ? t(rel.labelKey) : member.relationship;
+                    const age = calculateAge(member.dateOfBirth);
+                    const parts = [relLabel];
+                    if (age !== null) parts.push(t('familyMember.ageYears', { count: age }));
+                    if (member.bloodGroup) parts.push(member.bloodGroup);
+                    return parts.join(' · ');
                   })()}
                 </Text>
               </View>
@@ -345,6 +378,30 @@ export default function FamilyMemberDetailScreen() {
                 const { name, total } = member.summaries.custom;
                 subtitle = !name ? t('family.tapToSetUpTracker') : total === 0 ? t('family.customNothingLoggedYet', { name }) : t('family.customEntries', { name, count: total });
                 route = { pathname: '/family-custom/[memberId]', params: { memberId: member.id, memberName: member.name } };
+              } else if (key === 'diet') {
+                const dietType = member.summaries.diet.dietType;
+                subtitle = !dietType ? t('family.noDietPlanSetYet') : t(`familyDiet.type.${dietType}`);
+                route = { pathname: '/family-diet/[memberId]', params: { memberId: member.id, memberName: member.name } };
+              } else if (key === 'fitness') {
+                const n = member.summaries.fitness.active;
+                subtitle = n === 0 ? t('family.noWorkoutsScheduled') : t('family.activeWorkouts', { count: n });
+                route = { pathname: '/family-fitness/[memberId]', params: { memberId: member.id, memberName: member.name } };
+              } else if (key === 'study') {
+                const n = member.summaries.study.examCount;
+                subtitle = n === 0 ? t('family.noExamsUpcoming') : t('family.examsUpcoming', { count: n });
+                route = { pathname: '/family-study/[memberId]', params: { memberId: member.id, memberName: member.name } };
+              } else if (key === 'wellness') {
+                const { moodLogsTotal, remindersActive } = member.summaries.wellness;
+                subtitle = moodLogsTotal === 0 && remindersActive === 0 ? t('family.noWellnessDataYet') : t('family.wellnessSummary', { moodCount: moodLogsTotal, reminderCount: remindersActive });
+                route = { pathname: '/family-wellness/[memberId]', params: { memberId: member.id, memberName: member.name } };
+              } else if (key === 'vehicles') {
+                const n = member.summaries.vehicles.total;
+                subtitle = n === 0 ? t('family.noVehiclesTrackedYet') : t('family.vehiclesTracked', { count: n });
+                route = { pathname: '/family-vehicles/[memberId]', params: { memberId: member.id, memberName: member.name } };
+              } else if (key === 'homeMaintenance') {
+                const n = member.summaries.homeMaintenance.total;
+                subtitle = n === 0 ? t('family.noHomeTasksTrackedYet') : t('family.homeTasksTracked', { count: n });
+                route = { pathname: '/family-home-maintenance/[memberId]', params: { memberId: member.id, memberName: member.name } };
               }
 
               const cardContent = (

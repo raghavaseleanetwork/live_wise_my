@@ -63,7 +63,16 @@ export type RecordKind =
   | 'health'
   | 'documents'
   | 'expenses'
-  | 'custom';
+  | 'custom'
+  | 'diet'
+  | 'fitness'
+  | 'study'
+  | 'moodLogs'
+  | 'wellness'
+  | 'vehicles'
+  | 'fuelLog'
+  | 'homeMaintenance'
+  | 'emergencyProfile';
 
 /**
  * Segment names as the DEPLOYED API actually exposes them.
@@ -92,6 +101,19 @@ const RECORD_PATH: Record<RecordKind, string> = {
   documents: 'documents',
   expenses: 'familyExpenses',
   custom: 'customItems',
+  // Added for the 6 PRD modules with no prior implementation (2026-08-14).
+  // Unlike the paths above, these have NEVER been probed against a live
+  // backend — the segment names are a proposal, not a confirmed contract.
+  // See backend-team/FAMILY-HUB-PRD-MISSING-MODULES-backend-requirements.md.
+  diet: 'dietProfile',
+  fitness: 'fitnessItems',
+  study: 'studyProfile',
+  moodLogs: 'moodLogs',
+  wellness: 'wellnessReminders',
+  vehicles: 'vehicles',
+  fuelLog: 'fuelLog',
+  homeMaintenance: 'homeMaintenance',
+  emergencyProfile: 'emergencyProfile',
 };
 
 function recordUrl(memberId: string, kind: RecordKind, id?: string): string {

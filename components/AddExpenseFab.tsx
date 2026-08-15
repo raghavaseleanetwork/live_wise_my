@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
@@ -53,6 +54,7 @@ export const FAB_CONTENT_INSET = SIZE + 18;
 
 export default function AddExpenseFab({ actions, extraBottom = 0 }: AddExpenseFabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   // Kept mounted through the close animation so items animate out rather than
@@ -156,7 +158,7 @@ export default function AddExpenseFab({ actions, extraBottom = 0 }: AddExpenseFa
         <Pressable
           onPress={toggle}
           accessibilityRole="button"
-          accessibilityLabel={open ? 'Close add menu' : 'Add expense'}
+          accessibilityLabel={open ? t('addExpenseFab.closeMenu') : t('home.fabAddExpense')}
           accessibilityState={{ expanded: open }}
           style={[
             styles.trigger,

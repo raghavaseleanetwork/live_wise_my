@@ -148,6 +148,17 @@ export default function AddRoutineScreen() {
         </Pressable>
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyRoutine.repeatOnLabel')}</Text>
+        <View style={styles.presetRow}>
+          <Pressable onPress={() => setSelectedDays([])} style={[styles.presetChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.length === 0 && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+            <Text style={[styles.presetChipText, { color: selectedDays.length === 0 ? '#FFF' : colors.textSecondary }]}>{t('familyRoutine.presetAllDays')}</Text>
+          </Pressable>
+          <Pressable onPress={() => setSelectedDays([1, 2, 3, 4, 5])} style={[styles.presetChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.length === 5 && [1, 2, 3, 4, 5].every((d) => selectedDays.includes(d)) && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+            <Text style={[styles.presetChipText, { color: selectedDays.length === 5 && [1, 2, 3, 4, 5].every((d) => selectedDays.includes(d)) ? '#FFF' : colors.textSecondary }]}>{t('familyRoutine.presetWeekdays')}</Text>
+          </Pressable>
+          <Pressable onPress={() => setSelectedDays([0, 6])} style={[styles.presetChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, selectedDays.length === 2 && [0, 6].every((d) => selectedDays.includes(d)) && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+            <Text style={[styles.presetChipText, { color: selectedDays.length === 2 && [0, 6].every((d) => selectedDays.includes(d)) ? '#FFF' : colors.textSecondary }]}>{t('familyRoutine.presetWeekends')}</Text>
+          </Pressable>
+        </View>
         <View style={styles.dayRow}>
           {DAY_LABELS.map((d, idx) => (
             <Pressable
@@ -202,4 +213,7 @@ const styles = StyleSheet.create({
   dayRow: { flexDirection: 'row', gap: 6 },
   dayChip: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
   dayChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  presetRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  presetChip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  presetChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
 });

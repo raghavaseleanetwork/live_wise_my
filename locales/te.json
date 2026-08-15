@@ -151,6 +151,8 @@
     "expense": "ఖర్చు",
     "income": "ఆదాయం",
     "category": "వర్గం",
+    "categoryOtherExpense": "ఇతర ఖర్చు",
+    "otherExpenseHint": "మరొక వ్యక్తికి పంపిన లేదా మీ స్వంత ఖాతాల మధ్య బదిలీ చేసిన డబ్బు. లీక్ విశ్లేషణలో దీన్ని లెక్కించరు.",
     "for": "ఎవరి కోసం",
     "me": "నేను",
     "moreOptions": "మరిన్ని ఎంపికలు",
@@ -211,6 +213,7 @@
     "filterHealth": "ఆరోగ్యం",
     "filterEdu": "విద్య",
     "filterInvest": "పెట్టుబడి",
+    "filterOtherExpense": "ఇతర ఖర్చు",
     "filterOthers": "ఇతరాలు",
     "timeAll": "అన్ని సమయాలు",
     "timeToday": "ఈరోజు",
@@ -365,7 +368,22 @@
     "tapToSetUpTracker": "మీ ట్రాకర్‌ను సెటప్ చేయడానికి నొక్కండి",
     "customNothingLoggedYet": "{{name}} — ఇంకా ఏమీ నమోదు కాలేదు",
     "customEntries_one": "{{name}} — {{count}} ఎంట్రీ",
-    "customEntries_other": "{{name}} — {{count}} ఎంట్రీలు"
+    "customEntries_other": "{{name}} — {{count}} ఎంట్రీలు",
+    "noDietPlanSetYet": "ఇంకా డైట్ ప్లాన్ సెట్ చేయలేదు",
+    "noWorkoutsScheduled": "వర్కౌట్‌లు షెడ్యూల్ చేయలేదు",
+    "activeWorkouts_one": "{{count}} యాక్టివ్ వర్కౌట్",
+    "activeWorkouts_other": "{{count}} యాక్టివ్ వర్కౌట్‌లు",
+    "noExamsUpcoming": "రాబోయే పరీక్షలు లేవు",
+    "examsUpcoming_one": "{{count}} పరీక్ష రాబోతోంది",
+    "examsUpcoming_other": "{{count}} పరీక్షలు రాబోతున్నాయి",
+    "noWellnessDataYet": "ఇంకా వెల్‌నెస్ డేటా లేదు",
+    "wellnessSummary": "{{moodCount}} మూడ్ లాగ్‌లు · {{reminderCount}} యాక్టివ్ రిమైండర్‌లు",
+    "noVehiclesTrackedYet": "ఇంకా వాహనాలు ట్రాక్ చేయలేదు",
+    "vehiclesTracked_one": "{{count}} వాహనం ట్రాక్ చేయబడింది",
+    "vehiclesTracked_other": "{{count}} వాహనాలు ట్రాక్ చేయబడ్డాయి",
+    "noHomeTasksTrackedYet": "ఇంకా ఇంటి పనులు ట్రాక్ చేయలేదు",
+    "homeTasksTracked_one": "{{count}} పని ట్రాక్ చేయబడింది",
+    "homeTasksTracked_other": "{{count}} పనులు ట్రాక్ చేయబడ్డాయి"
   },
   "familyCheckin": {
     "title": "కాల్ & చెక్-ఇన్",
@@ -388,7 +406,24 @@
     "timeLabel": "సమయం",
     "repeatOnLabel": "ఏ రోజుల్లో పునరావృతం చేయాలి (ప్రతిరోజూ కోసం ఖాళీగా ఉంచండి)",
     "saveChanges": "మార్పులను సేవ్ చేయండి",
-    "errorDescribeCheckin": "దయచేసి ఈ చెక్-ఇన్‌ను వివరించండి (ఉదా. \"రోజువారీ కాల్\")"
+    "errorDescribeCheckin": "దయచేసి ఈ చెక్-ఇన్‌ను వివరించండి (ఉదా. \"రోజువారీ కాల్\")",
+    "frequencyLabel": "కాల్ ఫ్రీక్వెన్సీ",
+    "frequencyOption": {
+      "daily": "ప్రతిరోజూ",
+      "every_2_days": "ప్రతి 2 రోజులకు",
+      "weekly": "వారానికి",
+      "custom": "కస్టమ్"
+    },
+    "callTypeLabel": "కాల్ రకం",
+    "callTypeOption": {
+      "regular_call": "సాధారణ కాల్",
+      "video_call": "వీడియో కాల్",
+      "whatsapp_call": "WhatsApp కాల్"
+    },
+    "contactNumberLabel": "సంప్రదింపు నంబర్",
+    "contactNumberPlaceholder": "ఫోన్ నంబర్",
+    "missedCallAlertLabel": "2 గంటల్లో కాల్ చేయకపోతే నాకు తెలియజేయండి",
+    "missedCallWarning": "మిస్ అయింది — కాల్‌గా గుర్తించలేదు"
   },
   "familyMember": {
     "addTitle": "కొత్త సభ్యుడిని జోడించండి",
@@ -413,6 +448,12 @@
     "caregiverHintSuffix": "ఆన్ చేశాము — అవసరం లేకపోతే మీరు వాటిని ఆఫ్ చేయవచ్చు.",
     "dateOfBirth": "పుట్టిన తేదీ",
     "selectBirthday": "పుట్టినరోజును ఎంచుకోండి",
+    "age": "వయస్సు",
+    "agePlaceholder": "లెక్కించడానికి పుట్టిన తేదీని సెట్ చేయండి",
+    "ageYears": "{{count}} సం.",
+    "ageYears_plural": "{{count}} సం.",
+    "bloodGroup": "రక్త వర్గం",
+    "selectBloodGroup": "రక్త వర్గాన్ని ఎంచుకోండి",
     "selectWhatToManage": "ఏమి నిర్వహించాలో ఎంచుకోండి",
     "managedFeatures": "నిర్వహించబడే ఫీచర్లు",
     "selectWhatToManageHint": "ఒకటి లేదా అంతకంటే ఎక్కువ ఎంచుకోండి. మీరు ఎంచుకున్నవి మాత్రమే {{name}} డాష్‌బోర్డ్‌లో కనిపిస్తాయి.",
@@ -482,7 +523,39 @@
     "saveBill": "బిల్లును సేవ్ చేయండి",
     "errorSelectCategory": "దయచేసి ఒక వర్గాన్ని ఎంచుకోండి",
     "errorEnterName": "దయచేసి బిల్లు పేరును నమోదు చేయండి",
-    "errorInvalidAmount": "దయచేసి సరైన మొత్తాన్ని నమోదు చేయండి"
+    "errorInvalidAmount": "దయచేసి సరైన మొత్తాన్ని నమోదు చేయండి",
+    "categoryGas": "గ్యాస్",
+    "categoryWater": "నీరు",
+    "categoryInternet": "ఇంటర్నెట్",
+    "categoryMobilePostpaid": "మొబైల్ పోస్ట్‌పెయిడ్",
+    "categoryCableTv": "కేబుల్ టీవీ",
+    "categorySocietyMaintenance": "సొసైటీ మెయింటెనెన్స్",
+    "categoryRent": "అద్దె",
+    "categoryLoanEmi": "లోన్ EMI",
+    "categoryCreditCard": "క్రెడిట్ కార్డ్",
+    "placeholderGas": "ఉదా. పైప్డ్ గ్యాస్",
+    "placeholderWater": "ఉదా. మున్సిపల్ నీరు",
+    "placeholderInternet": "ఉదా. Jio Fiber",
+    "placeholderMobilePostpaid": "ఉదా. Airtel పోస్ట్‌పెయిడ్",
+    "placeholderCableTv": "ఉదా. Tata Play",
+    "placeholderSocietyMaintenance": "ఉదా. సొసైటీ మెయింటెనెన్స్",
+    "placeholderRent": "ఉదా. ఇంటి అద్దె",
+    "placeholderLoanEmi": "ఉదా. కారు లోన్ EMI",
+    "placeholderCreditCard": "ఉదా. HDFC క్రెడిట్ కార్డ్",
+    "fieldAccountNumber": "ఖాతా నంబర్",
+    "accountNumberPlaceholder": "ఐచ్ఛికం",
+    "fieldPaymentMethod": "చెల్లింపు విధానం",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "నెట్ బ్యాంకింగ్",
+      "credit_card": "క్రెడిట్ కార్డ్",
+      "auto_debit": "ఆటో-డెబిట్",
+      "cash": "నగదు"
+    },
+    "fieldReminderDaysBefore": "నాకు గుర్తు చేయండి",
+    "daysBefore_one": "{{count}} రోజు ముందు",
+    "daysBefore_other": "{{count}} రోజుల ముందు",
+    "dayOfReminderLabel": "గడువు తేదీన కూడా గుర్తు చేయండి"
   },
   "familyFeatures": {
     "medicines": {
@@ -565,25 +638,40 @@
     "locationPlaceholder": "క్లినిక్ / ఆసుపత్రి పేరు",
     "followUpCheckbox": "ఇది ఒక ఫాలో-అప్ సందర్శన",
     "saveChanges": "మార్పులను సేవ్ చేయండి",
-    "saveAppointment": "అపాయింట్‌మెంట్ సేవ్ చేయండి"
-  },
-  "familyCustom": {
-    "defaultTitle": "కస్టమ్ ఫీచర్",
-    "forMember": "{{name}} కోసం",
-    "emptyTitle": "ఇంకా ఏమీ ట్రాక్ చేయలేదు",
-    "emptyDesc": "{{name}} కోసం మీ మొదటి ఎంట్రీని లాగ్ చేయడానికి + నొక్కండి.",
-    "thisTracker": "ఈ ట్రాకర్",
-    "errorEnterEntry": "దయచేసి ఒక ఎంట్రీని నమోదు చేయండి",
-    "newEntry": "కొత్త ఎంట్రీ",
-    "entryLabel": "ఎంట్రీ",
-    "entryPlaceholder": "మీరు దేన్ని లాగ్ చేయాలనుకుంటున్నారు?",
-    "addButton": "జోడించు",
-    "setupTitle": "మీ ట్రాకర్‌కు పేరు పెట్టండి",
-    "setupHint": "దీనికి ఒక పేరు పెట్టి ఒక ఐకాన్‌ను ఎంచుకోండి. దీన్ని తర్వాత మార్చుకోవచ్చు.",
-    "errorNameTracker": "దయచేసి మీ కస్టమ్ ట్రాకర్‌కు పేరు పెట్టండి",
-    "trackerNameLabel": "ట్రాకర్ పేరు",
-    "trackerNamePlaceholder": "ఉదా. ఫిజియోథెరపీ సెషన్స్",
-    "iconLabel": "ఐకాన్"
+    "saveAppointment": "అపాయింట్‌మెంట్ సేవ్ చేయండి",
+    "specialization": {
+      "general": "సాధారణ",
+      "cardiologist": "గుండె వైద్య నిపుణుడు",
+      "orthopedic": "ఎముకల నిపుణుడు",
+      "neurologist": "న్యూరాలజిస్ట్",
+      "pediatric": "పిల్లల వైద్య నిపుణుడు",
+      "dermatologist": "చర్మ వైద్య నిపుణుడు",
+      "gynecologist": "స్త్రీ వైద్య నిపుణురాలు",
+      "dentist": "దంత వైద్యుడు",
+      "ent": "ENT",
+      "ophthalmologist": "కంటి వైద్య నిపుణుడు",
+      "psychiatrist": "మానసిక వైద్య నిపుణుడు",
+      "other": "ఇతర"
+    },
+    "hospitalNameLabel": "ఆసుపత్రి / క్లినిక్ పేరు",
+    "hospitalNamePlaceholder": "ఉదా. సన్‌షైన్ ఆసుపత్రి",
+    "notesLabel": "గమనికలు / లక్షణాలు",
+    "notesPlaceholder": "ఐచ్ఛికం",
+    "reminderLeadLabel": "నాకు గుర్తు చేయండి",
+    "reminderLead": {
+      "1_day": "1 రోజు ముందు",
+      "3_hours": "3 గంటల ముందు",
+      "1_hour": "1 గంట ముందు",
+      "30_min": "30 నిమిషాల ముందు"
+    },
+    "recurringCheckbox": "ఇది క్రమం తప్పకుండా వచ్చే అపాయింట్‌మెంట్",
+    "recurrence": {
+      "monthly": "నెలవారీ",
+      "quarterly": "త్రైమాసిక",
+      "every_6_months": "ప్రతి 6 నెలలకు",
+      "yearly": "సంవత్సరానికి"
+    },
+    "followUpDatePlaceholder": "ఫాలో-అప్ తేదీని సెట్ చేయండి"
   },
   "familyDocuments": {
     "headerTitle": "బీమా మరియు పత్రాలు",
@@ -601,15 +689,74 @@
     "errorEnterTitle": "దయచేసి పత్రం శీర్షికను నమోదు చేయండి",
     "type": {
       "insurance": "బీమా పాలసీ",
-      "id": "గుర్తింపు పత్రం",
       "medical": "వైద్య నివేదిక",
-      "other": "ఇతర"
+      "other": "ఇతర",
+      "aadhaar": "ఆధార్ కార్డ్",
+      "pan": "PAN కార్డ్",
+      "passport": "పాస్‌పోర్ట్",
+      "driving_license": "డ్రైవింగ్ లైసెన్స్",
+      "birth_certificate": "జనన ధృవీకరణ పత్రం",
+      "marriage_certificate": "వివాహ ధృవీకరణ పత్రం",
+      "property": "ఆస్తి పత్రాలు",
+      "vehicle_rc": "వాహన RC"
     },
     "placeholder": {
       "insurance": "ఉదా. ఆరోగ్య బీమా పాలసీ",
-      "id": "ఉదా. ఆధార్ కార్డ్",
       "medical": "ఉదా. బ్లడ్ టెస్ట్ రిపోర్ట్",
-      "other": "ఉదా. పత్రం శీర్షిక"
+      "other": "ఉదా. పత్రం శీర్షిక",
+      "aadhaar": "ఉదా. నాన్న ఆధార్",
+      "pan": "ఉదా. నాన్న PAN",
+      "passport": "ఉదా. నాన్న పాస్‌పోర్ట్",
+      "driving_license": "ఉదా. నాన్న డ్రైవింగ్ లైసెన్స్",
+      "birth_certificate": "ఉదా. జనన ధృవీకరణ పత్రం",
+      "marriage_certificate": "ఉదా. వివాహ ధృవీకరణ పత్రం",
+      "property": "ఉదా. ఫ్లాట్ అమ్మకపు దస్తావేజు",
+      "vehicle_rc": "ఉదా. కారు RC"
+    },
+    "documentNumberLabel": "పత్రం నంబర్",
+    "documentNumberPlaceholder": "ఐచ్ఛికం",
+    "issueDateLabel": "జారీ తేదీ",
+    "setExpiryCheckbox": "ఈ పత్రం గడువు ముగుస్తుంది",
+    "expiryReminderLabel": "గడువు ముగియక ముందు గుర్తు చేయండి",
+    "expiryReminderLead": {
+      "6_months": "6 నెలలు",
+      "3_months": "3 నెలలు",
+      "1_month": "1 నెల"
+    },
+    "notSet": "సెట్ చేయలేదు"
+  },
+  "familyCustom": {
+    "defaultTitle": "కస్టమ్ ఫీచర్",
+    "forMember": "{{name}} కోసం",
+    "emptyTitle": "ఇంకా ఏమీ ట్రాక్ చేయలేదు",
+    "emptyDesc": "{{name}} కోసం మీ మొదటి ఎంట్రీని లాగ్ చేయడానికి + నొక్కండి.",
+    "thisTracker": "ఈ ట్రాకర్",
+    "errorEnterEntry": "దయచేసి ఒక ఎంట్రీని నమోదు చేయండి",
+    "newEntry": "కొత్త ఎంట్రీ",
+    "entryLabel": "ఎంట్రీ",
+    "entryPlaceholder": "మీరు దేన్ని లాగ్ చేయాలనుకుంటున్నారు?",
+    "addButton": "జోడించు",
+    "setupTitle": "మీ ట్రాకర్‌కు పేరు పెట్టండి",
+    "setupHint": "దీనికి ఒక పేరు పెట్టి ఒక ఐకాన్‌ను ఎంచుకోండి. దీన్ని తర్వాత మార్చుకోవచ్చు.",
+    "errorNameTracker": "దయచేసి మీ కస్టమ్ ట్రాకర్‌కు పేరు పెట్టండి",
+    "trackerNameLabel": "ట్రాకర్ పేరు",
+    "trackerNamePlaceholder": "ఉదా. ఫిజియోథెరపీ సెషన్స్",
+    "iconLabel": "ఐకాన్",
+    "customFieldsLabel": "కస్టమ్ ఫీల్డ్‌లు",
+    "fieldLabelPlaceholder": "ఫీల్డ్ పేరు",
+    "fieldType": {
+      "text": "టెక్స్ట్",
+      "date": "తేదీ",
+      "time": "సమయం",
+      "number": "సంఖ్య"
+    },
+    "reminderToggleLabel": "రిమైండర్ ఆన్ చేయండి",
+    "frequencyLabel": "ఫ్రీక్వెన్సీ",
+    "frequencyOption": {
+      "daily": "ప్రతిరోజూ",
+      "weekly": "వారానికి",
+      "monthly": "నెలవారీ",
+      "custom": "కస్టమ్"
     }
   },
   "familyHealth": {
@@ -632,7 +779,18 @@
     "dateLabel": "తేదీ",
     "notesLabel": "గమనికలు (ఐచ్ఛికం)",
     "notesPlaceholder": "ఉదా. ఉదయం నడక తర్వాత",
-    "saveReading": "రీడింగ్ సేవ్ చేయండి"
+    "saveReading": "రీడింగ్ సేవ్ చేయండి",
+    "systolicPlaceholder": "సిస్టోలిక్",
+    "diastolicPlaceholder": "డయాస్టోలిక్",
+    "pulsePlaceholder": "నాడి",
+    "sugarReadingType": {
+      "fasting": "ఖాళీ కడుపుతో",
+      "post_meal": "భోజనం తర్వాత"
+    },
+    "targetRangeLabel": "సాధారణ పరిధి హెచ్చరిక (ఐచ్ఛికం)",
+    "targetRangeLowPlaceholder": "కనిష్ఠం",
+    "targetRangeHighPlaceholder": "గరిష్ఠం",
+    "outOfRangeWarning": "లక్ష్య పరిధి వెలుపల"
   },
   "familyRoutine": {
     "headerTitle": "దైనందిన దినచర్య",
@@ -654,7 +812,11 @@
     "routineNamePlaceholder": "ఉదా. సాయంత్రం ప్రార్థన",
     "timeLabel": "సమయం",
     "repeatOnLabel": "పునరావృతం (ప్రతిరోజూ కోసం ఖాళీగా వదిలేయండి)",
-    "saveChanges": "మార్పులను సేవ్ చేయండి"
+    "saveChanges": "మార్పులను సేవ్ చేయండి",
+    "presetAllDays": "అన్ని రోజులు",
+    "presetWeekdays": "వారపు రోజులు",
+    "presetWeekends": "వారాంతం",
+    "weeklyCompliance": "ఈ వారం {{percent}}%"
   },
   "familyStock": {
     "headerTitle": "మందుల నిల్వ",
@@ -679,7 +841,10 @@
     "quantityPlaceholder": "ఉదా. 30",
     "dailyUsageLabel": "రోజువారీ వినియోగం",
     "lowStockAlertLabel": "ఇంత తక్కువైనప్పుడు హెచ్చరించండి",
-    "saveChanges": "మార్పులను సేవ్ చేయండి"
+    "saveChanges": "మార్పులను సేవ్ చేయండి",
+    "linkMedicineLabel": "మందుతో లింక్ చేయండి",
+    "pharmacyNameLabel": "ఫార్మసీ",
+    "pharmacyNamePlaceholder": "ఐచ్ఛికం"
   },
   "familySubscriptions": {
     "headerTitle": "సబ్‌స్క్రిప్షన్‌లు",
@@ -704,7 +869,35 @@
     "amountLabel": "మొత్తం",
     "renewalDateLabel": "రెన్యువల్ తేదీ",
     "billingCycleLabel": "బిల్లింగ్ సైకిల్",
-    "saveChanges": "మార్పులను సేవ్ చేయండి"
+    "saveChanges": "మార్పులను సేవ్ చేయండి",
+    "customService": "కస్టమ్",
+    "planTypeLabel": "ప్లాన్ రకం",
+    "planTypePlaceholder": "ఉదా. ఫ్యామిలీ ప్లాన్",
+    "cycle": {
+      "monthly": "నెలవారీ",
+      "quarterly": "త్రైమాసిక",
+      "yearly": "సంవత్సరానికి"
+    },
+    "autoRenewsLabel": "ఆటో-పునరుద్ధరణ",
+    "paymentMethodLabel": "చెల్లింపు విధానం",
+    "paymentMethod": {
+      "upi": "UPI",
+      "net_banking": "నెట్ బ్యాంకింగ్",
+      "credit_card": "క్రెడిట్ కార్డ్",
+      "debit_card": "డెబిట్ కార్డ్",
+      "other": "ఇతర"
+    },
+    "reminderLabel": "నాకు గుర్తు చేయండి",
+    "daysBefore_one": "{{count}} రోజు ముందు",
+    "daysBefore_other": "{{count}} రోజుల ముందు",
+    "categoryLabel": "వర్గం",
+    "category": {
+      "entertainment": "వినోదం",
+      "productivity": "ఉత్పాదకత",
+      "health": "ఆరోగ్యం",
+      "education": "విద్య",
+      "other": "ఇతర"
+    }
   },
   "familyTasks": {
     "headerTitle": "రిమైండర్ పనులు",
@@ -747,7 +940,205 @@
     "dateLabel": "తేదీ",
     "locationLabel": "స్థలం",
     "locationPlaceholder": "ఐచ్ఛికం",
+    "saveChanges": "మార్పులను సేవ్ చేయండి",
+    "timeLabel": "సమయం",
+    "notesLabel": "ప్రయోజనం / గమనికలు",
+    "notesPlaceholder": "ఐచ్ఛికం",
+    "reminderLabel": "నాకు గుర్తు చేయండి",
+    "hoursBefore_one": "{{count}} గంట ముందు",
+    "hoursBefore_other": "{{count}} గంటల ముందు",
+    "recurringCheckbox": "ఇది పునరావృతమవుతుంది",
+    "recurrence": {
+      "weekly": "వారానికి",
+      "monthly": "నెలవారీ",
+      "yearly": "సంవత్సరానికి"
+    },
+    "returnDateLabel": "తిరిగి వచ్చే తేదీ",
+    "companionLabel": "ఎవరితో ప్రయాణం",
+    "notSet": "సెట్ చేయలేదు"
+  },
+  "familyDiet": {
+    "headerTitle": "డైట్ & మీల్ ప్లానింగ్",
+    "forMember": "{{name}} కోసం",
+    "dietTypeLabel": "డైట్ రకం",
+    "type": {
+      "normal": "సాధారణ",
+      "diabetic": "డయాబెటిక్",
+      "low_salt": "తక్కువ ఉప్పు",
+      "low_fat": "తక్కువ కొవ్వు",
+      "vegetarian": "శాకాహారం",
+      "vegan": "వీగన్",
+      "custom": "కస్టమ్"
+    },
+    "customDietNameLabel": "కస్టమ్ డైట్ పేరు",
+    "customDietNamePlaceholder": "ఉదా. కీటో",
+    "mealsLabel": "భోజనాలు",
+    "meal": {
+      "breakfast": "అల్పాహారం",
+      "lunch": "మధ్యాహ్న భోజనం",
+      "evening_snack": "సాయంత్రం స్నాక్",
+      "dinner": "రాత్రి భోజనం"
+    },
+    "mealTimePlaceholder": "ఉదా. 8:00 AM",
+    "mealNotesPlaceholder": "ఆహార నోట్స్ / ప్లాన్ (ఐచ్ఛికం)",
+    "calorieTargetLabel": "రోజువారీ కేలరీ లక్ష్యం (ఐచ్ఛికం)",
+    "calorieTargetPlaceholder": "ఉదా. 1800",
+    "foodRestrictionsLabel": "ఆహార పరిమితులు",
+    "foodRestrictionsPlaceholder": "ఉదా. చక్కెర, ఉప్పు, వేయించిన ఆహారం తినకూడదు",
+    "waterReminderLabel": "నీరు తాగే రిమైండర్",
+    "waterReminderHourlyLabel": "ప్రతి ఎన్ని గంటలకు గుర్తు చేయాలి",
+    "doctorNotesLabel": "డాక్టర్ / డైటీషియన్ నోట్స్",
+    "doctorNotesPlaceholder": "ఐచ్ఛిక నోట్స్",
     "saveChanges": "మార్పులను సేవ్ చేయండి"
+  },
+  "familyFitness": {
+    "headerTitle": "ఫిట్‌నెస్ ట్రాకింగ్",
+    "forMember": "{{name}} కోసం",
+    "emptyTitle": "ఇంకా వర్కౌట్‌లు షెడ్యూల్ చేయలేదు",
+    "emptyDesc": "వర్కౌట్ షెడ్యూల్ జోడించడానికి + నొక్కండి.",
+    "type": {
+      "walking": "వాకింగ్",
+      "running": "రన్నింగ్",
+      "yoga": "యోగా",
+      "gym": "జిమ్",
+      "swimming": "స్విమ్మింగ్",
+      "cycling": "సైక్లింగ్",
+      "other": "ఇతర"
+    },
+    "editHeaderTitle": "వర్కౌట్ ఎడిట్ చేయండి",
+    "newHeaderTitle": "కొత్త వర్కౌట్",
+    "errorSelectType": "దయచేసి వర్కౌట్ రకాన్ని ఎంచుకోండి",
+    "timeLabel": "సమయం",
+    "repeatOnLabel": "ఈ రోజుల్లో పునరావృతం",
+    "durationGoalLabel": "వ్యవధి లక్ష్యం (నిమిషాలు)",
+    "durationGoalPlaceholder": "ఉదా. 30",
+    "stepGoalLabel": "స్టెప్ లక్ష్యం",
+    "stepGoalPlaceholder": "ఉదా. 5000",
+    "notesLabel": "ట్రైనర్/డాక్టర్ నోట్స్",
+    "notesPlaceholder": "ఐచ్ఛికం",
+    "isRestDayLabel": "రెస్ట్ డేగా గుర్తించండి",
+    "reminderEnabledLabel": "రిమైండర్ ఆన్‌లో ఉంది",
+    "saveChanges": "మార్పులను సేవ్ చేయండి",
+    "minutesGoal_one": "{{count}} నిమిషాల లక్ష్యం",
+    "minutesGoal_other": "{{count}} నిమిషాల లక్ష్యం",
+    "streakDays_one": "{{count}} రోజుల స్ట్రీక్",
+    "streakDays_other": "{{count}} రోజుల స్ట్రీక్"
+  },
+  "familyStudy": {
+    "headerTitle": "చదువు & విద్య",
+    "forMember": "{{name}} కోసం",
+    "gradeLabel": "విద్యార్థి గ్రేడ్ / తరగతి",
+    "gradePlaceholder": "ఉదా. గ్రేడ్ 10",
+    "subjectsLabel": "సబ్జెక్టులు",
+    "subjectPlaceholder": "సబ్జెక్ట్ జోడించండి",
+    "examsLabel": "పరీక్షలు",
+    "examSubjectPlaceholder": "పరీక్ష సబ్జెక్ట్",
+    "eventsLabel": "స్కూల్/కాలేజీ ఈవెంట్‌లు",
+    "eventTitlePlaceholder": "ఈవెంట్ శీర్షిక",
+    "feesLabel": "ఫీజు చెల్లింపులు",
+    "feeTitlePlaceholder": "ఫీజు శీర్షిక",
+    "feeAmountPlaceholder": "మొత్తం"
+  },
+  "familyWellness": {
+    "headerTitle": "మానసిక ఆరోగ్యం & వెల్‌నెస్",
+    "forMember": "{{name}} కోసం",
+    "moodTodayLabel": "ఈరోజు మూడ్",
+    "moodLoggedToday": "ఈరోజుకి మూడ్ లాగ్ చేయబడింది",
+    "remindersLabel": "సెల్ఫ్-కేర్ రిమైండర్‌లు",
+    "emptyDesc": "మెడిటేషన్, బ్రీతింగ్, జర్నల్, సెల్ఫ్-కేర్ లేదా థెరపీ రిమైండర్ జోడించడానికి + నొక్కండి.",
+    "kind": {
+      "meditation": "మెడిటేషన్",
+      "breathing": "బ్రీతింగ్ ఎక్సర్‌సైజ్",
+      "journal": "జర్నల్",
+      "self_care": "సెల్ఫ్-కేర్",
+      "therapy": "థెరపీ / కౌన్సెలింగ్"
+    },
+    "editHeaderTitle": "రిమైండర్ ఎడిట్ చేయండి",
+    "newHeaderTitle": "కొత్త రిమైండర్",
+    "errorEnterTitle": "దయచేసి శీర్షిక నమోదు చేయండి",
+    "titleLabel": "శీర్షిక",
+    "titlePlaceholder": "ఉదా. సాయంత్రం మెడిటేషన్",
+    "timeLabel": "సమయం",
+    "frequencyDaysLabel": "ఫ్రీక్వెన్సీ (ప్రతి N రోజులకు)",
+    "frequencyDaysPlaceholder": "ఉదా. 2",
+    "sessionDateLabel": "సెషన్ తేదీ & సమయం",
+    "doctorNameLabel": "డాక్టర్ / కౌన్సెలర్ పేరు",
+    "doctorNamePlaceholder": "ఐచ్ఛికం",
+    "notSet": "సెట్ చేయలేదు",
+    "saveChanges": "మార్పులను సేవ్ చేయండి"
+  },
+  "familyVehicles": {
+    "headerTitle": "వాహన నిర్వహణ",
+    "forMember": "{{name}} కోసం",
+    "emptyTitle": "ఇంకా వాహనాలు ట్రాక్ చేయలేదు",
+    "emptyDesc": "కారు, బైక్ లేదా స్కూటర్ జోడించడానికి + నొక్కండి.",
+    "type": {
+      "car": "కారు",
+      "bike": "బైక్",
+      "scooter": "స్కూటర్",
+      "other": "ఇతర"
+    },
+    "editHeaderTitle": "వాహనం ఎడిట్ చేయండి",
+    "newHeaderTitle": "కొత్త వాహనం",
+    "errorEnterName": "దయచేసి వాహన పేరు నమోదు చేయండి",
+    "nameLabel": "వాహన పేరు / మోడల్",
+    "namePlaceholder": "ఉదా. హోండా సిటీ",
+    "registrationLabel": "రిజిస్ట్రేషన్ నంబర్",
+    "registrationPlaceholder": "ఉదా. GJ01AB1234",
+    "insuranceExpiryLabel": "బీమా గడువు తేదీ",
+    "pucExpiryLabel": "PUC గడువు తేదీ",
+    "serviceDueDateLabel": "సర్వీస్ గడువు తేదీ",
+    "serviceDueNoteLabel": "సర్వీస్ నోట్ (లేదా KM ఆధారంగా)",
+    "serviceDueNotePlaceholder": "ఉదా. 45,000 km వద్ద గడువు",
+    "loanEmiAmountLabel": "లోన్ EMI మొత్తం",
+    "loanEmiAmountPlaceholder": "ఐచ్ఛికం",
+    "loanEmiDueDateLabel": "లోన్ EMI గడువు తేదీ",
+    "notSet": "సెట్ చేయలేదు",
+    "saveChanges": "మార్పులను సేవ్ చేయండి",
+    "insuranceExpires": "బీమా గడువు {{date}}",
+    "pucExpires": "PUC గడువు {{date}}",
+    "serviceDue": "సర్వీస్ గడువు {{date}}"
+  },
+  "familyHomeMaintenance": {
+    "headerTitle": "ఇంటి నిర్వహణ",
+    "forMember": "{{name}} కోసం",
+    "emptyTitle": "ఇంకా ఇంటి పనులు ట్రాక్ చేయలేదు",
+    "emptyDesc": "సర్వీస్, AMC లేదా నిర్వహణ పని జోడించడానికి + నొక్కండి.",
+    "type": {
+      "ac_service": "AC సర్వీస్",
+      "water_purifier": "వాటర్ ప్యూరిఫైయర్ సర్వీస్",
+      "pest_control": "పెస్ట్ కంట్రోల్",
+      "plumbing": "ప్లంబింగ్",
+      "electrical": "ఎలక్ట్రికల్",
+      "painting": "పెయింటింగ్",
+      "other": "ఇతర"
+    },
+    "editHeaderTitle": "పని ఎడిట్ చేయండి",
+    "newHeaderTitle": "కొత్త పని",
+    "errorEnterTaskName": "దయచేసి పని పేరు నమోదు చేయండి",
+    "taskNameLabel": "పని పేరు",
+    "taskNamePlaceholder": "ఉదా. AC సర్వీస్",
+    "vendorNameLabel": "వెండర్ / టెక్నీషియన్",
+    "vendorNamePlaceholder": "పేరు",
+    "vendorPhoneLabel": "వెండర్ ఫోన్",
+    "vendorPhonePlaceholder": "ఫోన్ నంబర్",
+    "lastDoneDateLabel": "చివరిసారి చేసిన తేదీ",
+    "nextDueDateLabel": "తదుపరి గడువు తేదీ",
+    "frequencyLabel": "ఫ్రీక్వెన్సీ",
+    "frequency": {
+      "monthly": "నెలవారీ",
+      "quarterly": "త్రైమాసికం",
+      "yearly": "వార్షికం",
+      "custom": "కస్టమ్"
+    },
+    "hasAmcLabel": "AMC కాంట్రాక్ట్ ఉంది",
+    "amcExpiryDateLabel": "AMC గడువు తేదీ",
+    "costLabel": "ఖర్చు",
+    "costPlaceholder": "ఐచ్ఛికం",
+    "notSet": "సెట్ చేయలేదు",
+    "saveChanges": "మార్పులను సేవ్ చేయండి",
+    "nextDue": "తదుపరి గడువు {{date}}",
+    "amcExpires": "AMC గడువు {{date}}"
   },
   "familyCaregivers": {
     "headerTitle": "సంరక్షకులు",
@@ -783,6 +1174,26 @@
     "infoBannerPrefix": "హెచ్చరికలు ",
     "thisDevice": "ఈ పరికరం",
     "infoBannerSuffix": " పై నోటిఫికేషన్‌గా వస్తాయి. ఇతర కుటుంబ సభ్యుల ఫోన్‌లకు హెచ్చరికలను పంపడానికి చిన్న బ్యాక్‌ఎండ్ జోడింపు అవసరం — ఈ యాప్ ప్రాజెక్ట్ పత్రాలలోని గమనికలను చూడండి.",
+    "contactsSection": "అత్యవసర సంప్రదింపులు",
+    "contactNamePlaceholder": "సంప్రదింపు పేరు",
+    "contactPhonePlaceholder": "ఫోన్ నంబర్",
+    "contactRelationPlaceholder": "సంబంధం",
+    "addContact": "సంప్రదింపు జోడించండి",
+    "medicalInfoSection": "వైద్య సమాచారం",
+    "knownAllergiesLabel": "తెలిసిన అలర్జీలు",
+    "knownAllergiesPlaceholder": "ఉదా. పెన్సిలిన్, వేరుశెనగ",
+    "medicalConditionsLabel": "ప్రస్తుత ఆరోగ్య సమస్యలు",
+    "medicalConditionsPlaceholder": "ఉదా. మధుమేహం, అధిక రక్తపోటు",
+    "currentMedicationsLabel": "ప్రస్తుత మందుల గమనిక",
+    "currentMedicationsPlaceholder": "ఐచ్ఛిక గమనిక (లేదా మందుల ట్రాకింగ్ చూడండి)",
+    "doctorNameLabel": "డాక్టర్ అత్యవసర సంప్రదింపు",
+    "doctorNamePlaceholder": "డాక్టర్ పేరు",
+    "doctorPhoneLabel": "డాక్టర్ ఫోన్",
+    "doctorPhonePlaceholder": "ఫోన్ నంబర్",
+    "hospitalPreferenceLabel": "ఇష్టపడే ఆసుపత్రి",
+    "hospitalPreferencePlaceholder": "ఇష్టపడే ఆసుపత్రి పేరు",
+    "insurancePolicyLabel": "బీమా పాలసీ నంబర్",
+    "insurancePolicyPlaceholder": "ఐచ్ఛికం",
     "settingsSection": "సెట్టింగ్‌లు",
     "missedMedicineAlertTitle": "మిస్ అయిన మందు హెచ్చరిక",
     "missedMedicineAlertSub": "మోతాదు {{hours}}గంటలు+ ఆలస్యమైతే హెచ్చరించండి",
@@ -1077,7 +1488,7 @@
     "howItWorksBullet2": "• పునరావృత ఛార్జ్ అకస్మాత్తుగా పెరుగుతుంది",
     "howItWorksBullet3": "• ఒక సబ్‌స్క్రిప్షన్ బిల్ చేయబడుతోంది కానీ 45+ రోజులుగా ఉపయోగించబడలేదు",
     "neverCountedTitle": "ఎప్పుడూ లీక్‌గా లెక్కించనివి",
-    "neverCountedText": "అవసరమైన మరియు ముఖ్యమైన చెల్లింపులు ఎల్లప్పుడూ మినహాయించబడతాయి — బిల్లులు, EMI/రుణాలు, భీమా, వైద్య/ఆరోగ్యం, విద్య, అద్దె, పన్నులు, మరియు పెట్టుబడులు లేదా పొదుపులు. అనవసరమైన లేదా అదనపు ఖర్చు మాత్రమే పరిగణించబడుతుంది.",
+    "neverCountedText": "అవసరమైన మరియు ముఖ్యమైన చెల్లింపులు ఎల్లప్పుడూ మినహాయించబడతాయి — బిల్లులు, EMI/రుణాలు, భీమా, వైద్య/ఆరోగ్యం, విద్య, అద్దె, పన్నులు, మరియు పెట్టుబడులు లేదా పొదుపులు. మీరు ఇతర ఖర్చుగా గుర్తించిన ఏ లావాదేవీలైనా (మరొక వ్యక్తికి పంపిన డబ్బు, లేదా మీ స్వంత ఖాతాల మధ్య బదిలీ) కూడా మినహాయించబడతాయి. అనవసరమైన లేదా అదనపు ఖర్చు మాత్రమే పరిగణించబడుతుంది.",
     "leaksDetectedCount_one": "{{count}} లీక్ కనుగొనబడింది",
     "leaksDetectedCount_other": "{{count}} లీక్‌లు కనుగొనబడ్డాయి",
     "allClearTitle": "అంతా బాగుంది!",
@@ -1202,32 +1613,32 @@
     },
     "planBenefits": {
       "free": [
-        "2 కుటుంబ సభ్యులు",
-        "సభ్యునికి 3 మాడ్యూల్స్",
-        "10 రిమైండర్లు • 7-రోజుల చరిత్ర",
-        "బిల్ స్కాన్ & వాయిస్ ఎంట్రీ (పరిమితం)",
-        "ఎప్పటికీ ప్రకటనలు లేవు"
+        "2 family members",
+        "3 modules per member",
+        "10 reminders • 7-day history",
+        "Bill scan & voice entry (limited)",
+        "No ads, ever"
       ],
       "starter": [
-        "4 కుటుంబ సభ్యులు",
-        "సభ్యునికి 8 మాడ్యూల్స్",
-        "50 రిమైండర్లు • 3-నెలల చరిత్ర",
-        "బ్యాంక్ పీడీఎఫ్ దిగుమతి • సీఎస్‌వీ దిగుమతి",
-        "10 పత్రాలు • 1 సంరక్షకుడు/సభ్యుడు"
+        "4 family members",
+        "8 modules per member",
+        "50 reminders • 3-month history",
+        "Bank PDF import • CSV import",
+        "10 documents • 1 caregiver/member"
       ],
       "family": [
-        "అపరిమిత సభ్యులు & మాడ్యూల్స్",
-        "అపరిమిత రిమైండర్లు • 12-నెలల చరిత్ర",
-        "పీడీఎఫ్ నివేదికలు • మనీ లీక్ అలర్ట్‌లు",
-        "బడ్జెట్ అలర్ట్‌లు • లొకేషన్ షేరింగ్ (6)",
-        "WiseAI 100 సందేశాలు/నెల • 50 పత్రాలు"
+        "Unlimited members & modules",
+        "Unlimited reminders • 12-month history",
+        "PDF reports • Money leak alerts",
+        "Budget alerts • Location sharing (6)",
+        "WiseAI 100 msgs/mo • 50 documents"
       ],
       "pro": [
-        "ఫ్యామిలీలో ఉన్నవన్నీ",
-        "అపరిమిత పత్రాలు & చరిత్ర",
-        "WiseAI 300 సందేశాలు/నెల",
-        "మందుల పరస్పర చర్య & పిల్ గుర్తింపు",
-        "డేటా ఎగుమతి • ప్రాధాన్యత మద్దతు"
+        "Everything in Family",
+        "Unlimited documents & history",
+        "WiseAI 300 msgs/mo",
+        "Medicine interaction & pill ID",
+        "Data export • Priority support"
       ]
     },
     "compare": {
@@ -1253,111 +1664,114 @@
         "title": "మీరు పెద్ద ఫ్యామిలీ హబ్‌ను నిర్మిస్తున్నారు!",
         "message": "మీరు పెద్ద ఫ్యామిలీ హబ్‌ను నిర్మిస్తున్నారు! LifeWise ఫ్యామిలీతో అపరిమిత సభ్యులను జోడించండి.",
         "benefits": [
-          "అపరిమిత కుటుంబ సభ్యులు",
-          "సభ్యునికి అన్ని 20 మాడ్యూల్స్",
-          "పూర్తి ఫ్యామిలీ డాష్‌బోర్డ్"
+          "Unlimited family members",
+          "All 20 modules per member",
+          "Full family dashboard"
         ]
       },
       "fourthModule": {
         "title": "ముఖ్యమైనవాటిని మరింత నిర్వహించండి",
         "message": "ఇది ఒక ప్రీమియం ఫీచర్. మీ కుటుంబ సభ్యుని జీవితంలోని మరిన్ని అంశాలను నిర్వహించడానికి అప్‌గ్రేడ్ చేయండి.",
         "benefits": [
-          "సభ్యునికి 8 మాడ్యూల్స్",
-          "ఒక్కొక్కరికి మరింత ట్రాకింగ్",
-          "మీ కుటుంబంతో పాటు పెరుగుతుంది"
+          "8 modules per member",
+          "More tracking per person",
+          "Grows with your family"
         ]
       },
       "eleventhReminder": {
         "title": "మీరు అన్నింటిపై నిఘా ఉంచుతున్నారు!",
         "message": "మీరు అన్నింటిపై నిఘా ఉంచుతున్నారు! స్టార్టర్ మరియు ఆపైన అపరిమిత రిమైండర్లు అందుబాటులో ఉన్నాయి.",
         "benefits": [
-          "స్టార్టర్‌లో 50 రిమైండర్లు",
-          "ఫ్యామిలీలో అపరిమితం",
-          "ఏ బిల్లు లేదా మందును మిస్ చేయకండి"
+          "50 reminders on Starter",
+          "Unlimited on Family",
+          "Never miss a bill or dose"
         ]
       },
       "expenseHistory": {
         "title": "పూర్తి చిత్రాన్ని చూడండి",
         "message": "పాత ఖర్చులు సురక్షితంగా నిల్వ చేయబడతాయి. పూర్తి చిత్రాన్ని చూడటానికి 12-నెలల చరిత్రను అన్‌లాక్ చేయండి.",
         "benefits": [
-          "స్టార్టర్‌లో 3 నెలలు",
-          "ఫ్యామిలీలో 12 నెలలు",
-          "దీర్ఘకాలిక ధోరణులను గుర్తించండి"
+          "3 months on Starter",
+          "12 months on Family",
+          "Spot long-term trends"
         ]
       },
       "pdfExport": {
         "title": "మీ కుటుంబ నివేదికను డౌన్‌లోడ్ చేయండి",
         "message": "మీ కుటుంబ ఆరోగ్యం మరియు ఆర్థిక నివేదికను డౌన్‌లోడ్ చేయండి. ఫ్యామిలీ ప్లాన్ మరియు ఆపైన అందుబాటులో ఉంది.",
         "benefits": [
-          "నెలవారీ పీడీఎఫ్ నివేదికలు",
-          "వార్షిక సమీక్ష",
-          "ఎవరితోనైనా షేర్ చేయండి"
+          "Monthly PDF reports",
+          "Annual overview",
+          "Share with anyone"
         ]
       },
       "bankImport": {
         "title": "ఒక్క టాప్, నెల మొత్తం పూర్తి",
         "message": "మీ బ్యాంక్ స్టేట్‌మెంట్ నుండి అన్ని ఖర్చులను ఆటోమేటిక్‌గా నింపండి. ఒక్క టాప్, నెల మొత్తం పూర్తి.",
         "benefits": [
-          "బ్యాంక్ పీడీఎఫ్ స్టేట్‌మెంట్‌లను దిగుమతి చేయండి",
-          "ఆటోమేటిక్‌గా వర్గీకరించిన ఖర్చులు",
-          "టైపింగ్ గంటలను ఆదా చేయండి"
+          "Import bank PDF statements",
+          "Auto-categorised expenses",
+          "Save hours of typing"
         ]
       },
       "budgetAlerts": {
         "title": "మీ కుటుంబ ఫైనాన్స్‌లను ట్రాక్‌లో ఉంచండి",
         "message": "ప్రతి కుటుంబ సభ్యునికి ఖర్చు పరిమితులను సెట్ చేయండి. మీ కుటుంబ ఫైనాన్స్‌లను ట్రాక్‌లో ఉంచండి.",
         "benefits": [
-          "కేటగిరీ వారీగా బడ్జెట్‌లు",
-          "సభ్యుని వారీగా పరిమితులు",
-          "అధిక ఖర్చు అలర్ట్‌లు"
+          "Per-category budgets",
+          "Per-member limits",
+          "Overspend alerts"
         ]
       },
       "fourthBillScan": {
         "title": "అపరిమిత బిల్లులను స్కాన్ చేయండి",
         "message": "ఫ్యామిలీ ప్లాన్‌తో అపరిమిత బిల్లులు మరియు రసీదులను స్కాన్ చేయండి.",
         "benefits": [
-          "అపరిమిత రసీదు స్కాన్‌లు",
-          "ఆన్-డివైస్ OCR",
-          "రసీదు ఫోటోలను జోడించండి"
+          "Unlimited receipt scans",
+          "On-device OCR",
+          "Attach receipt photos"
         ]
       },
       "sixthWiseAi": {
         "title": "మీరు WiseAIతో చాట్ చేస్తున్నారు!",
         "message": "మీరు WiseAIతో చాట్ చేస్తున్నారు! LifeWise ఫ్యామిలీతో నెలకు 100 సందేశాలను పొందండి.",
         "benefits": [
-          "ఫ్యామిలీలో నెలకు 100 సందేశాలు",
-          "ప్రోలో 300",
-          "స్మార్ట్ కుటుంబ అంతర్దృష్టులు"
+          "100 messages/month on Family",
+          "300 on Pro",
+          "Smart family insights"
         ]
       },
       "secondDocument": {
         "title": "మీ కుటుంబ పత్రాలన్నింటినీ నిల్వ చేయండి",
         "message": "మీ కుటుంబ ఆధార్, పాన్, పాస్‌పోర్ట్‌ను సురక్షితంగా నిల్వ చేయండి. ఫ్యామిలీ ప్లాన్ = 50 పత్రాలు.",
         "benefits": [
-          "ఫ్యామిలీలో 50 పత్రాలు",
-          "అన్ని పత్ర రకాలు",
-          "గడువు ముగింపు రిమైండర్లు"
+          "50 documents on Family",
+          "All document types",
+          "Expiry reminders"
         ]
       },
       "locationSharing": {
         "title": "సురక్షితంగా అనుసంధానంలో ఉండండి",
         "message": "మీ కుటుంబ సభ్యులు రియల్-టైమ్‌లో ఎక్కడ ఉన్నారో చూడండి. సురక్షితంగా అనుసంధానంలో ఉండండి.",
         "benefits": [
-          "6 మంది వరకు లైవ్ లొకేషన్",
-          "ఎమర్జెన్సీ SOS",
-          "మనశ్శాంతి"
+          "Live location for up to 6",
+          "Emergency SOS",
+          "Peace of mind"
         ]
       },
       "medicineInteraction": {
         "title": "మీ కుటుంబాన్ని సురక్షితంగా ఉంచండి",
         "message": "మందులు కలిపి తీసుకోవడం సురక్షితమేనా అని తనిఖీ చేయండి. ప్రో ప్లాన్ మీ కుటుంబాన్ని సురక్షితంగా ఉంచుతుంది.",
         "benefits": [
-          "మందుల పరస్పర చర్య తనిఖీ",
-          "పిల్ ఫోటో గుర్తింపు",
-          "డాక్టర్‌కు సిద్ధంగా ఉన్న నివేదికలు"
+          "Medicine interaction checker",
+          "Pill photo identifier",
+          "Doctor-ready reports"
         ]
       }
-    }
+    },
+    "testActivateTitle": "{{planName}} సక్రియం చేయాలా?",
+    "testActivateMessage": "ఇది ఒక TEST యాక్టివేషన్ — ఎటువంటి చెల్లింపు తీసుకోబడదు మరియు నిజమైన సబ్‌స్క్రిప్షన్ సృష్టించబడదు. ఈ పరికరంలో {{planName}} ఫీచర్లు అన్‌లాక్ చేయబడతాయి.",
+    "testActivateButton": "{{planName}} సక్రియం చేయండి"
   },
   "planBadge": {
     "trialPrefix": "ట్రయల్ · "
@@ -1562,7 +1976,21 @@
     "startDate": "ప్రారంభ తేదీ",
     "endDate": "ముగింపు తేదీ",
     "adding": "జోడిస్తోంది...",
-    "addMedicineButton": "మందు జోడించండి"
+    "addMedicineButton": "మందు జోడించండి",
+    "frequency": "ఫ్రీక్వెన్సీ",
+    "frequencyOption": {
+      "daily": "ప్రతిరోజూ",
+      "alternate_days": "రోజు విడిచి రోజు",
+      "weekly": "వారానికి",
+      "monthly": "నెలవారీ",
+      "as_needed": "అవసరమైనప్పుడు"
+    },
+    "reminderToggle": "రిమైండర్ ఆన్ చేయబడింది",
+    "snoozeDuration": "స్నూజ్ వ్యవధి",
+    "snoozeMinutes": "{{count}} నిమిషాలు",
+    "doctorNotes": "డాక్టర్ గమనికలు",
+    "doctorNotesPlaceholder": "డాక్టర్ నుండి ఐచ్ఛిక గమనికలు",
+    "addAnotherMedicine": "మరో మందు జోడించండి"
   },
   "medicineDetails": {
     "title": "మందు వివరాలు",
@@ -1847,5 +2275,42 @@
     "tryAgain": "మళ్లీ ప్రయత్నించండి",
     "viewErrorDetails": "లోపం వివరాలను చూడండి",
     "errorDetails": "లోపం వివరాలు"
+  },
+  "notificationDetails": {
+    "title": "నోటిఫికేషన్",
+    "unavailableTitle": "అందుబాటులో లేదు",
+    "unavailableMessage": "ఈ అంశం ఇకపై అందుబాటులో లేదు.",
+    "viewRelatedItem": "సంబంధిత అంశాన్ని చూడండి",
+    "contentUnavailable": "కంటెంట్ ఇకపై అందుబాటులో లేదు."
+  },
+  "smsSync": {
+    "preparing": "SMS సింక్ సిద్ధమవుతోంది...",
+    "iosTitle": "ఇక్కడ ఆటో ట్రాక్ వేరుగా పనిచేస్తుంది",
+    "iosMessage": "Apple ఏ యాప్‌ను మీ SMSని చదవడానికి అనుమతించదు. బదులుగా, మీ బ్యాంక్ స్టేట్‌మెంట్‌ను దిగుమతి చేయండి — ఒక CSV ఎగుమతి మొత్తం నెల సమాచారాన్ని నింపుతుంది. మీరు రసీదులను స్కాన్ చేయవచ్చు లేదా మాట్లాడి ఖర్చును జోడించవచ్చు.",
+    "notNow": "ఇప్పుడు వద్దు",
+    "importStatement": "స్టేట్‌మెంట్‌ను దిగుమతి చేయండి",
+    "iosStatus": "iPhoneలో, బ్యాంక్ స్టేట్‌మెంట్‌ను దిగుమతి చేయండి లేదా స్కాన్/వాయిస్ ద్వారా ఖర్చులను జోడించండి.",
+    "requestingPermission": "SMS అనుమతి అభ్యర్థించబడుతోంది...",
+    "permissionBlockedTitle": "అనుమతి నిరోధించబడింది",
+    "permissionBlockedMessage": "SMS అనుమతి నిరోధించబడింది. దయచేసి సెట్టింగ్‌లు > అనుమతులను తెరిచి SMSని అనుమతించండి.",
+    "openSettings": "సెట్టింగ్‌లను తెరవండి",
+    "permissionNeededTitle": "అనుమతి అవసరం",
+    "permissionNeededMessage": "ఆటో ట్రాక్‌ను ప్రారంభించడానికి దయచేసి SMS అనుమతిని ఇవ్వండి.",
+    "readingInbox": "SMS ఇన్‌బాక్స్ చదవబడుతోంది...",
+    "identifyingTransactions": "లావాదేవీలు గుర్తించబడుతున్నాయి...",
+    "syncingToCloud": "క్లౌడ్‌కు సురక్షితంగా సింక్ అవుతోంది...",
+    "syncComplete_one": "సింక్ పూర్తయింది. {{count}} లావాదేవీ సింక్ అయింది.",
+    "syncComplete_other": "సింక్ పూర్తయింది. {{count}} లావాదేవీలు సింక్ అయ్యాయి.",
+    "polishingCategories": "AI తో వర్గాలు మెరుగుపరచబడుతున్నాయి...",
+    "sessionExpiredStatus": "మీ సెషన్ గడువు ముగిసింది. దయచేసి సైన్ అవుట్ చేసి మళ్ళీ సైన్ ఇన్ చేయండి.",
+    "sessionExpiredTitle": "సెషన్ గడువు ముగిసింది",
+    "sessionExpiredMessage": "దయచేసి సైన్ అవుట్ చేసి మళ్ళీ సైన్ ఇన్ చేయండి, తర్వాత ఆటో ట్రాక్‌ను మళ్ళీ ప్రయత్నించండి.",
+    "couldNotReadTitle": "SMS చదవలేకపోయాము",
+    "failedServerError": "ఆటో ట్రాక్ విఫలమైంది (సర్వర్ లోపం {{status}}). దయచేసి మళ్ళీ ప్రయత్నించండి.",
+    "failedGeneric": "ఆటో ట్రాక్ విఫలమైంది. దయచేసి మీ కనెక్షన్‌ని తనిఖీ చేసి మళ్ళీ ప్రయత్నించండి.",
+    "unexpectedFailure": "SMS సింక్ ఊహించని విధంగా విఫలమైంది."
+  },
+  "addExpenseFab": {
+    "closeMenu": "జోడించు మెనూను మూసివేయండి"
   }
 }

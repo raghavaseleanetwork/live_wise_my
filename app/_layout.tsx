@@ -388,6 +388,12 @@ function AuthGate() {
         <Stack.Screen name="family-emergency/[memberId]" />
         <Stack.Screen name="family-custom/[memberId]" />
         <Stack.Screen name="family-caregivers/[memberId]" />
+        <Stack.Screen name="family-diet/[memberId]" />
+        <Stack.Screen name="family-fitness/[memberId]" />
+        <Stack.Screen name="family-study/[memberId]" />
+        <Stack.Screen name="family-wellness/[memberId]" />
+        <Stack.Screen name="family-vehicles/[memberId]" />
+        <Stack.Screen name="family-home-maintenance/[memberId]" />
         <Stack.Screen name="family-appointments/add" />
         <Stack.Screen name="family-health/add" />
         <Stack.Screen name="family-stock/add" />
@@ -402,6 +408,10 @@ function AuthGate() {
         <Stack.Screen name="family-custom/add" />
         <Stack.Screen name="family-custom/setup" />
         <Stack.Screen name="family-caregivers/add" />
+        <Stack.Screen name="family-fitness/add" />
+        <Stack.Screen name="family-wellness/add" />
+        <Stack.Screen name="family-vehicles/add" />
+        <Stack.Screen name="family-home-maintenance/add" />
         <Stack.Screen name="caregiver-invites" />
         <Stack.Screen name="assistant" />
         <Stack.Screen name="+not-found" />

@@ -145,7 +145,9 @@ const InsightCard = React.memo(({ icon, iconColor, bgColor, title, value, subtit
           digits are ever hidden. */}
       {/* These cards are a third of the screen wide, so they need more headroom
           than Money's 0.7 default: a long figure like "₹10,34,567" or
-          "£12,345.67" sits at ~0.72 and would clip on a narrower device. */}
+          "£12,345.67" sits at ~0.72 and would clip on a narrower device. Past
+          0.5 Money stops shrinking and makes the amount swipeable instead, so
+          an extreme value stays fully readable rather than clipping. */}
       <Money
         style={[styles.insightValue, { color: colors.text }, isSeniorMode && { fontSize: 24 }]}
         minimumFontScale={0.5}
@@ -168,7 +170,9 @@ const CategoryPill = React.memo(({ category, total, index, colors, formatAmount,
         </View>
         <View style={styles.catTextWrap}>
           <Text style={[styles.categoryPillLabel, { color: colors.textSecondary }, isSeniorMode && { fontSize: 13 }]}>{cat.label}</Text>
-          <Money style={[styles.categoryPillAmount, { color: colors.text }, isSeniorMode && { fontSize: 16 }]}>{formatAmount(total)}</Money>
+          {/* No scroll fallback: this pill lives inside a horizontal ScrollView,
+              and a nested horizontal scroller swallows the parent's pan. */}
+          <Money style={[styles.categoryPillAmount, { color: colors.text }, isSeniorMode && { fontSize: 16 }]} scrollOnOverflow={false}>{formatAmount(total)}</Money>
         </View>
       </View>
     </Animated.View>
@@ -1193,7 +1197,7 @@ export default function HomeScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Money style={[styles.reminderPillAmount, { color: colors.accent, opacity: showAmount ? 1 : 0 }]}>
+                      <Money style={[styles.reminderPillAmount, { color: colors.accent, opacity: showAmount ? 1 : 0 }]} scrollOnOverflow={false}>
                         {formatAmount(bill.amount)}
                       </Money>
                     </Pressable>
@@ -1433,7 +1437,7 @@ export default function HomeScreen() {
                       </View>
                     </View>
                     {showAmount && (
-                      <Money style={[styles.reminderPillAmount, { color: colors.accent }]}>
+                      <Money style={[styles.reminderPillAmount, { color: colors.accent }]} scrollOnOverflow={false}>
                         {formatAmount(bill.amount)}
                       </Money>
                     )}
@@ -1446,7 +1450,7 @@ export default function HomeScreen() {
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(160).duration(500) : undefined}>
           <View style={styles.insightsRow}>
-            <Pressable onPress={() => router.push('/(tabs)/leaks')} style={{ flex: 1 }}>
+            <Pressable onPress={() => router.push('/(tabs)/leaks')} style={styles.insightCardPressable}>
               <InsightCard
                 icon="water"
                 iconColor={colors.danger}
@@ -1458,7 +1462,7 @@ export default function HomeScreen() {
                 isSeniorMode={isSeniorMode}
               />
             </Pressable>
-            <Pressable onPress={() => router.push('/(tabs)/bills')} style={{ flex: 1 }}>
+            <Pressable onPress={() => router.push('/(tabs)/bills')} style={styles.insightCardPressable}>
               <InsightCard
                 icon="notifications"
                 iconColor={colors.warning}
@@ -1470,7 +1474,7 @@ export default function HomeScreen() {
                 isSeniorMode={isSeniorMode}
               />
             </Pressable>
-            <Pressable onPress={() => router.push('/(tabs)/transactions')} style={{ flex: 1 }}>
+            <Pressable onPress={() => router.push('/(tabs)/transactions')} style={styles.insightCardPressable}>
               <InsightCard
                 icon="swap-horizontal"
                 iconColor={colors.accentBlue}
@@ -1867,10 +1871,15 @@ const styles = StyleSheet.create({
   budgetText: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   heroDivider: { height: 1, marginVertical: 18 },
   heroStats: { flexDirection: 'row', alignItems: 'center' },
-  heroStat: { flex: 1, alignItems: 'center' },
+  // `alignItems: 'stretch'` rather than 'center': centring sizes each child to
+  // its own content, which leaves the amount no measurable width to overflow
+  // against and stops it ever registering as too long. The value is centred by
+  // `textAlign` below instead, which looks identical but keeps the full column
+  // width available to the text.
+  heroStat: { flex: 1, minWidth: 0, alignItems: 'stretch' },
   heroStatDivider: { width: 1, height: 28 },
-  heroStatLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, marginBottom: 4 },
-  heroStatValue: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
+  heroStatLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, marginBottom: 4, textAlign: 'center' },
+  heroStatValue: { fontFamily: 'Inter_600SemiBold', fontSize: 15, lineHeight: 20, textAlign: 'center' },
   sectionTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 17, marginBottom: 14 },
   emptyCard: {
     flexDirection: 'row',
@@ -1907,14 +1916,41 @@ const styles = StyleSheet.create({
   reminderPillMetaRow: { flexDirection: 'row', alignItems: 'center' },
   reminderPillMember: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   reminderPillAmount: { fontFamily: 'Inter_700Bold', fontSize: 14 },
-  insightsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  // `alignItems: 'stretch'` is what makes the three cards a matched set. Each
+  // card's height is otherwise driven by its own content, so a title or
+  // subtitle that wraps to a second line in one language ("Transactions" in
+  // Tamil, say) made that one card visibly taller than its neighbours and left
+  // the row looking ragged.
+  insightsRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10, marginBottom: 20 },
+  // The Pressable sits between the stretched row and the card, so it has to
+  // pass the stretch through — left at `flex: 1` alone it collapses to its
+  // content's height and the card inside has nothing to fill.
+  insightCardPressable: { flex: 1, alignSelf: 'stretch' },
   // `minWidth: 0` is what lets a flex child shrink below its content's natural
   // width. Without it the card refuses to narrow, and long amounts push the
   // text into wrapping instead of scaling down.
-  insightCard: { flex: 1, minWidth: 0, borderRadius: 16, padding: 14, gap: 6, borderWidth: 1 },
+  //
+  // `height: '100%'` makes the card fill the stretched Pressable that wraps it,
+  // and `justifyContent: 'space-between'` keeps the icon pinned top and the
+  // subtitle bottom so the equalised cards stay aligned row-to-row rather than
+  // just being the same size with their contents floating.
+  insightCard: {
+    flex: 1,
+    minWidth: 0,
+    height: '100%',
+    justifyContent: 'space-between',
+    borderRadius: 16,
+    padding: 14,
+    gap: 6,
+    borderWidth: 1,
+  },
   insightIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   insightTitle: { fontFamily: 'Inter_500Medium', fontSize: 11 },
-  insightValue: { fontFamily: 'Inter_700Bold', fontSize: 18 },
+  // An explicit line height pins the value row to the same height in all three
+  // cards. `adjustsFontSizeToFit` changes the rendered font size per card, and
+  // without this the shrunken card's line box is shorter than its neighbours' —
+  // which is what made the row's baselines fail to line up.
+  insightValue: { fontFamily: 'Inter_700Bold', fontSize: 18, lineHeight: 24 },
   insightSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 10 },
   quickAccessScroll: { gap: 10, paddingBottom: 20 },
   quickReachRow: { flexDirection: 'row', gap: 10, paddingBottom: 20 },

@@ -50,6 +50,7 @@ const CHIP_CATEGORIES: CategoryType[] = [
   'family',
   'travel',
   'education',
+  'other_expense',
   'others',
 ];
 
@@ -360,12 +361,23 @@ export default function AddExpenseScreen() {
                     { color: active ? meta.color : colors.textSecondary },
                   ]}
                 >
-                  {meta.label}
+                  {cat === 'other_expense' ? t('addExpense.categoryOtherExpense') : meta.label}
                 </Text>
               </Pressable>
             );
           })}
         </ScrollView>
+
+        {/* Explains what "Other Expense" is for, since its whole purpose (opting
+            out of leak detection) is invisible from the chip label alone. */}
+        {category === 'other_expense' && (
+          <View style={[styles.hintBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+            <Ionicons name="information-circle-outline" size={14} color={colors.textTertiary} />
+            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+              {t('addExpense.otherExpenseHint')}
+            </Text>
+          </View>
+        )}
 
         {/* Member selector — only meaningful once a family exists. */}
         {members.length > 0 && (
@@ -715,6 +727,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: { fontSize: 13, fontWeight: '600' },
+  hintBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  hintText: { flex: 1, fontSize: 11, lineHeight: 15 },
   keypad: {
     flexDirection: 'row',
     flexWrap: 'wrap',

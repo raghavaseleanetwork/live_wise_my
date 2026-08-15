@@ -1,0 +1,1277 @@
+LIFEWISE
+Family Operating System
+Complete Product Requirements Document (PRD)
+Developer Reference | Version 1.0
+React Native Expo | Node.js | MongoDB | Firebase FCM
+
+Platform
+iOS + Android
+Framework
+React Native Expo
+Backend
+Node.js + MongoDB
+Notifications
+Firebase FCM
+
+Table of Contents
+1. Product Overview & Vision
+2. App Architecture & Tech Stack
+3. Navigation Structure — 5 Bottom Tabs
+4. Home Screen — Detailed Specification
+5. Family Hub — Complete Feature Documentation
+   5.1  Add Member Flow
+   5.2  Module Selection
+   5.3  All 20 Modules — Deep Specifications
+   5.4  Member Card Logic
+   5.5  Connected Member / Caregiver System
+   5.6  Manage Member Dashboard
+6. Reminders Tab — Engine & Logic
+7. Insights Tab — Analytics & Reports
+8. Profile Tab — Settings & Permissions
+9. AI Features — Voice, Camera, WiseAI Chat
+10. Real-Time Sync & Notification System
+11. Complete API Documentation
+12. Database Schema — All Collections
+13. Edge Cases & Error States
+14. MVP Roadmap
+15. Revenue & Monetization Strategy
+
+1. Product Overview & Vision
+
+1.1 What is LifeWise?
+LifeWise is a Family Operating System — a single mobile application that allows one family to manage every member's health, finances, reminders, documents, and daily routines from one place. It is NOT just a reminder app or a medicine tracker. It is the command center for your family.
+
+Core Positioning
+LifeWise = One app to manage the entire family. From Papa's medicine to electricity bills, from Mummy's doctor appointments to children's study schedules — everything in one place, accessible by the whole family.
+
+1.2 Target Users
+User Type
+Description
+Primary Use Case
+Primary User
+Adult child (25-45 yrs) managing parents
+Add Papa, Mummy — track medicine, bills
+Senior Member
+Parent (55+ yrs) using app lightly
+View their reminders, health status
+Caregiver
+Spouse, sibling, or relative
+Receive alerts, mark reminders done
+Young Adult
+College student
+Track expenses, study schedule, bills
+
+2. App Architecture & Tech Stack
+
+Layer
+Technology
+Purpose
+Frontend
+React Native Expo
+Cross-platform iOS + Android app
+State Mgmt
+Redux Toolkit + RTK Query
+Global state, API caching
+Navigation
+React Navigation v6
+Tab + Stack navigation
+Backend
+Node.js + Express.js
+REST API server
+Database
+MongoDB + Mongoose
+User & family data storage
+Auth
+JWT + Firebase Auth
+Secure login, token refresh
+Notifications
+Firebase Cloud Messaging (FCM)
+Push notifications iOS + Android
+Real-time
+Socket.io (WebSocket)
+Live sync between family members
+Storage
+AWS S3
+Profile photos, documents
+OCR
+Google ML Kit
+Bill scanning, document scan
+Voice AI
+OpenAI Whisper API
+Voice reminder input
+AI Chat
+Claude API (Anthropic)
+WiseAI family assistant
+Analytics
+Mixpanel / Amplitude
+User behaviour tracking
+Crash
+Sentry
+Error monitoring
+
+3. Navigation Structure — 5 Bottom Tabs
+
+The app uses a persistent Bottom Navigation Bar with 5 tabs. Every screen in the app is accessible from these 5 tabs. The navigation uses React Navigation v6 with a Bottom Tab Navigator + nested Stack Navigators inside each tab.
+
+#
+Tab Name
+Icon
+Primary Purpose
+1
+Home
+House icon
+Daily overview, quick actions, today's summary
+2
+Family Hub
+People/Group icon (STAR badge)
+MAIN FEATURE — All family member management
+3
+Reminders
+Bell icon
+All reminders across all family members
+4
+Insights
+Chart/Analytics icon
+Reports, spending, health analytics
+5
+Profile
+Person icon
+Account, settings, subscription, permissions
+
+Developer Note — Active Tab
+Tab 2 (Family Hub) has a special gold/accent badge dot to indicate it is the primary feature. When user first opens the app, default tab = Tab 1 (Home). Tab 2 should have a slight visual emphasis in the tab bar.
+
+4. Home Screen — Detailed Specification
+
+4.1 Screen Layout (Top to Bottom)
+4.1.1 Header Bar
+Left: App logo + 'Good Morning, [User Name]'
+Right: Notification bell icon with unread count badge
+Below header: Date display — 'Saturday, 30 May 2026'
+
+4.1.2 Top 3 Quick Action Icons (Rounded Pill/Circle Row)
+IMPORTANT UI SPEC
+Three circular icon buttons displayed in a horizontal row at the top of the Home screen, just below the header. These are floating action shortcuts, not navigation tabs. Each is a rounded card (circle or pill shape) with icon + label.
+
+#
+Icon Button
+Label
+Action on Tap
+1
+Mic / Waveform icon
+Voice Reminder
+Opens full-screen voice input modal. Uses OpenAI Whisper to convert speech to reminder. Auto-detects member name, time, task. Example: 'Add Papa's medicine reminder at 8 PM' auto-creates reminder for Papa.
+2
+Camera / Scan icon
+Scan Bill
+Opens camera with document scanner overlay. Uses Google ML Kit OCR to extract bill name, amount, due date. Auto-fills bill form for any family member.
+3
+AI Chat icon (sparkle/bot)
+WiseAI Chat
+Opens WiseAI assistant chat screen. Floating chat interface. User can ask: 'What reminders does Papa have this week?' or 'Summarize our monthly expenses' or 'Remind Mummy about her appointment'.
+
+4.1.3 Today's Reminders Section
+Title: 'Today' with count badge (e.g., 'Today (5)')
+Shows all reminders due today across ALL family members
+Each reminder card shows: member photo + name, reminder type icon, reminder title, time
+If reminder is overdue: red badge 'MISSED'
+If completed: green checkmark, greyed out
+'View All' button at bottom → navigates to Reminders Tab
+
+4.1.4 Family Health Summary
+Title: 'Family Health'
+Horizontal scroll of member cards showing health compliance %
+Example card: Papa — 80% medicine compliance this week
+Tap on any member card → goes to that member's dashboard in Family Hub
+
+4.1.5 Upcoming Bills & Due Dates
+Title: 'Upcoming'
+Shows next 3-5 bills/appointments/renewals due within 7 days
+Each item: icon + name + due date + member name
+Colour coding: Green (3+ days), Orange (1-2 days), Red (today/overdue)
+
+4.1.6 Money Leak Alert (Conditional)
+Shown only if money leak pattern detected
+Title: 'Money Leak Alert'
+Shows: 'You are spending extra on food delivery. Potential saving: Rs. 2,400/month'
+CTA button: 'View Details' → navigates to Insights tab, Money Leak section
+
+5. Family Hub — Complete Feature Documentation
+
+This Is The Hero Feature
+Family Hub is the single most important screen in LifeWise. Every other feature — reminders, health, bills, insurance — all flow through Family Hub. Every family member has their own profile card. Every module is attached to a member. This is what makes LifeWise unique.
+
+5.1 Family Hub Main Screen
+Screen Components
+Screen title: 'Family Hub'
+Top right: Settings icon (family settings)
+Scrollable list of Member Cards (see Section 5.4 for card spec)
+Floating '+' button (FAB) at bottom right — Add New Member
+Empty state (first time): Large illustration + 'Add your first family member' CTA
+
+5.2 Add Member Flow — Step-by-Step
+Step 1: Basic Info Screen
+Screen title: 'Add Family Member'
+Progress indicator: Step 1 of 3
+
+Field
+Type
+Validation
+Full Name
+Text Input
+Required, 2–50 characters
+Relation
+Dropdown
+Father, Mother, Spouse, Son, Daughter, Brother, Sister, Other
+Age
+Number Input
+Required, 1–120
+Date of Birth
+Date Picker
+Optional, used for birthday reminders
+Profile Photo
+Image Picker
+Optional, camera or gallery, max 5MB, JPEG/PNG
+Blood Group
+Dropdown
+Optional, A+, A-, B+, B-, O+, O-, AB+, AB-
+Phone Number
+Phone Input
+Optional, used for call check-in reminders
+
+Bottom Button: 'Continue →'
+
+Step 2: Module Selection Screen
+Screen title: 'Select Features for [Member Name]'
+Progress indicator: Step 2 of 3
+Subtitle: 'Choose what you want to manage for [Name]. You can always add more later.'
+
+Layout: 2-column grid of module cards
+Each module card: Large icon + Module name + 1-line description
+Tap to select: Card background changes to accent color, checkmark appears
+Multi-select: User can select any number of modules
+Minimum 1 module required to proceed
+Bottom: Selected count + 'Add Details' button (enabled only when >= 1 selected)
+
+Step 3: Module Details Screen
+Screen title: 'Setup Details for [Member Name]'
+Progress indicator: Step 3 of 3
+Shows ONLY the selected modules, one after another in a scrollable form
+Each module has its own section with a header and relevant fields
+All fields within each module's section are specific to that module (see Section 5.3)
+Bottom: 'Save Member' button
+
+Dynamic Form Logic
+The Step 3 screen is dynamically generated based on selected modules. If user selected Medicine + Bills + Insurance, only those 3 sections appear. Each section renders its own form fields. This is NOT a fixed form — it is generated at runtime based on module selection.
+
+5.3 All 20 Modules — Deep Specifications
+The following 20 modules are available for each family member. Each module generates its own reminders and stores specific data.
+
+💊
+MODULE 1
+Medicine Tracking — Track all medicines, dosage, timings and refill alerts
+Medicine Name — Text input, required
+Dosage — Text input (e.g., '1 tablet', '5ml', '2 drops')
+Timing — Multi-select time picker (Morning, Afternoon, Evening, Night, Custom)
+Custom Time — Time picker if Custom selected
+Before/After Food — Toggle (Before Food / After Food / Doesn't matter)
+Frequency — Dropdown (Daily, Alternate Days, Weekly, Monthly, As needed)
+Days of Week — Multi-select if Weekly (Mon, Tue, Wed...)
+Start Date — Date picker, required
+End Date — Date picker, optional (for course medicines)
+Reminder — Toggle ON/OFF, default ON
+Snooze Duration — Dropdown (5 min, 10 min, 15 min, 30 min)
+Doctor Notes — Text area, optional
+Multiple Medicines — 'Add Another Medicine' button, repeat form
+Reminder Output: '[Member Name] ki [Medicine Name] lene ka time ho gaya' at scheduled time
+
+🏥
+MODULE 2
+Doctor Appointments — Track upcoming doctor visits and consultation notes
+Doctor Name — Text input
+Specialization — Dropdown (General, Cardiologist, Orthopedic, Neurologist, Pediatric, etc.)
+Hospital / Clinic Name — Text input
+Appointment Date — Date picker
+Appointment Time — Time picker
+Recurring — Toggle (Yes/No); if Yes: Monthly, Quarterly, Every 6 months, Yearly
+Reminder — Dropdown (1 day before, 3 hours before, 1 hour before, 30 min before)
+Notes / Symptoms — Text area
+Follow-up Required — Toggle + Follow-up date picker
+Location — Maps integration or text input
+Reminder Output: 'Tomorrow is [Member]'s appointment with Dr. [Name] at [Hospital]'
+
+❤️
+MODULE 3
+Health Monitoring — Track BP, sugar, weight and health vitals over time
+Select Vitals to Track — Multi-select: Blood Pressure, Blood Sugar, Weight, Temperature, Oxygen Level, Heart Rate, Cholesterol
+For Blood Pressure: Systolic field + Diastolic field + Pulse
+For Blood Sugar: Fasting / Post-meal toggle + value in mg/dL
+For Weight: value in kg or lbs, unit toggle
+Measurement Frequency — Daily, Weekly, Monthly, Manual only
+Reminder to Measure — Toggle + Time picker
+Normal Range Alert — User sets target range; app alerts if out of range
+History — All readings stored, graph view available in member dashboard
+Export Option — Export as PDF report (Premium feature)
+Reminder Output: 'Time to measure [Member]'s blood pressure'
+
+🚨
+MODULE 4
+Emergency SOS — One-tap emergency system with medical info for first responders
+Emergency Contacts — Add up to 5 contacts (Name + Phone + Relation)
+Blood Group — Dropdown (pre-filled from Step 1 if entered)
+Known Allergies — Text area (medicine allergies, food allergies)
+Existing Medical Conditions — Text area (diabetes, hypertension, etc.)
+Current Medications — Link to Medicine module or text input
+Doctor Emergency Contact — Name + Phone
+Hospital Preference — Text input
+Insurance Policy Number — Optional, for emergency use
+SOS Trigger — Shake phone 3 times or long press SOS button in app
+SOS Action: Sends SMS + calls to emergency contacts with location
+Medical Card — Generates shareable digital card with all info above
+No Reminder — this module is on-demand only
+
+💡
+MODULE 5
+Bill Management — Never miss a utility or recurring bill payment
+Bill Type — Dropdown: Electricity, Gas/Piped Gas, Water, Internet, Mobile Postpaid, Cable TV, Society Maintenance, Rent, Loan EMI, Credit Card, Other
+Bill Name — Text input (e.g., 'DGVCL Electricity', 'Jio Fiber')
+Account Number — Optional
+Due Date — Monthly date picker (e.g., every 15th of month)
+Approximate Amount — Number field (for budgeting), optional
+Payment Method — Dropdown: UPI, Net Banking, Credit Card, Auto-debit, Cash
+Reminder Days Before — Dropdown: 1 day, 3 days, 5 days, 7 days
+Additional Reminder — Day-of reminder toggle
+Paid Action — User marks as 'Paid'; stored in history
+Multiple Bills — 'Add Another Bill' option
+Reminder Output: '[Bill Name] bill due in 3 days. Amount approx Rs. [Amount]'
+
+🛡️
+MODULE 6
+Insurance Management — Track all insurance policies and renewal dates
+Insurance Type — Dropdown: Health Insurance, Life Insurance, Vehicle Insurance, Home Insurance, Term Plan, Other
+Insurance Company — Text input
+Policy Number — Text input
+Policy Holder Name — Text (default: member name)
+Sum Insured — Amount field
+Premium Amount — Amount field
+Premium Frequency — Monthly, Quarterly, Half-yearly, Yearly
+Next Premium Due Date — Date picker
+Policy Expiry / Renewal Date — Date picker
+Renewal Reminder — Dropdown: 30 days, 15 days, 7 days, 1 day before
+Agent Name + Phone — Optional contact fields
+Policy Document — Upload PDF/image to AWS S3
+Claim History — Text notes field
+Reminder Output: '[Insurance] renewal due in 15 days. Premium: Rs. [Amount]'
+
+📺
+MODULE 7
+Subscription Tracking — Track all digital subscriptions and their renewal dates
+Service Name — Dropdown with popular options: Netflix, Amazon Prime, Disney+ Hotstar, Spotify, YouTube Premium, Jio Cinema, SonyLiv, Zee5, iCloud, Google One, or Custom
+Custom Name — Text input if 'Custom' selected
+Plan Type — Text input (e.g., 'Family Plan', 'Premium')
+Amount — Number field
+Billing Cycle — Monthly, Quarterly, Yearly
+Renewal Date — Date picker
+Auto-renews — Toggle
+Payment Method — Dropdown
+Reminder — Dropdown: 3 days, 7 days before renewal
+Category — Entertainment, Productivity, Health, Education, Other
+Reminder Output: 'Netflix subscription renews in 3 days. Rs. [Amount] will be charged.'
+
+💰
+MODULE 8
+Expense Tracking — Personal expense management with category limits
+Expense Categories — Food, Transport, Shopping, Medical, Education, Entertainment, Utilities, Other
+Monthly Budget Limit per Category — Amount field per category
+Quick Add Expense — Amount + Category + Note
+Date — Auto today, editable
+Payment Mode — Cash, UPI, Card, Net Banking
+Recurring Expense — Toggle (for monthly subscriptions, etc.)
+Daily Spending Limit — Alert if exceeded
+Monthly Report — Auto-generated
+Photo of Receipt — Optional camera attach
+No scheduled reminder — expense are manually entered
+Alert: 'You have spent Rs. [X] in Food category. Budget limit Rs. [Y] reached.'
+
+🌅
+MODULE 9
+Daily Routine — Build healthy routines with timed reminders
+Routine Items — Add custom items
+Each item: Title + Icon + Scheduled Time
+Pre-filled suggestions: Wake Up, Morning Walk, Breakfast, Yoga, Lunch, Evening Walk, Dinner, Sleep, Medication
+Days Active — All days / Weekdays / Weekends / Custom days
+Order — Drag to reorder routine items
+Reminder — Toggle per item
+Completion Tracking — Tap to mark done, streak tracking
+Weekly Compliance % shown in member dashboard
+Reminder Output: 'Good morning! Time for [Member]'s morning walk.'
+
+📞
+MODULE 10
+Call & Check-in — Regular call reminders for elderly family members
+Call Frequency — Daily, Every 2 days, Weekly, Custom
+Reminder Time — Time picker (e.g., 9 PM)
+Days of Week — If weekly or custom
+Call Type — Regular call, Video call, WhatsApp call
+Contact Number — Pre-filled from member profile
+Missed Call Alert — If not marked 'Called' within 2 hours, send follow-up reminder
+Notes — What to discuss (optional)
+Reminder Output: 'It's time to call [Member Name]. Tap to call now.'
+Quick Action: One-tap call button in notification
+
+✈️
+MODULE 11
+Travel & Visits — Plan doctor visits, family trips and travel reminders
+Visit Type — Doctor Visit, Family Visit, Travel, Other
+Destination / Place — Text input
+Visit Date — Date picker
+Visit Time — Time picker
+Purpose / Notes — Text area
+Recurring — Toggle + Frequency
+Reminder — Days/hours before
+Return Date — For travel
+Companion — Link other family members who will also travel
+Reminder Output: 'Papa's doctor visit is tomorrow at 10 AM at Sunshine Hospital.'
+
+🍽️
+MODULE 12
+Diet & Meal Planning — Meal tracking and dietary reminders
+Diet Type — Normal, Diabetic, Low Salt, Low Fat, Vegetarian, Vegan, Custom
+Meals — Breakfast, Lunch, Evening Snack, Dinner
+Each meal: Time reminder + Food notes/plan
+Calories (optional) — Daily calorie target
+Food Restrictions — Text area (cannot eat: sugar, salt, fried, etc.)
+Water Intake Reminder — Toggle + hourly reminder option
+Doctor / Dietitian Notes — Text area
+Weekly Meal Plan — Day-wise table (optional structured input)
+Reminder Output: 'Lunch time for [Member]. Reminder: low salt diet only.'
+
+💊📦
+MODULE 13
+Medicine Stock Tracker — Track remaining strips and set refill alerts
+Links to Module 1 (Medicine) data — same medicines auto-populated
+For each medicine: Current Stock (number of tablets / strips / ml)
+Per-dose deduction — Auto-deducts stock when user marks medicine as 'Taken'
+Refill Alert Threshold — User sets (e.g., 'Alert me when only 5 tablets remain')
+Pharmacy Name — Optional
+Reminder Output: '[Medicine Name] stock is low. Only [N] tablets remaining. Time to refill.'
+Purchase Log — Record when new stock is purchased
+
+📄
+MODULE 14
+Important Documents — Secure digital storage of key family documents
+Document Type — Dropdown: Aadhaar Card, PAN Card, Passport, Driving License, Birth Certificate, Marriage Certificate, Property Documents, Vehicle RC, Insurance Policy, Medical Records, Other
+Document Name — Text input
+Document Number — Text input (e.g., Aadhaar number)
+Issue Date — Date picker
+Expiry Date — Date picker (for passport, DL, etc.)
+Document Scan / Upload — Camera capture or file upload, stored on AWS S3
+Expiry Reminder — Reminder before 6 months, 3 months, 1 month
+Share — Generate secure temporary link to share document
+Reminder Output: 'Papa's Passport expires in 3 months. Consider renewal.'
+
+🏋️
+MODULE 15
+Fitness Tracking — Exercise and workout reminders
+Workout Type — Walking, Running, Yoga, Gym, Swimming, Cycling, Other
+Schedule — Days of week + time
+Duration Goal — Minutes per session
+Step Count Goal — If walking/running
+Streak Tracking — Consecutive days completed
+Rest Days — Marked separately
+Notes from Trainer/Doctor — Text area
+Reminder Output: 'Time for [Member]'s evening walk. Goal: 30 minutes.'
+
+📚
+MODULE 16
+Study & Education — Homework, exam and study reminders for students
+Student Grade / Class — Dropdown
+Subjects — Add multiple subjects
+Study Schedule — Day + Time per subject
+Homework Reminder — Toggle + Time
+Exam Dates — Add upcoming exams with date, subject, board
+Exam Reminder — Multiple: 1 week before, 3 days, 1 day
+School/College Events — Add events
+Fee Payment Due — Amount + Date
+Reminder Output: '[Member] Maths exam is in 2 days. Study reminder: 7 PM tonight.'
+
+🧘
+MODULE 17
+Mental Health & Wellness — Mood tracking and self-care reminders
+Daily Mood Log — Emoji scale (1-5) with optional note
+Meditation Reminder — Time picker
+Therapy / Counselling Session — Date + time + doctor name
+Medication (Psychiatric) — Links to Medicine module
+Breathing Exercise Reminders — Toggle + Frequency
+Journal Reminder — Daily text journal
+Self-care Activities — Customizable list
+Mood Trend — Weekly chart in member dashboard
+Reminder Output: 'Good evening [Member]. Time for your evening meditation.'
+
+🚗
+MODULE 18
+Vehicle Management — Service, insurance and fuel reminders
+Vehicle Type — Car, Bike, Scooter, Other
+Vehicle Name / Model — Text input
+Registration Number — Text input
+Insurance Expiry — Date picker + Reminder
+PUC Expiry — Date picker + Reminder (30 days, 7 days, 1 day before)
+Service Due Date — Date or KM-based (text input)
+Service Reminder — Date picker
+Fuel Log — Optional (date + litres + cost)
+Loan EMI Due — Amount + Date, links to Bill module
+Reminder Output: 'Papa's car insurance expires in 15 days. Renew it now.'
+
+🏠
+MODULE 19
+Home Maintenance — Track home tasks, AMC and appliance servicing
+Task Type — AC Service, Water Purifier Service, Pest Control, Plumbing, Electrical, Painting, Other
+Task Name — Text input
+Vendor / Technician — Name + Phone
+Last Done Date — Date picker
+Next Due Date — Date picker or frequency-based auto-calculation
+Frequency — Monthly, Quarterly, Yearly, Custom
+AMC Contract — Toggle + Expiry date
+Cost — Amount field
+Reminder Output: 'AC service is due next week. Last serviced on [Date].'
+
+⚙️
+MODULE 20
+Custom Module — Completely user-defined module
+Module Name — Text input (e.g., 'Temple Visit', 'Yoga Class', 'Weekly Pooja')
+Module Icon — Choose from icon library
+Custom Fields — User adds their own fields (label + value type: text/date/time/number)
+Reminder — Toggle + Custom time
+Frequency — User-defined
+Notes — Free text
+This module gives complete flexibility for anything not covered by modules 1-19
+Reminder Output: Custom based on module name and time set
+
+5.4 Member Card Logic
+After a member is saved, they appear as a Card on the Family Hub main screen.
+
+Member Card Components
+Profile photo (circle, 48px) — Default avatar if no photo
+Member Name — Bold
+Relation tag — e.g., 'Father', 'Mother'
+Module icons row — ONLY icons for selected modules (dynamic)
+'Managing X modules' count
+Managed By row — Avatars of connected caregivers (if any)
+'Manage' button — Opens Member Dashboard
+
+Critical Rule — Icons
+Show ONLY the module icons for modules the user has selected. Do NOT show default icons. If Papa has Medicine + Bills + Insurance selected, show only those 3 icons. If nothing is selected for a module, that icon does not appear.
+
+5.5 Connected Member / Caregiver System
+This is the core of the shared family system. A family member's data can be managed by one or more other family members (caregivers).
+
+How Connection Works
+During Step 3 (or in Member Settings), user sees: 'Who should manage or receive alerts for [Name]?'
+Shows list of all other family members in the system
+User selects one or more caregivers
+Selected caregivers are saved as connected_users
+Every reminder for that member is sent to both: the member AND all connected caregivers
+Any connected caregiver can mark reminder as Done/Taken
+When one caregiver marks Done, it syncs instantly to all others (via WebSocket)
+
+Notification Sharing Rules
+Event
+Who Gets Notified
+Reminder fires at scheduled time
+Member + All connected caregivers
+Reminder missed (30 min timeout)
+All connected caregivers only
+Reminder marked as Done
+All caregivers see status update (real-time)
+New reminder added
+Member + All connected caregivers
+Reminder edited/deleted
+Member + All connected caregivers
+Bill due today
+Member + All connected caregivers
+SOS triggered
+All connected caregivers immediately
+Document expiry approaching
+Member + All connected caregivers
+Medicine stock low
+Member + All connected caregivers
+
+5.6 Manage Member Dashboard
+Tapping 'Manage' on any member card opens their full dashboard.
+
+Dashboard Header
+Member photo + name + relation
+Health compliance ring (medicine taken % this week)
+Next upcoming reminder with time
+Quick action buttons: Add Reminder, Log Health, View Documents
+
+Dashboard Tabs (Horizontal Tab Bar)
+Tab
+Content
+Overview
+Summary cards — Today's reminders, health stats, upcoming bills, recent activity
+Reminders
+All active reminders for this member grouped by module. Edit, delete, mark done.
+Health
+All health readings — BP, sugar, weight history with graphs. Add new reading.
+Documents
+All uploaded documents. Tap to view, share, or download. Add new document.
+Modules
+Shows all selected modules. Tap any to expand details. Add/remove modules.
+Settings
+Manage caregivers, edit member info, notification preferences, delete member
+
+6. Reminders Tab — Engine & Logic
+
+6.1 Reminder Tab Overview
+The Reminders tab shows ALL reminders across ALL family members in one unified view. This is the reminder command center.
+
+Filter Bar (Horizontal Scroll)
+All — Show all reminders across all members
+Today — Only today's reminders
+Upcoming — Reminders due in next 7 days
+Overdue — Missed, not completed
+Completed — Done today / this week
+Per Member filters — Papa, Mummy, etc. (user's family members)
+
+Reminder Card Components
+Module icon (medicine, bill, etc.)
+Member avatar + name
+Reminder title
+Due time / due date
+Status badge — Pending / Done / Missed / Snoozed
+Quick action buttons — Mark Done, Snooze, Edit
+
+6.2 Reminder Lifecycle
+Reminder created (manual or via module setup)
+Stored in DB with status: PENDING
+At scheduled time: FCM push notification sent to member + caregivers
+Notification has action buttons: Mark Done / Snooze / Skip
+If user taps Mark Done: status → COMPLETED, all caregivers sync
+If user taps Snooze: status stays PENDING, new notification scheduled in X minutes
+If no action in 30 minutes: status → MISSED, alert sent to caregivers
+Missed reminders shown in red on Reminders tab and Home screen
+End of day: daily summary push notification — '3 reminders missed today'
+
+6.3 Add Reminder Screen
+Accessible from: Reminders tab (+) FAB, Home screen, member dashboard
+
+For which member? — Dropdown of family members
+Reminder type — Select module (Medicine, Bill, etc.) or General
+Title — Text input
+Date — Date picker (default today)
+Time — Time picker
+Repeat — None, Daily, Weekly, Monthly, Custom
+Notify also — Pre-selected caregivers, editable
+Priority — Normal, High
+Notes — Optional text area
+
+7. Insights Tab — Analytics & Reports
+
+7.1 Section: Spending Overview
+Monthly total spent across all family members
+Pie chart by category (Food, Bills, Medical, Shopping, etc.)
+Month-over-month comparison bar chart
+Top 5 spending categories
+
+7.2 Section: Bills Tracker
+All bills across family — paid and upcoming
+Monthly total of all bills
+Overdue bills highlighted in red
+Payment history log
+
+7.3 Section: Health Summary
+Per-member health at a glance
+Medicine compliance % this month
+BP / Sugar trend graph (last 30 days)
+Upcoming doctor appointments
+Missed health reminders count
+
+7.4 Section: Family Activity
+Activity feed — who completed what, when
+Example: 'Son marked Papa's medicine as taken at 8:05 PM'
+Caregiver activity log
+
+7.5 Section: Monthly Reports
+Auto-generated PDF report of the month (Premium)
+Includes: spending, health vitals, reminder compliance, bills paid
+
+7.6 Section: Money Leak Detection
+AI-driven feature that detects recurring unnecessary spending:
+Identifies: multiple food delivery subscriptions, unused streaming services, duplicate app subscriptions
+Shows potential annual savings
+CTA: 'Cancel [subscription]' or 'Reduce frequency'
+Example: 'You are paying for Netflix, Prime, and Hotstar. Potential saving: Rs. 3,600/year if you cancel one'
+
+8. Profile Tab — Settings & Permissions
+
+8.1 Account Section
+Profile photo, name, email, phone
+Edit profile
+Change password
+Linked accounts (Google, Apple)
+
+8.2 Notification Settings
+Master notification toggle
+Per-module notification toggle: Medicine, Bills, Insurance, Doctor, Diet, Routine, Travel, Custom, SOS
+Quiet hours — Set do-not-disturb time range
+Notification sound preference
+
+8.3 Family Permissions
+Who can manage which member — Caregiver assignment UI
+Permission levels: View Only / Can Edit / Full Access
+Connected devices list
+Pending invites (if invite system added)
+
+8.4 App Settings
+Language — English, Hindi, Gujarati, Marathi, Tamil, Telugu, Bengali
+Dark mode toggle
+Currency — INR (default), changeable
+Biometric lock — Touch ID / Face ID
+Data export — Export all family data as JSON
+
+8.5 Subscription
+Current plan: Free / Premium
+What's included in each plan — Feature comparison table
+Upgrade CTA
+Payment history
+Cancel subscription
+
+9. AI Features — Voice, Camera, WiseAI
+
+9.1 Voice Reminder (Microphone Icon — Home Screen)
+Tap the mic icon on Home screen. Full-screen modal with waveform animation appears.
+
+User speaks: 'Papa ko kal subah 8 baje medicine leni hai'
+Audio sent to OpenAI Whisper API for transcription
+Transcription sent to LLM (Claude/GPT) for entity extraction:
+Member: Papa
+Action: Medicine reminder
+Time: 8 AM tomorrow
+App shows: 'Creating reminder for Papa — Medicine — Tomorrow 8:00 AM'
+Confirm → reminder saved
+User can edit before saving
+
+9.2 Bill Scan (Camera Icon — Home Screen)
+Tap camera icon — opens camera with document crop overlay
+User captures bill image
+Image sent to Google ML Kit OCR
+Extracted text analyzed: bill name, amount, due date
+Form pre-filled with extracted data
+User selects which family member this bill belongs to
+User confirms and saves — bill added to Bills module
+
+9.3 WiseAI Chat (AI Chat Icon — Home Screen)
+Full-screen chat interface powered by Claude API.
+
+Example prompts WiseAI can handle:
+'What reminders does Papa have this week?' → Summary of Papa's reminders
+'How much have we spent on food this month?' → Expense breakdown
+'Mummy ki next doctor appointment kab hai?' → Appointment details
+'Show me Papa's BP readings for last month' → Health data summary
+'Add a reminder to call Dadi every Sunday at 7 PM' → Creates reminder
+'Which of our subscriptions are expiring soon?' → Subscription summary
+
+WiseAI Implementation
+WiseAI has access to the current user's family data via a secure context injection. The system prompt includes family member names, modules, and relevant data. Claude API (claude-sonnet-4-20250514) processes queries and returns natural language responses. Sensitive data like document images are never sent to the AI.
+
+10. Real-Time Sync & Notification System
+
+10.1 Firebase FCM — Push Notification Architecture
+Every user has an FCM token stored in DB on login
+Token refreshed automatically by Firebase SDK
+Notification payloads include: reminder_id, member_id, action_type
+iOS: Requires explicit permission request via react-native-permissions
+Android: Foreground service + exact alarm scheduling for medicine reminders
+
+10.2 Notification Types & Payloads
+// MEDICINE REMINDER NOTIFICATION
+{
+  title: "Papa ki medicine ka time",
+  body: "BP Tablet — 8:00 PM. Tap to mark as taken.",
+  data: {
+    type: "MEDICINE_REMINDER",
+    reminder_id: "rem_abc123",
+    member_id: "papa_001",
+    actions: ["MARK_TAKEN", "SNOOZE_15", "SKIP"]
+  }
+}
+
+// MISSED REMINDER ALERT
+{
+  title: "Reminder Missed",
+  body: "Papa ki BP Tablet nahi li abhi tak. 30 min ho gaye.",
+  data: {
+    type: "MISSED_ALERT",
+    reminder_id: "rem_abc123",
+    member_id: "papa_001"
+  }
+}
+
+10.3 WebSocket Real-Time Sync (Socket.io)
+Used for instant sync when a caregiver takes action on a shared reminder.
+Room: Each family group has a socket room (family_group_id)
+On Mark Done: Server emits REMINDER_UPDATED event to all room members
+All clients update local state immediately
+Fallback: If WebSocket disconnected, poll API every 30 seconds
+
+10.4 iOS-Specific Implementation
+Use react-native-permissions for notification permission
+Background notifications: background_fetch + silent push
+UNUserNotificationCenter for local notification scheduling
+Critical alerts (SOS): requires Apple entitlement
+Notification categories with action buttons registered at app launch
+
+10.5 Android-Specific Implementation
+Foreground Service for medicine reminders — runs even when app killed
+AlarmManager (exact alarms) — requires SCHEDULE_EXACT_ALARM permission
+Battery optimization: prompt user to whitelist app in battery settings
+Notification channels — create separate channels per module for granular control
+
+11. Complete API Documentation
+
+All API endpoints follow REST conventions. Base URL: https://api.lifewise.app/v1
+All requests require Authorization: Bearer {jwt_token} header except Auth endpoints.
+
+11.1 Authentication APIs
+Method
+Endpoint
+Description
+POST
+/auth/register
+Register new user with email/phone + password
+POST
+/auth/login
+Login, returns JWT access + refresh tokens
+POST
+/auth/refresh
+Refresh access token using refresh token
+POST
+/auth/logout
+Logout, invalidate refresh token
+POST
+/auth/forgot-password
+Send OTP for password reset
+POST
+/auth/verify-otp
+Verify OTP, returns reset token
+POST
+/auth/reset-password
+Set new password with reset token
+POST
+/auth/google
+Google OAuth login
+POST
+/auth/apple
+Apple Sign In
+PUT
+/auth/fcm-token
+Update user's FCM token after login
+
+11.2 Family Member APIs
+Method
+Endpoint
+Description
+GET
+/family/members
+Get all family members for current user
+POST
+/family/members
+Create new family member
+GET
+/family/members/:id
+Get single member with all module data
+PUT
+/family/members/:id
+Update member basic info
+DELETE
+/family/members/:id
+Delete member and all associated data
+POST
+/family/members/:id/caregivers
+Add caregiver to a member
+DELETE
+/family/members/:id/caregivers/:userId
+Remove caregiver
+GET
+/family/members/:id/caregivers
+List all caregivers for member
+POST
+/family/members/:id/photo
+Upload/update member profile photo
+
+11.3 Module Data APIs
+Method
+Endpoint
+Description
+GET
+/family/members/:id/modules
+Get all modules for a member
+POST
+/family/members/:id/modules
+Add/update module data
+GET
+/family/members/:id/modules/:type
+Get specific module data (type = medicine/bill/health etc.)
+PUT
+/family/members/:id/modules/:type/:itemId
+Update specific module item
+DELETE
+/family/members/:id/modules/:type/:itemId
+Delete specific module item
+POST
+/family/members/:id/modules/medicine
+Add medicine to member
+POST
+/family/members/:id/modules/bill
+Add bill to member
+POST
+/family/members/:id/modules/health-reading
+Log health reading (BP/Sugar/Weight)
+GET
+/family/members/:id/modules/health/history
+Get health history with date range filter
+POST
+/family/members/:id/modules/document
+Upload document (returns S3 URL)
+GET
+/family/members/:id/modules/documents
+List all documents
+
+11.4 Reminder APIs
+Method
+Endpoint
+Description
+GET
+/reminders
+Get all reminders (filter: member_id, date, status, type)
+POST
+/reminders
+Create new reminder
+GET
+/reminders/:id
+Get single reminder
+PUT
+/reminders/:id
+Update reminder
+DELETE
+/reminders/:id
+Delete reminder
+POST
+/reminders/:id/mark-done
+Mark reminder as completed
+POST
+/reminders/:id/snooze
+Snooze reminder by X minutes
+POST
+/reminders/:id/skip
+Skip this occurrence of reminder
+GET
+/reminders/today
+Get today's reminders for current user's family
+GET
+/reminders/upcoming
+Get reminders for next 7 days
+GET
+/reminders/missed
+Get all missed reminders
+POST
+/reminders/bulk-sync
+Sync reminder statuses (for WebSocket fallback)
+
+11.5 Insights & Analytics APIs
+Method
+Endpoint
+Description
+GET
+/insights/spending
+Monthly spending breakdown (filter: month, year, member_id)
+GET
+/insights/bills
+All bills summary — paid, upcoming, overdue
+GET
+/insights/health-summary
+Health vitals summary per member
+GET
+/insights/reminder-compliance
+Medicine/routine compliance %
+GET
+/insights/money-leak
+Detected money leak patterns and savings suggestions
+GET
+/insights/monthly-report
+Full monthly PDF report (Premium)
+GET
+/insights/activity-feed
+Family activity log
+
+11.6 Notification APIs
+Method
+Endpoint
+Description
+GET
+/notifications
+Get all notifications for user (paginated)
+PUT
+/notifications/:id/read
+Mark notification as read
+PUT
+/notifications/read-all
+Mark all notifications as read
+DELETE
+/notifications/:id
+Delete notification
+POST
+/notifications/settings
+Update notification preferences
+GET
+/notifications/settings
+Get current notification settings
+POST
+/notifications/test
+Send test notification (dev use)
+
+12. Database Schema — MongoDB Collections
+
+12.1 Users Collection
+{
+  _id: ObjectId,
+  name: String,
+  email: String,                // unique, indexed
+  phone: String,                // optional, unique if present
+  password_hash: String,
+  profile_photo_url: String,    // AWS S3 URL
+  fcm_token: String,            // Firebase push token
+  auth_provider: String,        // 'email' | 'google' | 'apple'
+  language: String,             // default: 'en'
+  currency: String,             // default: 'INR'
+  plan: String,                 // 'free' | 'premium'
+  plan_expires_at: Date,
+  notification_settings: {
+    medicine: Boolean,
+    bills: Boolean,
+    insurance: Boolean,
+    health: Boolean,
+    quiet_hours: { start: String, end: String }
+  },
+  created_at: Date,
+  updated_at: Date
+}
+
+12.2 FamilyMembers Collection
+{
+  _id: ObjectId,
+  owner_user_id: ObjectId,      // Who created this member
+  name: String,
+  relation: String,
+  age: Number,
+  date_of_birth: Date,
+  blood_group: String,
+  phone: String,
+  profile_photo_url: String,
+  selected_modules: [String],   // ['medicine', 'bills', 'insurance', ...]
+  connected_users: [ObjectId],  // Caregiver user IDs
+  is_active: Boolean,
+  created_at: Date,
+  updated_at: Date
+}
+
+12.3 Reminders Collection
+{
+  _id: ObjectId,
+  member_id: ObjectId,
+  owner_user_id: ObjectId,
+  module_type: String,           // 'medicine' | 'bill' | 'doctor' | ...
+  module_item_id: ObjectId,      // Reference to specific item
+  title: String,
+  description: String,
+  scheduled_time: Date,          // Next trigger time
+  repeat_type: String,           // 'none' | 'daily' | 'weekly' | 'monthly'
+  repeat_config: Object,         // { days: ['mon','wed'], time: '08:00' }
+  status: String,               // 'pending' | 'completed' | 'missed' | 'snoozed'
+  notify_users: [ObjectId],     // Member + caregivers
+  snoozed_until: Date,
+  completed_at: Date,
+  completed_by: ObjectId,       // Which user marked done
+  priority: String,             // 'normal' | 'high'
+  created_at: Date
+}
+
+12.4 MedicineItems Collection
+{
+  _id: ObjectId,
+  member_id: ObjectId,
+  name: String,
+  dosage: String,
+  timings: [String],            // ['morning', 'evening'] or ['08:00', '20:00']
+  before_after_food: String,    // 'before' | 'after' | 'any'
+  frequency: String,            // 'daily' | 'alternate' | 'weekly' | 'monthly'
+  days_of_week: [String],
+  start_date: Date,
+  end_date: Date,
+  current_stock: Number,
+  refill_alert_at: Number,      // Alert when stock <= this number
+  doctor_notes: String,
+  is_active: Boolean,
+  created_at: Date
+}
+
+12.5 BillItems Collection
+{
+  _id: ObjectId,
+  member_id: ObjectId,
+  bill_type: String,
+  bill_name: String,
+  account_number: String,
+  due_day_of_month: Number,     // e.g., 15 for 15th every month
+  approximate_amount: Number,
+  payment_method: String,
+  reminder_days_before: Number,
+  is_active: Boolean,
+  last_paid_date: Date,
+  payment_history: [{ date: Date, amount: Number, method: String }],
+  created_at: Date
+}
+
+12.6 HealthReadings Collection
+{
+  _id: ObjectId,
+  member_id: ObjectId,
+  reading_type: String,         // 'bp' | 'sugar' | 'weight' | 'oxygen' | ...
+  values: {                     // dynamic based on type
+    systolic: Number,           // for BP
+    diastolic: Number,          // for BP
+    pulse: Number,              // for BP
+    fasting: Boolean,           // for sugar
+    glucose_mg_dl: Number,      // for sugar
+    weight_kg: Number,          // for weight
+    spo2_percent: Number        // for oxygen
+  },
+  recorded_at: Date,
+  notes: String,
+  recorded_by: ObjectId         // user who logged it
+}
+
+13. Edge Cases & Error States
+
+13.1 Offline Behaviour
+App caches last-fetched data in AsyncStorage / MMKV
+User can view existing reminders offline
+Actions taken offline (mark done) are queued in local state
+On reconnection: sync queue flushes to server
+Show 'You are offline' banner when no connection detected
+
+13.2 Simultaneous Caregiver Actions
+If two caregivers tap 'Mark Done' at same time: first-write wins
+Second write is idempotent — no error, just status already COMPLETED
+Both users see COMPLETED state after WebSocket sync
+
+13.3 Reminder Scheduling Edge Cases
+Medicine time in past when adding → start from next occurrence
+Monthly reminder on 31st for months with 30 days → use last day of month
+Reminder for member who has no caregivers → notify member only
+FCM token expired → re-fetch on next app open, skip notification
+App uninstalled by caregiver → remove FCM token, remove from notify list
+
+13.4 Data Deletion & Privacy
+Delete member → soft delete (is_active: false), data retained 30 days
+Hard delete after 30 days or on explicit user request
+Caregiver removed → immediately stop sending them notifications
+User account deletion → delete all family data, members, reminders
+Document deletion → remove from S3 + DB
+
+14. MVP Roadmap
+
+Phase
+Timeline
+Features
+Phase 1 (MVP)
+Month 1–2
+Auth, Family Hub, Add Member, Medicine Module, Bills Module, Basic Reminders, FCM Notifications, Home Screen
+Phase 2
+Month 3
+Health Monitoring, Insurance, SOS, Connected Members / Caregivers, Real-time Sync (WebSocket), Reminders Tab
+Phase 3
+Month 4
+Insights Tab, Expense Tracking, Subscriptions, Documents Module, WiseAI Chat (basic)
+Phase 4
+Month 5
+Voice Reminders, Bill Scan OCR, All Remaining Modules, Money Leak Detection, Monthly Reports
+Phase 5
+Month 6+
+Premium subscription, Advanced Analytics, Multi-language, Vehicle Module, Home Maintenance Module
+
+15. Revenue & Monetization Strategy
+
+15.1 Freemium Model — Free vs Premium
+FREE PLAN
+PREMIUM PLAN — Rs. 199/month
+Up to 3 family members
+Medicine + Bills modules only
+Basic reminders
+1 caregiver per member
+7 days history
+No AI features
+No document storage
+Unlimited family members
+All 20 modules
+Unlimited caregivers
+Full history + export
+WiseAI chat
+Voice reminders
+Bill scan OCR
+Monthly PDF reports
+Money Leak detection
+1GB document storage
+Priority notifications
+
+15.2 Pricing Tiers
+Monthly: Rs. 199/month
+Yearly: Rs. 1,499/year (Save Rs. 888 — 37% off)
+Family Yearly: Rs. 1,999/year (share with up to 6 accounts — future feature)
+
+15.3 Additional Revenue Streams
+Stream
+How It Works
+Insurance Referrals
+Partner with Policybazaar / HDFC Ergo. When user adds insurance and clicks 'Renew', redirect to partner with referral link. Earn Rs. 200–500 per successful insurance purchase.
+Medicine Ordering
+Partner with 1mg / Netmeds / PharmEasy. When medicine stock is low, show 'Order Now' button. Earn 5-8% commission per order.
+Health Checkup
+Partner with Thyrocare / Lal Path Labs. Promote health packages when health readings are abnormal. Earn Rs. 50–200 per booking.
+Financial Products
+When money leak detected, recommend SIP / savings products. Partner with Groww / Zerodha. Earn referral commission.
+B2B / Enterprise
+Sell to housing societies, corporate HR teams, senior care homes. Flat monthly fee for group access — Rs. 5,000–50,000/month.
+White Label
+License LifeWise platform to banks, hospitals, insurance companies for their own family management tool. Annual licensing fee.
+In-App Credits
+Sell 'WiseAI Credits' for heavy AI users beyond their monthly quota. Rs. 49 for 50 extra WiseAI queries.
+
+15.4 Revenue Projections
+Milestone
+Total Users
+Paid Users (5%)
+Monthly Revenue
+6 Months
+10,000
+500
+Rs. 99,500
+12 Months
+50,000
+2,500
+Rs. 4,97,500
+18 Months
+2,00,000
+10,000
+Rs. 19,90,000
+24 Months
+5,00,000
+25,000
+Rs. 49,75,000
+
+Note
+Revenue projections above are subscription-only (Rs. 199/month). With insurance referrals, medicine ordering, and B2B, total revenue could be 2–3x these figures. This is a conservative baseline.
+
+LifeWise — Family Operating System
+PRD Version 1.0 | Confidential & Proprietary

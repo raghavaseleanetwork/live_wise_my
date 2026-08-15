@@ -44,6 +44,7 @@ const FILTER_OPTIONS: { key: string; labelKey: string; icon?: string }[] = [
   { key: 'health', labelKey: 'transactions.filterHealth', icon: 'medkit' },
   { key: 'education', labelKey: 'transactions.filterEdu', icon: 'book' },
   { key: 'investment', labelKey: 'transactions.filterInvest', icon: 'trending-up' },
+  { key: 'other_expense', labelKey: 'transactions.filterOtherExpense', icon: 'swap-horizontal' },
   { key: 'others', labelKey: 'transactions.filterOthers', icon: 'ellipsis-horizontal' },
 ];
 

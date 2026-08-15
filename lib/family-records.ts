@@ -169,14 +169,22 @@ async function updateSynced<T extends { id: string; createdAt: string }>(
 // Doctor Appointments
 // ---------------------------------------------------------------------------
 
+export type AppointmentRecurrence = 'monthly' | 'quarterly' | 'every_6_months' | 'yearly';
+export type AppointmentReminderLead = '1_day' | '3_hours' | '1_hour' | '30_min';
+
 export interface Appointment {
   id: string;
   doctorName: string;
   specialty?: string;
-  date: string; // ISO
+  hospitalName?: string;
+  date: string; // ISO — appointment date + time combined
   location?: string;
   notes?: string;
   isFollowUp: boolean;
+  followUpDate?: string | null; // ISO
+  isRecurring?: boolean;
+  recurrence?: AppointmentRecurrence;
+  reminderLead?: AppointmentReminderLead;
   completed: boolean;
   createdAt: string;
 }
@@ -225,16 +233,31 @@ export async function updateAppointment(
 // Health Monitoring
 // ---------------------------------------------------------------------------
 
-export type HealthMetricType = 'bp' | 'sugar' | 'weight';
+export type HealthMetricType = 'bp' | 'sugar' | 'weight' | 'temperature' | 'oxygen' | 'heart_rate' | 'cholesterol';
+export type WeightUnit = 'kg' | 'lbs';
+export type SugarReadingType = 'fasting' | 'post_meal';
 
 export interface HealthLog {
   id: string;
   type: HealthMetricType;
-  /** e.g. "120/80" for BP, "98" for sugar (mg/dL), "72" for weight (kg) */
+  /** e.g. "120/80" for BP, "98" for sugar (mg/dL), "72" for weight (kg) — kept
+   * for display/back-compat; structured fields below are the source of truth
+   * for BP/sugar/weight when present. */
   value: string;
   date: string; // ISO
   notes?: string;
   createdAt: string;
+  // BP breakdown (PRD: Systolic + Diastolic + Pulse).
+  systolic?: number;
+  diastolic?: number;
+  pulse?: number;
+  // Sugar breakdown (PRD: Fasting/Post-meal toggle).
+  sugarReadingType?: SugarReadingType;
+  // Weight breakdown (PRD: unit toggle).
+  weightUnit?: WeightUnit;
+  // Normal-range alert (PRD: "user sets target range; app alerts if out of range").
+  targetRangeLow?: number;
+  targetRangeHigh?: number;
 }
 
 const HEALTH_KEY = (memberId: string) => `@lifewise_family_health_${memberId}`;
@@ -243,7 +266,19 @@ export const HEALTH_METRIC_LABELS: Record<HealthMetricType, { label: string; uni
   bp: { label: 'Blood Pressure', unit: 'mmHg', icon: 'heart' },
   sugar: { label: 'Blood Sugar', unit: 'mg/dL', icon: 'water' },
   weight: { label: 'Weight', unit: 'kg', icon: 'body' },
+  temperature: { label: 'Temperature', unit: '°F', icon: 'thermometer' },
+  oxygen: { label: 'Oxygen Level', unit: '%', icon: 'pulse' },
+  heart_rate: { label: 'Heart Rate', unit: 'bpm', icon: 'heart-circle' },
+  cholesterol: { label: 'Cholesterol', unit: 'mg/dL', icon: 'flask' },
 };
+
+/** Whether a reading falls outside its member-set target range, for the PRD's out-of-range alert. */
+export function isHealthLogOutOfRange(log: HealthLog): boolean {
+  if (log.targetRangeLow == null || log.targetRangeHigh == null) return false;
+  const numeric = log.type === 'bp' ? log.systolic : Number(log.value);
+  if (numeric == null || Number.isNaN(numeric)) return false;
+  return numeric < log.targetRangeLow || numeric > log.targetRangeHigh;
+}
 
 export async function loadHealthLogs(memberId: string): Promise<HealthLog[]> {
   const items = await loadSynced<HealthLog>(memberId, 'health', HEALTH_KEY(memberId));
@@ -272,15 +307,25 @@ export async function deleteHealthLog(memberId: string, id: string): Promise<Hea
 // Medication Stock
 // ---------------------------------------------------------------------------
 
+export interface StockPurchaseLogEntry {
+  id: string;
+  quantityAdded: number;
+  purchasedAt: string; // ISO
+}
+
 export interface MedicationStockItem {
   id: string;
   medicineName: string;
+  /** Set when linked to an actual Medicine Tracking entry (PRD: "Links to Module 1 data"). */
+  linkedMedicineId?: string | null;
   /** Doses remaining, e.g. tablets left. */
   quantityRemaining: number;
   /** Below this, the item is flagged as low stock. */
   lowStockThreshold: number;
   /** How many doses are used per day, to estimate days-left. */
   dailyUsage: number;
+  pharmacyName?: string;
+  purchaseLog?: StockPurchaseLogEntry[];
   createdAt: string;
 }
 
@@ -308,6 +353,18 @@ export async function adjustStock(memberId: string, id: string, delta: number): 
   if (!current) return items;
   return updateSynced<MedicationStockItem>(memberId, 'stock', STOCK_KEY(memberId), id, {
     quantityRemaining: Math.max(0, current.quantityRemaining + delta),
+  });
+}
+
+/** Records a restock (PRD: "Purchase Log — Record when new stock is purchased") and adds it to the running total. */
+export async function logStockPurchase(memberId: string, id: string, quantityAdded: number): Promise<MedicationStockItem[]> {
+  const items = await loadCached<MedicationStockItem>(STOCK_KEY(memberId));
+  const current = items.find((s) => s.id === id);
+  if (!current) return items;
+  const entry: StockPurchaseLogEntry = { id: generateId(), quantityAdded, purchasedAt: new Date().toISOString() };
+  return updateSynced<MedicationStockItem>(memberId, 'stock', STOCK_KEY(memberId), id, {
+    quantityRemaining: Math.max(0, current.quantityRemaining + quantityAdded),
+    purchaseLog: [entry, ...(current.purchaseLog ?? [])].slice(0, 20),
   });
 }
 
@@ -354,10 +411,21 @@ export interface RoutineItem {
    */
   days?: number[];
   enabled: boolean;
+  /** ISO dates (YYYY-MM-DD) marked done, for compliance % and streaks. */
+  completedDates?: string[];
   createdAt: string;
 }
 
 const ROUTINE_KEY = (memberId: string) => `@lifewise_family_routine_${memberId}`;
+
+/** Percentage of the last 7 days this routine was marked done, for the PRD's "Weekly Compliance %". */
+export function routineWeeklyCompliance(item: RoutineItem): number {
+  const dates = item.completedDates ?? [];
+  if (dates.length === 0) return 0;
+  const sevenDaysAgo = Date.now() - 7 * 86400000;
+  const recent = dates.filter((d) => new Date(d).getTime() >= sevenDaysAgo);
+  return Math.round((recent.length / 7) * 100);
+}
 
 export const ROUTINE_TYPE_LABELS: Record<RoutineType, { label: string; icon: string }> = {
   wakeup: { label: 'Wake-up', icon: 'sunny' },
@@ -399,6 +467,19 @@ export async function deleteRoutine(memberId: string, id: string): Promise<Routi
   return deleteSynced<RoutineItem>(memberId, 'routines', ROUTINE_KEY(memberId), id);
 }
 
+/** Marks today complete for a routine item (PRD: "Completion Tracking — Tap to mark done"). */
+export async function markRoutineDoneToday(memberId: string, id: string): Promise<RoutineItem[]> {
+  const items = await loadCached<RoutineItem>(ROUTINE_KEY(memberId));
+  const current = items.find((r) => r.id === id);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const dates = current?.completedDates ?? [];
+  if (dates.includes(today)) return items; // already marked today
+  return updateSynced<RoutineItem>(memberId, 'routines', ROUTINE_KEY(memberId), id, {
+    completedDates: [...dates, today].slice(-90), // keep a rolling ~3 months
+  });
+}
+
 export async function updateRoutine(
   memberId: string,
   id: string,
@@ -411,12 +492,35 @@ export async function updateRoutine(
 // Bill Management (per family member — electricity, medical, insurance bills)
 // ---------------------------------------------------------------------------
 
+export type FamilyBillCategory =
+  | 'electricity'
+  | 'gas'
+  | 'water'
+  | 'internet'
+  | 'mobile_postpaid'
+  | 'cable_tv'
+  | 'society_maintenance'
+  | 'rent'
+  | 'loan_emi'
+  | 'credit_card'
+  | 'medical'
+  | 'insurance'
+  | 'other';
+
+export type BillPaymentMethod = 'upi' | 'net_banking' | 'credit_card' | 'auto_debit' | 'cash';
+
 export interface FamilyBill {
   id: string;
   name: string;
   amount: number;
   dueDate: string; // ISO
-  category: 'electricity' | 'medical' | 'insurance' | 'other';
+  category: FamilyBillCategory;
+  accountNumber?: string;
+  paymentMethod?: BillPaymentMethod;
+  /** Days before dueDate to fire the primary reminder. */
+  reminderDaysBefore?: number;
+  /** Extra reminder on the due date itself, per the PRD's "Additional Reminder" toggle. */
+  dayOfReminderEnabled?: boolean;
   isPaid: boolean;
   createdAt: string;
 }
@@ -463,13 +567,21 @@ export async function updateFamilyBill(
 // Subscription Tracking
 // ---------------------------------------------------------------------------
 
+export type SubscriptionCategory = 'entertainment' | 'productivity' | 'health' | 'education' | 'other';
+export type SubscriptionPaymentMethod = 'upi' | 'net_banking' | 'credit_card' | 'debit_card' | 'other';
+
 export interface FamilySubscription {
   id: string;
   serviceName: string;
+  planType?: string;
   amount: number;
   renewalDate: string; // ISO
-  cycle: 'monthly' | 'yearly';
-  category: 'ott' | 'utility' | 'other';
+  cycle: 'monthly' | 'quarterly' | 'yearly';
+  autoRenews?: boolean;
+  paymentMethod?: SubscriptionPaymentMethod;
+  /** Days before renewal to fire the reminder. */
+  reminderDaysBefore?: number;
+  category: SubscriptionCategory;
   createdAt: string;
 }
 
@@ -618,11 +730,31 @@ export async function updateFamilyTask(
 // Insurance & Documents
 // ---------------------------------------------------------------------------
 
+export type FamilyDocumentType =
+  | 'aadhaar'
+  | 'pan'
+  | 'passport'
+  | 'driving_license'
+  | 'birth_certificate'
+  | 'marriage_certificate'
+  | 'property'
+  | 'vehicle_rc'
+  | 'insurance'
+  | 'medical'
+  | 'other';
+
+export type DocumentExpiryReminderLead = '6_months' | '3_months' | '1_month';
+
 export interface FamilyDocument {
   id: string;
   title: string;
-  type: 'insurance' | 'id' | 'medical' | 'other';
-  /** Policy/renewal reminder date, if applicable. */
+  type: FamilyDocumentType;
+  documentNumber?: string;
+  issueDate?: string | null; // ISO
+  expiryDate?: string | null; // ISO
+  expiryReminderLead?: DocumentExpiryReminderLead;
+  /** Policy/renewal reminder date, if applicable — kept for back-compat with
+   * records saved before expiryDate/expiryReminderLead existed. */
   reminderDate?: string | null; // ISO
   notes?: string;
   createdAt: string;
@@ -630,9 +762,16 @@ export interface FamilyDocument {
 
 const DOC_KEY = (memberId: string) => `@lifewise_family_documents_${memberId}`;
 
-export const DOCUMENT_TYPE_LABELS: Record<FamilyDocument['type'], { label: string; icon: string }> = {
+export const DOCUMENT_TYPE_LABELS: Record<FamilyDocumentType, { label: string; icon: string }> = {
+  aadhaar: { label: 'Aadhaar Card', icon: 'card' },
+  pan: { label: 'PAN Card', icon: 'card' },
+  passport: { label: 'Passport', icon: 'airplane' },
+  driving_license: { label: 'Driving License', icon: 'car' },
+  birth_certificate: { label: 'Birth Certificate', icon: 'document-text' },
+  marriage_certificate: { label: 'Marriage Certificate', icon: 'document-text' },
+  property: { label: 'Property Documents', icon: 'home' },
+  vehicle_rc: { label: 'Vehicle RC', icon: 'car-sport' },
   insurance: { label: 'Insurance Policy', icon: 'shield-checkmark' },
-  id: { label: 'ID Document', icon: 'card' },
   medical: { label: 'Medical Record', icon: 'medkit' },
   other: { label: 'Other', icon: 'document' },
 };
@@ -669,6 +808,9 @@ export async function updateFamilyDocument(
 // Call & Check-in
 // ---------------------------------------------------------------------------
 
+export type CheckinFrequency = 'daily' | 'every_2_days' | 'weekly' | 'custom';
+export type CheckinCallType = 'regular_call' | 'video_call' | 'whatsapp_call';
+
 export interface CheckinItem {
   id: string;
   label: string;
@@ -676,6 +818,11 @@ export interface CheckinItem {
   time: string;
   /** Days of week this repeats on, 0=Sun..6=Sat. Empty = every day. */
   days: number[];
+  frequency?: CheckinFrequency;
+  callType?: CheckinCallType;
+  contactNumber?: string;
+  /** PRD: follow-up alert if not marked "Called" within 2 hours of the scheduled time. */
+  missedCallAlertEnabled?: boolean;
   enabled: boolean;
   lastDoneAt?: string | null;
   createdAt: string;
@@ -719,6 +866,21 @@ export async function toggleCheckin(memberId: string, id: string): Promise<Check
   });
 }
 
+/** PRD: "If not marked 'Called' within 2 hours, send follow-up reminder." */
+export function isCheckinMissed(item: CheckinItem): boolean {
+  if (!item.missedCallAlertEnabled || !item.enabled) return false;
+  const parts = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(item.time?.trim() ?? '');
+  if (!parts) return false;
+  let hours = Number(parts[1]) % 12;
+  if (parts[3].toUpperCase() === 'PM') hours += 12;
+  const scheduled = new Date();
+  scheduled.setHours(hours, Number(parts[2]), 0, 0);
+  if (scheduled.getTime() > Date.now()) return false; // not due yet today
+  const doneToday = item.lastDoneAt && new Date(item.lastDoneAt).toDateString() === new Date().toDateString();
+  if (doneToday) return false;
+  return (Date.now() - scheduled.getTime()) / (1000 * 60 * 60) >= 2;
+}
+
 export async function deleteCheckin(memberId: string, id: string): Promise<CheckinItem[]> {
   return deleteSynced<CheckinItem>(memberId, 'checkins', CHECKIN_KEY(memberId), id);
 }
@@ -737,12 +899,23 @@ export async function updateCheckin(
 
 export type TravelType = 'doctor_visit' | 'family_visit' | 'trip';
 
+export type TravelRecurrence = 'weekly' | 'monthly' | 'yearly';
+
 export interface TravelItem {
   id: string;
   type: TravelType;
   title: string;
-  date: string; // ISO
+  date: string; // ISO — visit date + time combined
   location?: string;
+  notes?: string;
+  isRecurring?: boolean;
+  recurrence?: TravelRecurrence;
+  /** Hours before the visit to fire the reminder. */
+  reminderHoursBefore?: number;
+  /** For trips: when the traveller returns. */
+  returnDate?: string | null; // ISO
+  /** Other family member ids also travelling/visiting. */
+  companionMemberIds?: string[];
   completed: boolean;
   createdAt: string;
 }
@@ -876,6 +1049,56 @@ export async function acknowledgeEmergencyLogEntry(memberId: string, id: string)
   return next;
 }
 
+// ---------------------------------------------------------------------------
+// Emergency medical profile (PRD Module 4, added 2026-08-14)
+//
+// Unlike EmergencySettings above (a per-device alert-threshold preference),
+// this is data a caregiver needs to see too — allergies, contacts, blood
+// group — so it's synced like every other Family Hub record, not local-only.
+// ---------------------------------------------------------------------------
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  phone: string;
+  relation: string;
+}
+
+export interface EmergencyMedicalProfile {
+  /** Up to 5, per the PRD. */
+  contacts: EmergencyContact[];
+  /** Falls back to the member's own bloodGroup field if unset here. */
+  bloodGroup?: string;
+  knownAllergies?: string;
+  existingMedicalConditions?: string;
+  currentMedicationsNote?: string;
+  doctorName?: string;
+  doctorPhone?: string;
+  hospitalPreference?: string;
+  insurancePolicyNumber?: string;
+}
+
+const EMERGENCY_PROFILE_KEY = (memberId: string) => `@lifewise_family_emergency_profile_${memberId}`;
+
+const EMPTY_EMERGENCY_PROFILE: EmergencyMedicalProfile = { contacts: [] };
+
+/** Same single-profile-per-member sync pattern as Study/Diet — see their comments. */
+export async function loadEmergencyMedicalProfile(memberId: string): Promise<EmergencyMedicalProfile> {
+  const remote = await loadSynced<EmergencyMedicalProfile>(memberId, 'emergencyProfile', EMERGENCY_PROFILE_KEY(memberId));
+  if (remote && remote.length > 0) return { ...EMPTY_EMERGENCY_PROFILE, ...remote[0] };
+  try {
+    const raw = await AsyncStorage.getItem(EMERGENCY_PROFILE_KEY(memberId));
+    return raw ? { ...EMPTY_EMERGENCY_PROFILE, ...JSON.parse(raw) } : { ...EMPTY_EMERGENCY_PROFILE };
+  } catch {
+    return { ...EMPTY_EMERGENCY_PROFILE };
+  }
+}
+
+export async function saveEmergencyMedicalProfile(memberId: string, profile: EmergencyMedicalProfile): Promise<void> {
+  await saveLocal(EMERGENCY_PROFILE_KEY(memberId), [{ ...profile, id: memberId }] as unknown as EmergencyMedicalProfile[]);
+  await pushCreate(memberId, 'emergencyProfile', { id: memberId, ...profile } as unknown as { id: string });
+}
+
 /**
  * Checks a member's medicines for any dose that's overdue by more than the
  * configured threshold and hasn't been logged as taken today. Returns the
@@ -932,10 +1155,24 @@ function parseSlotTimeToday(slotTime: string): Date | null {
 // Custom Feature (user-defined tracker)
 // ---------------------------------------------------------------------------
 
+export type CustomFieldType = 'text' | 'date' | 'time' | 'number';
+
+export interface CustomFieldDef {
+  id: string;
+  label: string;
+  type: CustomFieldType;
+}
+
 export interface CustomFeatureConfig {
   /** User-chosen name for this custom tracker, e.g. "Physiotherapy Sessions". */
   name: string;
   icon: string;
+  /** User-defined fields (PRD: "label + value type: text/date/time/number"). */
+  customFields?: CustomFieldDef[];
+  reminderEnabled?: boolean;
+  /** "HH:MM AM/PM" for the custom reminder time. */
+  reminderTime?: string;
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'custom';
 }
 
 export interface CustomTrackerItem {
@@ -943,6 +1180,8 @@ export interface CustomTrackerItem {
   title: string;
   date: string; // ISO
   completed: boolean;
+  /** Keyed by CustomFieldDef.id. */
+  fieldValues?: Record<string, string>;
   createdAt: string;
 }
 
@@ -978,9 +1217,10 @@ export async function saveCustomItems(memberId: string, items: CustomTrackerItem
 export async function addCustomItem(
   memberId: string,
   title: string,
+  fieldValues?: Record<string, string>,
 ): Promise<CustomTrackerItem> {
   const items = await loadCustomItems(memberId);
-  const record: CustomTrackerItem = { id: generateId(), title, completed: false, date: new Date().toISOString(), createdAt: new Date().toISOString() };
+  const record: CustomTrackerItem = { id: generateId(), title, completed: false, date: new Date().toISOString(), fieldValues, createdAt: new Date().toISOString() };
   await saveCustomItems(memberId, [record, ...items]);
   return record;
 }
@@ -997,4 +1237,446 @@ export async function deleteCustomItem(memberId: string, id: string): Promise<Cu
   const next = items.filter((i) => i.id !== id);
   await saveCustomItems(memberId, next);
   return next;
+}
+
+// ---------------------------------------------------------------------------
+// Diet & Meal Planning (PRD Module 12)
+// ---------------------------------------------------------------------------
+
+export type DietType = 'normal' | 'diabetic' | 'low_salt' | 'low_fat' | 'vegetarian' | 'vegan' | 'custom';
+
+export const DIET_TYPE_LABELS: Record<DietType, string> = {
+  normal: 'Normal',
+  diabetic: 'Diabetic',
+  low_salt: 'Low Salt',
+  low_fat: 'Low Fat',
+  vegetarian: 'Vegetarian',
+  vegan: 'Vegan',
+  custom: 'Custom',
+};
+
+export type MealSlot = 'breakfast' | 'lunch' | 'evening_snack' | 'dinner';
+
+export interface MealPlanEntry {
+  /** "HH:MM AM/PM" */
+  time: string;
+  notes?: string;
+  reminderEnabled: boolean;
+}
+
+/** Optional day-wise structured plan, PRD: "Weekly Meal Plan — Day-wise table (optional)". */
+export interface WeeklyMealPlanDay {
+  day: number; // 0=Sun..6=Sat
+  meals: Partial<Record<MealSlot, string>>;
+}
+
+export interface DietProfile {
+  dietType: DietType;
+  customDietName?: string;
+  meals: Partial<Record<MealSlot, MealPlanEntry>>;
+  dailyCalorieTarget?: number | null;
+  foodRestrictions?: string;
+  waterIntakeReminderEnabled: boolean;
+  waterIntakeReminderHourly?: number;
+  doctorNotes?: string;
+  weeklyPlan: WeeklyMealPlanDay[];
+}
+
+const DIET_PROFILE_KEY = (memberId: string) => `@lifewise_family_diet_profile_${memberId}`;
+
+const EMPTY_DIET_PROFILE: DietProfile = {
+  dietType: 'normal',
+  meals: {},
+  waterIntakeReminderEnabled: false,
+  weeklyPlan: [],
+};
+
+/** Same single-profile-per-member pattern as Study & Education — see its comment. */
+export async function loadDietProfile(memberId: string): Promise<DietProfile> {
+  const remote = await loadSynced<DietProfile>(memberId, 'diet', DIET_PROFILE_KEY(memberId));
+  if (remote && remote.length > 0) return { ...EMPTY_DIET_PROFILE, ...remote[0] };
+  try {
+    const raw = await AsyncStorage.getItem(DIET_PROFILE_KEY(memberId));
+    return raw ? { ...EMPTY_DIET_PROFILE, ...JSON.parse(raw) } : { ...EMPTY_DIET_PROFILE };
+  } catch {
+    return { ...EMPTY_DIET_PROFILE };
+  }
+}
+
+export async function saveDietProfile(memberId: string, profile: DietProfile): Promise<void> {
+  await saveLocal(DIET_PROFILE_KEY(memberId), [{ ...profile, id: memberId }] as unknown as DietProfile[]);
+  await pushCreate(memberId, 'diet', { id: memberId, ...profile } as unknown as { id: string });
+}
+
+// ---------------------------------------------------------------------------
+// Fitness Tracking (PRD Module 15)
+// ---------------------------------------------------------------------------
+
+export type WorkoutType = 'walking' | 'running' | 'yoga' | 'gym' | 'swimming' | 'cycling' | 'other';
+
+export const WORKOUT_TYPE_LABELS: Record<WorkoutType, { label: string; icon: string }> = {
+  walking: { label: 'Walking', icon: 'walk' },
+  running: { label: 'Running', icon: 'walk' },
+  yoga: { label: 'Yoga', icon: 'body' },
+  gym: { label: 'Gym', icon: 'barbell' },
+  swimming: { label: 'Swimming', icon: 'water' },
+  cycling: { label: 'Cycling', icon: 'bicycle' },
+  other: { label: 'Other', icon: 'fitness' },
+};
+
+export interface FitnessItem {
+  id: string;
+  workoutType: WorkoutType;
+  /** Days of week this repeats on, 0=Sun..6=Sat. Empty = every day. */
+  days: number[];
+  /** "HH:MM AM/PM" */
+  time: string;
+  durationGoalMinutes?: number | null;
+  stepCountGoal?: number | null;
+  isRestDay?: boolean;
+  notes?: string;
+  reminderEnabled: boolean;
+  /** Consecutive days completed, most recent streak. */
+  streak: number;
+  lastDoneAt?: string | null;
+  createdAt: string;
+}
+
+const FITNESS_KEY = (memberId: string) => `@lifewise_family_fitness_${memberId}`;
+
+export async function loadFitnessItems(memberId: string): Promise<FitnessItem[]> {
+  return loadSynced<FitnessItem>(memberId, 'fitness', FITNESS_KEY(memberId));
+}
+
+export async function saveFitnessItems(memberId: string, items: FitnessItem[]): Promise<void> {
+  await saveLocal(FITNESS_KEY(memberId), items);
+}
+
+export async function addFitnessItem(
+  memberId: string,
+  data: Omit<FitnessItem, 'id' | 'createdAt' | 'streak' | 'lastDoneAt'>,
+): Promise<FitnessItem> {
+  const record: FitnessItem = { ...data, id: generateId(), streak: 0, lastDoneAt: null, createdAt: new Date().toISOString() };
+  return addSynced(memberId, 'fitness', FITNESS_KEY(memberId), record);
+}
+
+export async function markFitnessDone(memberId: string, id: string): Promise<FitnessItem[]> {
+  const items = await loadCached<FitnessItem>(FITNESS_KEY(memberId));
+  const current = items.find((f) => f.id === id);
+  const today = new Date().toDateString();
+  const lastDone = current?.lastDoneAt ? new Date(current.lastDoneAt).toDateString() : null;
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  // Consecutive-day streak: continues only if the last completion was yesterday,
+  // resets to 1 if there was a gap, and is a no-op if already done today.
+  const nextStreak = lastDone === today ? (current?.streak ?? 0) : lastDone === yesterday ? (current?.streak ?? 0) + 1 : 1;
+  return updateSynced<FitnessItem>(memberId, 'fitness', FITNESS_KEY(memberId), id, {
+    lastDoneAt: new Date().toISOString(),
+    streak: nextStreak,
+  });
+}
+
+export async function deleteFitnessItem(memberId: string, id: string): Promise<FitnessItem[]> {
+  return deleteSynced<FitnessItem>(memberId, 'fitness', FITNESS_KEY(memberId), id);
+}
+
+export async function updateFitnessItem(
+  memberId: string,
+  id: string,
+  patch: Partial<FitnessItem>,
+): Promise<FitnessItem[]> {
+  return updateSynced<FitnessItem>(memberId, 'fitness', FITNESS_KEY(memberId), id, patch);
+}
+
+// ---------------------------------------------------------------------------
+// Study & Education (PRD Module 16)
+// ---------------------------------------------------------------------------
+
+export type StudyItemType = 'subject' | 'exam' | 'event' | 'fee';
+
+export interface StudySubject {
+  id: string;
+  name: string;
+  /** "HH:MM AM/PM" study-schedule time, one slot per subject (PRD: Day + Time). */
+  scheduleDays: number[];
+  scheduleTime: string;
+  homeworkReminderEnabled: boolean;
+  homeworkReminderTime?: string;
+  createdAt: string;
+}
+
+export interface StudyExam {
+  id: string;
+  subject: string;
+  examDate: string; // ISO
+  board?: string;
+  /** Reminder lead times in days before the exam, e.g. [7, 3, 1]. */
+  reminderDaysBefore: number[];
+  createdAt: string;
+}
+
+export interface StudyEvent {
+  id: string;
+  title: string;
+  eventDate: string; // ISO
+  notes?: string;
+  createdAt: string;
+}
+
+export interface StudyFee {
+  id: string;
+  title: string;
+  amount: number;
+  dueDate: string; // ISO
+  isPaid: boolean;
+  createdAt: string;
+}
+
+export interface StudyProfile {
+  grade: string;
+  subjects: StudySubject[];
+  exams: StudyExam[];
+  events: StudyEvent[];
+  fees: StudyFee[];
+}
+
+const STUDY_PROFILE_KEY = (memberId: string) => `@lifewise_family_study_profile_${memberId}`;
+
+const EMPTY_STUDY_PROFILE: StudyProfile = { grade: '', subjects: [], exams: [], events: [], fees: [] };
+
+/**
+ * Study & Education bundles four sub-lists (subjects/exams/events/fees) under
+ * one member-level grade. Kept as a single synced record — like Custom
+ * Feature's config — rather than four separate `RecordKind`s, since the PRD
+ * treats them as one module's internal structure, not independent lists a
+ * caregiver would filter separately.
+ */
+export async function loadStudyProfile(memberId: string): Promise<StudyProfile> {
+  const remote = await loadSynced<StudyProfile>(memberId, 'study', STUDY_PROFILE_KEY(memberId));
+  // The server returns a list per RecordKind; Study stores its one profile
+  // object as the sole item in that list so it can reuse the same sync path.
+  if (remote && remote.length > 0) return { ...EMPTY_STUDY_PROFILE, ...remote[0] };
+  try {
+    const raw = await AsyncStorage.getItem(STUDY_PROFILE_KEY(memberId));
+    return raw ? { ...EMPTY_STUDY_PROFILE, ...JSON.parse(raw) } : { ...EMPTY_STUDY_PROFILE };
+  } catch {
+    return { ...EMPTY_STUDY_PROFILE };
+  }
+}
+
+export async function saveStudyProfile(memberId: string, profile: StudyProfile): Promise<void> {
+  await saveLocal(STUDY_PROFILE_KEY(memberId), [{ ...profile, id: memberId }] as unknown as StudyProfile[]);
+  await pushCreate(memberId, 'study', { id: memberId, ...profile } as unknown as { id: string });
+}
+
+// ---------------------------------------------------------------------------
+// Mental Health & Wellness (PRD Module 17)
+// ---------------------------------------------------------------------------
+
+export type MoodValue = 1 | 2 | 3 | 4 | 5;
+
+export interface MoodLog {
+  id: string;
+  mood: MoodValue;
+  note?: string;
+  loggedAt: string; // ISO
+  createdAt: string;
+}
+
+export interface WellnessReminder {
+  id: string;
+  kind: 'meditation' | 'breathing' | 'journal' | 'self_care' | 'therapy';
+  title: string;
+  /** "HH:MM AM/PM" for time-based reminders. */
+  time?: string;
+  /** Frequency in days for breathing-exercise style reminders (PRD: Toggle + Frequency). */
+  frequencyDays?: number;
+  /** Therapy/counselling session fields (PRD: Date + time + doctor name). */
+  sessionDate?: string; // ISO
+  doctorName?: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
+const MOOD_LOG_KEY = (memberId: string) => `@lifewise_family_mood_logs_${memberId}`;
+const WELLNESS_KEY = (memberId: string) => `@lifewise_family_wellness_${memberId}`;
+
+export async function loadMoodLogs(memberId: string): Promise<MoodLog[]> {
+  return loadSynced<MoodLog>(memberId, 'moodLogs', MOOD_LOG_KEY(memberId));
+}
+
+export async function addMoodLog(memberId: string, mood: MoodValue, note?: string): Promise<MoodLog> {
+  const record: MoodLog = { id: generateId(), mood, note, loggedAt: new Date().toISOString(), createdAt: new Date().toISOString() };
+  return addSynced(memberId, 'moodLogs', MOOD_LOG_KEY(memberId), record);
+}
+
+export async function deleteMoodLog(memberId: string, id: string): Promise<MoodLog[]> {
+  return deleteSynced<MoodLog>(memberId, 'moodLogs', MOOD_LOG_KEY(memberId), id);
+}
+
+export async function loadWellnessReminders(memberId: string): Promise<WellnessReminder[]> {
+  return loadSynced<WellnessReminder>(memberId, 'wellness', WELLNESS_KEY(memberId));
+}
+
+export async function addWellnessReminder(
+  memberId: string,
+  data: Omit<WellnessReminder, 'id' | 'createdAt' | 'enabled'>,
+): Promise<WellnessReminder> {
+  const record: WellnessReminder = { ...data, id: generateId(), enabled: true, createdAt: new Date().toISOString() };
+  return addSynced(memberId, 'wellness', WELLNESS_KEY(memberId), record);
+}
+
+export async function toggleWellnessReminder(memberId: string, id: string): Promise<WellnessReminder[]> {
+  const items = await loadCached<WellnessReminder>(WELLNESS_KEY(memberId));
+  const current = items.find((w) => w.id === id);
+  return updateSynced<WellnessReminder>(memberId, 'wellness', WELLNESS_KEY(memberId), id, {
+    enabled: !current?.enabled,
+  });
+}
+
+export async function deleteWellnessReminder(memberId: string, id: string): Promise<WellnessReminder[]> {
+  return deleteSynced<WellnessReminder>(memberId, 'wellness', WELLNESS_KEY(memberId), id);
+}
+
+export async function updateWellnessReminder(
+  memberId: string,
+  id: string,
+  patch: Partial<WellnessReminder>,
+): Promise<WellnessReminder[]> {
+  return updateSynced<WellnessReminder>(memberId, 'wellness', WELLNESS_KEY(memberId), id, patch);
+}
+
+// ---------------------------------------------------------------------------
+// Vehicle Management (PRD Module 18)
+// ---------------------------------------------------------------------------
+
+export type VehicleType = 'car' | 'bike' | 'scooter' | 'other';
+
+export const VEHICLE_TYPE_LABELS: Record<VehicleType, { label: string; icon: string }> = {
+  car: { label: 'Car', icon: 'car' },
+  bike: { label: 'Bike', icon: 'bicycle' },
+  scooter: { label: 'Scooter', icon: 'bicycle' },
+  other: { label: 'Other', icon: 'car-sport' },
+};
+
+export interface VehicleItem {
+  id: string;
+  vehicleType: VehicleType;
+  name: string;
+  registrationNumber?: string;
+  insuranceExpiry?: string | null; // ISO
+  pucExpiry?: string | null; // ISO
+  /** Service can be date-based or KM-based per the PRD; stored as free text when KM-based. */
+  serviceDueDate?: string | null; // ISO
+  serviceDueNote?: string;
+  loanEmiAmount?: number | null;
+  loanEmiDueDate?: string | null; // ISO
+  createdAt: string;
+}
+
+export interface FuelLogEntry {
+  id: string;
+  vehicleId: string;
+  date: string; // ISO
+  litres: number;
+  cost: number;
+  createdAt: string;
+}
+
+const VEHICLE_KEY = (memberId: string) => `@lifewise_family_vehicles_${memberId}`;
+const FUEL_LOG_KEY = (memberId: string) => `@lifewise_family_fuel_log_${memberId}`;
+
+export async function loadVehicles(memberId: string): Promise<VehicleItem[]> {
+  return loadSynced<VehicleItem>(memberId, 'vehicles', VEHICLE_KEY(memberId));
+}
+
+export async function addVehicle(
+  memberId: string,
+  data: Omit<VehicleItem, 'id' | 'createdAt'>,
+): Promise<VehicleItem> {
+  const record: VehicleItem = { ...data, id: generateId(), createdAt: new Date().toISOString() };
+  return addSynced(memberId, 'vehicles', VEHICLE_KEY(memberId), record);
+}
+
+export async function deleteVehicle(memberId: string, id: string): Promise<VehicleItem[]> {
+  return deleteSynced<VehicleItem>(memberId, 'vehicles', VEHICLE_KEY(memberId), id);
+}
+
+export async function updateVehicle(
+  memberId: string,
+  id: string,
+  patch: Partial<VehicleItem>,
+): Promise<VehicleItem[]> {
+  return updateSynced<VehicleItem>(memberId, 'vehicles', VEHICLE_KEY(memberId), id, patch);
+}
+
+export async function loadFuelLog(memberId: string, vehicleId: string): Promise<FuelLogEntry[]> {
+  const all = await loadSynced<FuelLogEntry>(memberId, 'fuelLog', FUEL_LOG_KEY(memberId));
+  return all.filter((f) => f.vehicleId === vehicleId);
+}
+
+export async function addFuelLogEntry(
+  memberId: string,
+  data: Omit<FuelLogEntry, 'id' | 'createdAt'>,
+): Promise<FuelLogEntry> {
+  const record: FuelLogEntry = { ...data, id: generateId(), createdAt: new Date().toISOString() };
+  return addSynced(memberId, 'fuelLog', FUEL_LOG_KEY(memberId), record);
+}
+
+// ---------------------------------------------------------------------------
+// Home Maintenance (PRD Module 19)
+// ---------------------------------------------------------------------------
+
+export type HomeTaskType = 'ac_service' | 'water_purifier' | 'pest_control' | 'plumbing' | 'electrical' | 'painting' | 'other';
+
+export const HOME_TASK_TYPE_LABELS: Record<HomeTaskType, { label: string; icon: string }> = {
+  ac_service: { label: 'AC Service', icon: 'snow' },
+  water_purifier: { label: 'Water Purifier Service', icon: 'water' },
+  pest_control: { label: 'Pest Control', icon: 'bug' },
+  plumbing: { label: 'Plumbing', icon: 'water' },
+  electrical: { label: 'Electrical', icon: 'flash' },
+  painting: { label: 'Painting', icon: 'color-palette' },
+  other: { label: 'Other', icon: 'home' },
+};
+
+export type HomeTaskFrequency = 'monthly' | 'quarterly' | 'yearly' | 'custom';
+
+export interface HomeMaintenanceItem {
+  id: string;
+  taskType: HomeTaskType;
+  taskName: string;
+  vendorName?: string;
+  vendorPhone?: string;
+  lastDoneDate?: string | null; // ISO
+  nextDueDate?: string | null; // ISO
+  frequency?: HomeTaskFrequency;
+  hasAmc: boolean;
+  amcExpiryDate?: string | null; // ISO
+  cost?: number | null;
+  createdAt: string;
+}
+
+const HOME_MAINTENANCE_KEY = (memberId: string) => `@lifewise_family_home_maintenance_${memberId}`;
+
+export async function loadHomeMaintenanceItems(memberId: string): Promise<HomeMaintenanceItem[]> {
+  return loadSynced<HomeMaintenanceItem>(memberId, 'homeMaintenance', HOME_MAINTENANCE_KEY(memberId));
+}
+
+export async function addHomeMaintenanceItem(
+  memberId: string,
+  data: Omit<HomeMaintenanceItem, 'id' | 'createdAt'>,
+): Promise<HomeMaintenanceItem> {
+  const record: HomeMaintenanceItem = { ...data, id: generateId(), createdAt: new Date().toISOString() };
+  return addSynced(memberId, 'homeMaintenance', HOME_MAINTENANCE_KEY(memberId), record);
+}
+
+export async function deleteHomeMaintenanceItem(memberId: string, id: string): Promise<HomeMaintenanceItem[]> {
+  return deleteSynced<HomeMaintenanceItem>(memberId, 'homeMaintenance', HOME_MAINTENANCE_KEY(memberId), id);
+}
+
+export async function updateHomeMaintenanceItem(
+  memberId: string,
+  id: string,
+  patch: Partial<HomeMaintenanceItem>,
+): Promise<HomeMaintenanceItem[]> {
+  return updateSynced<HomeMaintenanceItem>(memberId, 'homeMaintenance', HOME_MAINTENANCE_KEY(memberId), id, patch);
 }

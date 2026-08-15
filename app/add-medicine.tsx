@@ -25,6 +25,11 @@ import { toLocalDateString } from '@/lib/data';
 type MedAppearance = 'capsule' | 'tablet' | 'round' | 'liquid';
 type MedInstruction = 'before_meal' | 'after_meal' | 'any';
 type MedScheduleType = 'continuous' | 'custom';
+type MedFrequency = 'daily' | 'alternate_days' | 'weekly' | 'monthly' | 'as_needed';
+type SnoozeDuration = 5 | 10 | 15 | 30;
+
+const FREQUENCIES: MedFrequency[] = ['daily', 'alternate_days', 'weekly', 'monthly', 'as_needed'];
+const SNOOZE_OPTIONS: SnoozeDuration[] = [5, 10, 15, 30];
 
 interface MedicineSlots {
   morning?: string | null;
@@ -56,7 +61,12 @@ export default function AddMedicineScreen() {
   // Nothing preselected — "continuous" vs "custom" is a real choice, and the
   // custom date fields only appear once the user makes it.
   const [medScheduleType, setMedScheduleType] = useState<MedScheduleType | null>(null);
-  
+  const [frequency, setFrequency] = useState<MedFrequency>('daily');
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
+  const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [snoozeDuration, setSnoozeDuration] = useState<SnoozeDuration>(10);
+  const [doctorNotes, setDoctorNotes] = useState('');
+
   // Local, not UTC: after 18:30 IST a UTC-derived "today" is already tomorrow,
   // so the default start date would jump a day ahead each evening.
   const todayIso = toLocalDateString(new Date());
@@ -68,7 +78,27 @@ export default function AddMedicineScreen() {
   // UI State for Time Pickers
   const [pickingSlot, setPickingSlot] = useState<'morning' | 'noon' | 'evening' | null>(null);
 
-  const handleSave = async () => {
+  const resetForm = () => {
+    setMedName('');
+    setMedDosage('');
+    setMedAppearance(null);
+    setMedColor('#10B981');
+    setMedInstruction('any');
+    setSlotMorning(false);
+    setSlotNoon(false);
+    setSlotEvening(false);
+    setMedScheduleType(null);
+    setMedStartDate(todayIso);
+    setMedEndDate('');
+    setFrequency('daily');
+    setDaysOfWeek([]);
+    setReminderEnabled(true);
+    setSnoozeDuration(10);
+    setDoctorNotes('');
+    setError('');
+  };
+
+  const handleSave = async (addAnother: boolean = false) => {
     if (!medName.trim()) {
       setError(t('addMedicine.errorEnterName'));
       return;
@@ -106,6 +136,11 @@ export default function AddMedicineScreen() {
         scheduleType: medScheduleType,
         startDate: medStartDate,
         endDate: medScheduleType === 'custom' ? medEndDate || null : null,
+        frequency,
+        daysOfWeek: frequency === 'weekly' ? daysOfWeek : undefined,
+        reminderEnabled,
+        snoozeDuration,
+        doctorNotes: doctorNotes.trim(),
       };
 
       const res = await apiRequest(
@@ -115,7 +150,11 @@ export default function AddMedicineScreen() {
         token
       );
       if (res.ok) {
-        router.back();
+        if (addAnother) {
+          resetForm();
+        } else {
+          router.back();
+        }
       } else {
         setError(t('addMedicine.errorAddFailed'));
       }
@@ -370,12 +409,80 @@ export default function AddMedicineScreen() {
                 </View>
               </Animated.View>
             )}
+
+            {/* Frequency */}
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('addMedicine.frequency')}</Text>
+            <View style={styles.instructionRow}>
+              {FREQUENCIES.map((f) => (
+                <Pressable
+                  key={f}
+                  onPress={() => setFrequency(f)}
+                  style={[styles.instructionChip, { backgroundColor: colors.card, borderColor: colors.border }, frequency === f && { backgroundColor: '#10B981', borderColor: '#10B981' }]}
+                >
+                  <Text style={[styles.chipText, { color: colors.textSecondary }, frequency === f && { color: '#FFF' }]}>{t(`addMedicine.frequencyOption.${f}`)}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {frequency === 'weekly' && (
+              <Animated.View entering={FadeInDown} style={styles.dayRow}>
+                {[t('common.dayShort.sun'), t('common.dayShort.mon'), t('common.dayShort.tue'), t('common.dayShort.wed'), t('common.dayShort.thu'), t('common.dayShort.fri'), t('common.dayShort.sat')].map((d, idx) => (
+                  <Pressable
+                    key={d}
+                    onPress={() => setDaysOfWeek((prev) => (prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx].sort()))}
+                    style={[styles.dayChip, { backgroundColor: colors.card, borderColor: colors.border }, daysOfWeek.includes(idx) && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                  >
+                    <Text style={[styles.dayChipText, { color: daysOfWeek.includes(idx) ? '#FFF' : colors.textSecondary }]}>{d}</Text>
+                  </Pressable>
+                ))}
+              </Animated.View>
+            )}
+
+            {/* Reminder + Snooze */}
+            <Pressable onPress={() => setReminderEnabled(!reminderEnabled)} style={[styles.slotToggle, { marginTop: 20, marginBottom: 12 }]}>
+              <Ionicons name={reminderEnabled ? 'checkbox' : 'square-outline'} size={24} color={reminderEnabled ? colors.accent : colors.textTertiary} />
+              <Text style={[styles.slotLabel, { color: colors.text }]}>{t('addMedicine.reminderToggle')}</Text>
+            </Pressable>
+            {reminderEnabled && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('addMedicine.snoozeDuration')}</Text>
+                <View style={styles.instructionRow}>
+                  {SNOOZE_OPTIONS.map((s) => (
+                    <Pressable
+                      key={s}
+                      onPress={() => setSnoozeDuration(s)}
+                      style={[styles.instructionChip, { backgroundColor: colors.card, borderColor: colors.border }, snoozeDuration === s && { backgroundColor: '#10B981', borderColor: '#10B981' }]}
+                    >
+                      <Text style={[styles.chipText, { color: colors.textSecondary }, snoozeDuration === s && { color: '#FFF' }]}>{t('addMedicine.snoozeMinutes', { count: s })}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Doctor Notes */}
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('addMedicine.doctorNotes')}</Text>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.valueInput, { color: colors.text, minHeight: 44 }]}
+                value={doctorNotes}
+                onChangeText={setDoctorNotes}
+                placeholder={t('addMedicine.doctorNotesPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                multiline
+              />
+            </View>
+
+            <Pressable onPress={() => handleSave(true)} disabled={isSaving} style={styles.addAnotherBtn}>
+              <Ionicons name="add-circle-outline" size={18} color={colors.accent} />
+              <Text style={[styles.addAnotherText, { color: colors.accent }]}>{t('addMedicine.addAnotherMedicine')}</Text>
+            </Pressable>
           </View>
         </ScrollView>
 
         {/* Footer Save */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <Pressable onPress={handleSave} disabled={isSaving} style={styles.saveBtn}>
+          <Pressable onPress={() => handleSave(false)} disabled={isSaving} style={styles.saveBtn}>
             <LinearGradient
               colors={colors.buttonGradient as any}
               style={styles.saveGradient}
@@ -598,6 +705,34 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingVertical: 6,
     minWidth: 120,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 16,
+  },
+  dayChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  dayChipText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 11,
+  },
+  addAnotherBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  addAnotherText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 14,
   },
   footer: {
     position: 'absolute',

@@ -8,7 +8,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
-import { TravelType, TRAVEL_TYPE_LABELS, addTravelItem, loadTravelItems, updateTravelItem } from '@/lib/family-records';
+import { useAuth } from '@/lib/auth-context';
+import { apiRequest } from '@/lib/query-client';
+import { TravelType, TRAVEL_TYPE_LABELS, TravelRecurrence, addTravelItem, loadTravelItems, updateTravelItem } from '@/lib/family-records';
+
+const RECURRENCES: TravelRecurrence[] = ['weekly', 'monthly', 'yearly'];
+const REMINDER_HOURS_OPTIONS = [1, 3, 24];
 
 /** Example title per travel type, so the hint matches the selected chip. */
 const TYPE_PLACEHOLDER_KEYS: Record<TravelType, string> = {
@@ -22,18 +27,41 @@ export default function AddTravelItemScreen() {
   const { memberId, memberName, editId } = useLocalSearchParams<{ memberId: string; memberName?: string; editId?: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { token } = useAuth();
   const { t } = useTranslation();
 
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showReturnDatePicker, setShowReturnDatePicker] = useState(false);
   // Nothing preselected on a new entry; editing seeds it from the record.
   const [type, setType] = useState<TravelType | null>(null);
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
+  const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date());
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrence, setRecurrence] = useState<TravelRecurrence>('monthly');
+  const [reminderHoursBefore, setReminderHoursBefore] = useState<number>(24);
+  const [returnDate, setReturnDate] = useState<Date | null>(null);
+  const [companionMemberIds, setCompanionMemberIds] = useState<string[]>([]);
+  const [familyMembers, setFamilyMembers] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const isEditing = !!editId;
+
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const res = await apiRequest('GET', '/api/family', undefined, token);
+        const data = (await res.json()) as { id: string; name: string }[];
+        setFamilyMembers(data.filter((m) => String(m.id) !== String(memberId)));
+      } catch {
+        // Companion linking is a nice-to-have; a failed fetch just leaves the list empty.
+      }
+    })();
+  }, [token, memberId]);
 
   // Seed the form from the record being edited.
   useEffect(() => {
@@ -46,10 +74,20 @@ export default function AddTravelItemScreen() {
       setType(found.type);
       setTitle(found.title);
       setLocation(found.location ?? '');
+      setNotes(found.notes ?? '');
       setDate(new Date(found.date));
+      setIsRecurring(!!found.isRecurring);
+      setRecurrence(found.recurrence ?? 'monthly');
+      setReminderHoursBefore(found.reminderHoursBefore ?? 24);
+      setReturnDate(found.returnDate ? new Date(found.returnDate) : null);
+      setCompanionMemberIds(found.companionMemberIds ?? []);
     })();
     return () => { cancelled = true; };
   }, [editId, memberId]);
+
+  const toggleCompanion = (id: string) => {
+    setCompanionMemberIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   const handleSave = async () => {
     if (!type) {
@@ -66,7 +104,13 @@ export default function AddTravelItemScreen() {
       type,
       title: title.trim(),
       location: location.trim(),
+      notes: notes.trim(),
       date: date.toISOString(),
+      isRecurring,
+      recurrence: isRecurring ? recurrence : undefined,
+      reminderHoursBefore,
+      returnDate: type === 'trip' && returnDate ? returnDate.toISOString() : null,
+      companionMemberIds,
     };
     if (isEditing) {
       await updateTravelItem(String(memberId), String(editId), data);
@@ -130,16 +174,90 @@ export default function AddTravelItemScreen() {
             </Pressable>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.locationLabel')}</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-              value={location}
-              onChangeText={setLocation}
-              placeholder={t('familyTravel.locationPlaceholder')}
-              placeholderTextColor={colors.textTertiary}
-            />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.timeLabel')}</Text>
+            <Pressable onPress={() => setShowTimePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
+              <Text style={{ color: colors.text }}>{date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
+            </Pressable>
           </View>
         </View>
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.locationLabel')}</Text>
+        <TextInput
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+          value={location}
+          onChangeText={setLocation}
+          placeholder={t('familyTravel.locationPlaceholder')}
+          placeholderTextColor={colors.textTertiary}
+        />
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.notesLabel')}</Text>
+        <TextInput
+          style={[styles.input, styles.textArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+          value={notes}
+          onChangeText={setNotes}
+          placeholder={t('familyTravel.notesPlaceholder')}
+          placeholderTextColor={colors.textTertiary}
+          multiline
+        />
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.reminderLabel')}</Text>
+        <View style={styles.chipRow}>
+          {REMINDER_HOURS_OPTIONS.map((h) => (
+            <Pressable
+              key={h}
+              onPress={() => setReminderHoursBefore(h)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, reminderHoursBefore === h && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: reminderHoursBefore === h ? '#FFF' : colors.textSecondary }]}>{t('familyTravel.hoursBefore', { count: h })}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable onPress={() => setIsRecurring(!isRecurring)} style={styles.toggleRow}>
+          <Ionicons name={isRecurring ? 'checkbox' : 'square-outline'} size={22} color={isRecurring ? colors.accent : colors.textTertiary} />
+          <Text style={[styles.toggleLabel, { color: colors.text }]}>{t('familyTravel.recurringCheckbox')}</Text>
+        </Pressable>
+        {isRecurring && (
+          <View style={styles.chipRow}>
+            {RECURRENCES.map((r) => (
+              <Pressable
+                key={r}
+                onPress={() => setRecurrence(r)}
+                style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, recurrence === r && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+              >
+                <Text style={[styles.smallChipText, { color: recurrence === r ? '#FFF' : colors.textSecondary }]}>{t(`familyTravel.recurrence.${r}`)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {type === 'trip' && (
+          <>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.returnDateLabel')}</Text>
+            <Pressable onPress={() => setShowReturnDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
+              <Text style={{ color: returnDate ? colors.text : colors.textTertiary }}>
+                {returnDate ? returnDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : t('familyTravel.notSet')}
+              </Text>
+            </Pressable>
+          </>
+        )}
+
+        {familyMembers.length > 0 && (
+          <>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyTravel.companionLabel')}</Text>
+            <View style={styles.chipRow}>
+              {familyMembers.map((m) => (
+                <Pressable
+                  key={m.id}
+                  onPress={() => toggleCompanion(m.id)}
+                  style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, companionMemberIds.includes(m.id) && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                >
+                  <Text style={[styles.smallChipText, { color: companionMemberIds.includes(m.id) ? '#FFF' : colors.textSecondary }]}>{m.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
 
         <Pressable onPress={handleSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}>
           <Text style={styles.primaryBtnLabel}>{isEditing ? t('familyTravel.saveChanges') : t('common.save')}</Text>
@@ -153,6 +271,24 @@ export default function AddTravelItemScreen() {
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           themeVariant={isDark ? 'dark' : 'light'}
           onChange={(event, d) => { setShowDatePicker(false); if (d) setDate(d); }}
+        />
+      )}
+      {showTimePicker && (
+        <DateTimePicker
+          value={date}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          themeVariant={isDark ? 'dark' : 'light'}
+          onChange={(event, d) => { setShowTimePicker(false); if (d) setDate(d); }}
+        />
+      )}
+      {showReturnDatePicker && (
+        <DateTimePicker
+          value={returnDate ?? new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          themeVariant={isDark ? 'dark' : 'light'}
+          onChange={(event, d) => { setShowReturnDatePicker(false); if (d) setReturnDate(d); }}
         />
       )}
     </View>
@@ -177,5 +313,11 @@ const styles = StyleSheet.create({
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
+  textArea: { minHeight: 70, textAlignVertical: 'top' },
   formRow: { flexDirection: 'row', gap: 12 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  smallChip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  smallChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 8 },
+  toggleLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

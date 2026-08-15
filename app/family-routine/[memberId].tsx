@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
+import { onCaregiverSync } from '@/lib/caregiver-sync';
 import {
   RoutineItem,
   RoutineType,
@@ -15,7 +16,15 @@ import {
   loadRoutines,
   toggleRoutine,
   deleteRoutine,
+  markRoutineDoneToday,
+  routineWeeklyCompliance,
 } from '@/lib/family-records';
+
+function isRoutineDoneToday(item: RoutineItem): boolean {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return (item.completedDates ?? []).includes(today);
+}
 
 export default function DailyRoutineScreen() {
   const router = useRouter();
@@ -35,6 +44,16 @@ export default function DailyRoutineScreen() {
   }, [memberId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // A connected caregiver marking something done elsewhere pushes a silent
+  // { type: 'sync', memberId } notification. Refetch on receipt so an open
+  // list updates live instead of waiting for the next focus.
+  useEffect(() => {
+    const sub = onCaregiverSync((syncedMemberId) => {
+      if (memberId && syncedMemberId === String(memberId)) load();
+    });
+    return () => sub.remove();
+  }, [memberId, load]);
 
   const openAdd = () => {
     router.push({ pathname: '/family-routine/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '' } });
@@ -68,8 +87,13 @@ export default function DailyRoutineScreen() {
         ) : (
           sorted.map((item) => {
             const def = ROUTINE_TYPE_LABELS[item.type];
+            const doneToday = isRoutineDoneToday(item);
+            const compliance = routineWeeklyCompliance(item);
             return (
               <Animated.View key={item.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Pressable onPress={async () => { await markRoutineDoneToday(String(memberId), item.id); load(); }} style={styles.checkCircle}>
+                  <Ionicons name={doneToday ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={doneToday ? '#10B981' : colors.textTertiary} />
+                </Pressable>
                 <View style={[styles.iconWrap, { backgroundColor: colors.accentDim }]}>
                   <Ionicons name={def.icon as any} size={20} color={colors.accent} />
                 </View>
@@ -77,6 +101,7 @@ export default function DailyRoutineScreen() {
                   <Text style={[styles.cardTitle, { color: colors.text }, !item.enabled && { opacity: 0.4 }]}>{item.type === 'custom' ? item.label : routineTypeLabel(item.type)}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
                     {item.time}{item.days && item.days.length > 0 ? ` · ${item.days.map((d) => DAY_LABELS[d]).join(', ')}` : ` · ${t('familyRoutine.everyDay')}`}
+                    {compliance > 0 ? ` · ${t('familyRoutine.weeklyCompliance', { percent: compliance })}` : ''}
                   </Text>
                 </View>
                 <Pressable onPress={async () => { await toggleRoutine(String(memberId), item.id); load(); }} hitSlop={10}>
@@ -109,6 +134,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
+  checkCircle: { padding: 2 },
   iconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },

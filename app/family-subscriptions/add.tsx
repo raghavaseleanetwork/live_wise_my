@@ -9,7 +9,12 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
-import { FamilySubscription, addSubscription, loadSubscriptions, updateSubscription } from '@/lib/family-records';
+import { FamilySubscription, SubscriptionCategory, SubscriptionPaymentMethod, addSubscription, loadSubscriptions, updateSubscription } from '@/lib/family-records';
+
+const POPULAR_SERVICES = ['Netflix', 'Amazon Prime', 'Disney+ Hotstar', 'Spotify', 'YouTube Premium', 'Jio Cinema', 'SonyLiv', 'Zee5', 'iCloud', 'Google One'];
+const CATEGORIES: SubscriptionCategory[] = ['entertainment', 'productivity', 'health', 'education', 'other'];
+const PAYMENT_METHODS: SubscriptionPaymentMethod[] = ['upi', 'net_banking', 'credit_card', 'debit_card', 'other'];
+const REMINDER_DAYS_OPTIONS = [3, 7];
 
 export default function AddSubscriptionScreen() {
   const router = useRouter();
@@ -21,10 +26,15 @@ export default function AddSubscriptionScreen() {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [serviceName, setServiceName] = useState('');
+  const [isCustomService, setIsCustomService] = useState(false);
+  const [planType, setPlanType] = useState('');
   const [amount, setAmount] = useState('');
   // Nothing preselected on a new subscription; editing seeds it from the record.
   const [cycle, setCycle] = useState<FamilySubscription['cycle'] | null>(null);
-  const [category] = useState<FamilySubscription['category']>('ott');
+  const [autoRenews, setAutoRenews] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<SubscriptionPaymentMethod | null>(null);
+  const [reminderDaysBefore, setReminderDaysBefore] = useState<number>(3);
+  const [category, setCategory] = useState<SubscriptionCategory>('entertainment');
   const [renewalDate, setRenewalDate] = useState(new Date());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -40,8 +50,14 @@ export default function AddSubscriptionScreen() {
       const found = items.find((x) => x.id === String(editId));
       if (!found || cancelled) return;
       setServiceName(found.serviceName);
+      setIsCustomService(!POPULAR_SERVICES.includes(found.serviceName));
+      setPlanType(found.planType ?? '');
       setAmount(String(Math.round(convertForDisplay(found.amount) * 100) / 100));
       setCycle(found.cycle);
+      setAutoRenews(found.autoRenews ?? true);
+      setPaymentMethod(found.paymentMethod ?? null);
+      setReminderDaysBefore(found.reminderDaysBefore ?? 3);
+      setCategory(found.category);
       setRenewalDate(new Date(found.renewalDate));
     })();
     return () => { cancelled = true; };
@@ -65,9 +81,13 @@ export default function AddSubscriptionScreen() {
     setSaving(true);
     const data = {
       serviceName: serviceName.trim(),
+      planType: planType.trim(),
       // Typed in the user's display currency; stored in INR like every amount.
       amount: convertForStorage(amt),
       cycle,
+      autoRenews,
+      paymentMethod: paymentMethod ?? undefined,
+      reminderDaysBefore,
       category,
       renewalDate: renewalDate.toISOString(),
     };
@@ -98,13 +118,41 @@ export default function AddSubscriptionScreen() {
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.serviceNameLabel')}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chipRow}>
+          {POPULAR_SERVICES.map((s) => (
+            <Pressable
+              key={s}
+              onPress={() => { setServiceName(s); setIsCustomService(false); }}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, !isCustomService && serviceName === s && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: !isCustomService && serviceName === s ? '#FFF' : colors.textSecondary }]}>{s}</Text>
+            </Pressable>
+          ))}
+          <Pressable
+            onPress={() => { setIsCustomService(true); setServiceName(''); }}
+            style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, isCustomService && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+          >
+            <Text style={[styles.smallChipText, { color: isCustomService ? '#FFF' : colors.textSecondary }]}>{t('familySubscriptions.customService')}</Text>
+          </Pressable>
+        </ScrollView>
+        {isCustomService && (
+          <TextInput
+            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg, marginTop: 8 }]}
+            value={serviceName}
+            onChangeText={setServiceName}
+            placeholder={t('familySubscriptions.serviceNamePlaceholder')}
+            placeholderTextColor={colors.textTertiary}
+            autoFocus
+          />
+        )}
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.planTypeLabel')}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={serviceName}
-          onChangeText={setServiceName}
-          placeholder={t('familySubscriptions.serviceNamePlaceholder')}
+          value={planType}
+          onChangeText={setPlanType}
+          placeholder={t('familySubscriptions.planTypePlaceholder')}
           placeholderTextColor={colors.textTertiary}
-          autoFocus
         />
 
         <View style={styles.formRow}>
@@ -132,9 +180,53 @@ export default function AddSubscriptionScreen() {
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.billingCycleLabel')}</Text>
         <View style={styles.typeRow}>
-          {(['monthly', 'yearly'] as const).map((c) => (
+          {(['monthly', 'quarterly', 'yearly'] as const).map((c) => (
             <Pressable key={c} onPress={() => setCycle(c)} style={[styles.typeChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, cycle === c && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
-              <Text style={[styles.typeChipText, { color: cycle === c ? '#FFF' : colors.textSecondary }]}>{c === 'monthly' ? t('familySubscriptions.cycleMonthly') : t('familySubscriptions.cycleYearly')}</Text>
+              <Text style={[styles.typeChipText, { color: cycle === c ? '#FFF' : colors.textSecondary }]}>{t(`familySubscriptions.cycle.${c}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable onPress={() => setAutoRenews(!autoRenews)} style={styles.toggleRow}>
+          <Ionicons name={autoRenews ? 'checkbox' : 'square-outline'} size={22} color={autoRenews ? colors.accent : colors.textTertiary} />
+          <Text style={[styles.toggleLabel, { color: colors.text }]}>{t('familySubscriptions.autoRenewsLabel')}</Text>
+        </Pressable>
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.paymentMethodLabel')}</Text>
+        <View style={styles.chipRow}>
+          {PAYMENT_METHODS.map((pm) => (
+            <Pressable
+              key={pm}
+              onPress={() => setPaymentMethod(paymentMethod === pm ? null : pm)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, paymentMethod === pm && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: paymentMethod === pm ? '#FFF' : colors.textSecondary }]}>{t(`familySubscriptions.paymentMethod.${pm}`)}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.reminderLabel')}</Text>
+        <View style={styles.chipRow}>
+          {REMINDER_DAYS_OPTIONS.map((d) => (
+            <Pressable
+              key={d}
+              onPress={() => setReminderDaysBefore(d)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, reminderDaysBefore === d && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: reminderDaysBefore === d ? '#FFF' : colors.textSecondary }]}>{t('familySubscriptions.daysBefore', { count: d })}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familySubscriptions.categoryLabel')}</Text>
+        <View style={styles.chipRow}>
+          {CATEGORIES.map((c) => (
+            <Pressable
+              key={c}
+              onPress={() => setCategory(c)}
+              style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, category === c && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+            >
+              <Text style={[styles.smallChipText, { color: category === c ? '#FFF' : colors.textSecondary }]}>{t(`familySubscriptions.category.${c}`)}</Text>
             </Pressable>
           ))}
         </View>
@@ -176,4 +268,10 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: 'row', gap: 8 },
   typeChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  chipScroll: { marginHorizontal: -20 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20 },
+  smallChip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  smallChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 6 },
+  toggleLabel: { fontFamily: 'Inter_500Medium', fontSize: 14 },
 });

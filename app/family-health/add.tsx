@@ -8,7 +8,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/lib/theme-context';
-import { HealthMetricType, HEALTH_METRIC_LABELS, addHealthLog } from '@/lib/family-records';
+import { HealthMetricType, HEALTH_METRIC_LABELS, SugarReadingType, WeightUnit, addHealthLog } from '@/lib/family-records';
+
+const ALL_METRICS: HealthMetricType[] = ['bp', 'sugar', 'weight', 'temperature', 'oxygen', 'heart_rate', 'cholesterol'];
 
 export default function AddHealthLogScreen() {
   const router = useRouter();
@@ -23,6 +25,13 @@ export default function AddHealthLogScreen() {
   // Nothing preselected — the user picks which metric they are logging.
   const [logType, setLogType] = useState<HealthMetricType | null>(null);
   const [value, setValue] = useState('');
+  const [systolic, setSystolic] = useState('');
+  const [diastolic, setDiastolic] = useState('');
+  const [pulse, setPulse] = useState('');
+  const [sugarReadingType, setSugarReadingType] = useState<SugarReadingType>('fasting');
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg');
+  const [targetRangeLow, setTargetRangeLow] = useState('');
+  const [targetRangeHigh, setTargetRangeHigh] = useState('');
   const [notes, setNotes] = useState('');
   const [logDate, setLogDate] = useState(new Date());
   const [error, setError] = useState('');
@@ -33,7 +42,9 @@ export default function AddHealthLogScreen() {
       setError(t('familyHealth.errorSelectType'));
       return;
     }
-    if (!value.trim()) {
+    const finalValue =
+      logType === 'bp' ? `${systolic}/${diastolic}` : value.trim();
+    if (logType === 'bp' ? (!systolic.trim() || !diastolic.trim()) : !value.trim()) {
       setError(t('familyHealth.errorEnterValue', { metric: metricLabel(logType) }));
       return;
     }
@@ -41,9 +52,16 @@ export default function AddHealthLogScreen() {
     setSaving(true);
     await addHealthLog(String(memberId), {
       type: logType,
-      value: value.trim(),
+      value: finalValue,
       notes: notes.trim(),
       date: logDate.toISOString(),
+      systolic: logType === 'bp' && systolic.trim() ? Number(systolic) : undefined,
+      diastolic: logType === 'bp' && diastolic.trim() ? Number(diastolic) : undefined,
+      pulse: logType === 'bp' && pulse.trim() ? Number(pulse) : undefined,
+      sugarReadingType: logType === 'sugar' ? sugarReadingType : undefined,
+      weightUnit: logType === 'weight' ? weightUnit : undefined,
+      targetRangeLow: targetRangeLow.trim() ? Number(targetRangeLow) : undefined,
+      targetRangeHigh: targetRangeHigh.trim() ? Number(targetRangeHigh) : undefined,
     });
     router.back();
   };
@@ -66,8 +84,8 @@ export default function AddHealthLogScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {!!error && <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>}
 
-        <View style={styles.typeRow}>
-          {(['bp', 'sugar', 'weight'] as const).map((mt) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll} contentContainerStyle={styles.typeRow}>
+          {ALL_METRICS.map((mt) => (
             <Pressable
               key={mt}
               onPress={() => setLogType(mt)}
@@ -77,34 +95,106 @@ export default function AddHealthLogScreen() {
                 logType === mt && { backgroundColor: colors.accent, borderColor: colors.accent },
               ]}
             >
+              <Ionicons name={HEALTH_METRIC_LABELS[mt].icon as any} size={14} color={logType === mt ? '#FFF' : colors.textSecondary} />
               <Text style={[styles.typeChipText, { color: logType === mt ? '#FFF' : colors.textSecondary }]}>{metricLabel(mt)}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
 
-        {/* Always rendered: hiding the screen's main input until a chip is
-            tapped leaves the form looking empty and broken. Before a metric is
-            picked it shows a neutral label and prompt instead. */}
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-          {!logType
-            ? t('familyHealth.valueLabel')
-            : logType === 'bp'
-              ? t('familyHealth.readingLabelBp')
-              : t('familyHealth.valueLabelWithUnit', { unit: HEALTH_METRIC_LABELS[logType].unit })}
-        </Text>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
-          value={value}
-          onChangeText={setValue}
-          placeholder={
-            !logType ? t('familyHealth.selectMetricPrompt') : logType === 'bp' ? '120/80' : logType === 'sugar' ? '98' : '72'
-          }
-          placeholderTextColor={colors.textTertiary}
-          // The numeric keyboard is wrong for BP ("120/80"), so it can only be
-          // chosen once the metric is known.
-          keyboardType={logType && logType !== 'bp' ? 'numeric' : 'default'}
-          editable={!!logType}
-        />
+        {logType === 'bp' ? (
+          <>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyHealth.readingLabelBp')}</Text>
+            <View style={styles.formRow}>
+              <TextInput
+                style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                value={systolic}
+                onChangeText={setSystolic}
+                placeholder={t('familyHealth.systolicPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                value={diastolic}
+                onChangeText={setDiastolic}
+                placeholder={t('familyHealth.diastolicPlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+                value={pulse}
+                onChangeText={setPulse}
+                placeholder={t('familyHealth.pulsePlaceholder')}
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numeric"
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+              {!logType ? t('familyHealth.valueLabel') : t('familyHealth.valueLabelWithUnit', { unit: HEALTH_METRIC_LABELS[logType].unit })}
+            </Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+              value={value}
+              onChangeText={setValue}
+              placeholder={!logType ? t('familyHealth.selectMetricPrompt') : '98'}
+              placeholderTextColor={colors.textTertiary}
+              keyboardType={logType ? 'numeric' : 'default'}
+              editable={!!logType}
+            />
+          </>
+        )}
+
+        {logType === 'sugar' && (
+          <View style={[styles.formRow, { marginTop: 10 }]}>
+            {(['fasting', 'post_meal'] as const).map((srt) => (
+              <Pressable
+                key={srt}
+                onPress={() => setSugarReadingType(srt)}
+                style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, sugarReadingType === srt && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+              >
+                <Text style={[styles.smallChipText, { color: sugarReadingType === srt ? '#FFF' : colors.textSecondary }]}>{t(`familyHealth.sugarReadingType.${srt}`)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {logType === 'weight' && (
+          <View style={[styles.formRow, { marginTop: 10 }]}>
+            {(['kg', 'lbs'] as const).map((wu) => (
+              <Pressable
+                key={wu}
+                onPress={() => setWeightUnit(wu)}
+                style={[styles.smallChip, { backgroundColor: colors.inputBg, borderColor: colors.border }, weightUnit === wu && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+              >
+                <Text style={[styles.smallChipText, { color: weightUnit === wu ? '#FFF' : colors.textSecondary }]}>{wu}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyHealth.targetRangeLabel')}</Text>
+        <View style={styles.formRow}>
+          <TextInput
+            style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            value={targetRangeLow}
+            onChangeText={setTargetRangeLow}
+            placeholder={t('familyHealth.targetRangeLowPlaceholder')}
+            placeholderTextColor={colors.textTertiary}
+            keyboardType="numeric"
+          />
+          <TextInput
+            style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            value={targetRangeHigh}
+            onChangeText={setTargetRangeHigh}
+            placeholder={t('familyHealth.targetRangeHighPlaceholder')}
+            placeholderTextColor={colors.textTertiary}
+            keyboardType="numeric"
+          />
+        </View>
 
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('familyHealth.dateLabel')}</Text>
         <Pressable onPress={() => setShowDatePicker(true)} style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, justifyContent: 'center' }]}>
@@ -152,9 +242,13 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
   primaryBtnLabel: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFF' },
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 13, marginBottom: 10, textAlign: 'center' },
-  typeRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
-  typeChip: { flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
+  typeScroll: { marginHorizontal: -20, marginBottom: 6 },
+  typeRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
+  typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1 },
   typeChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   fieldLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 6, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_500Medium', fontSize: 14 },
+  formRow: { flexDirection: 'row', gap: 10 },
+  smallChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1 },
+  smallChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
 });
