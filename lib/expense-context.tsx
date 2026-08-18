@@ -22,6 +22,7 @@ import { useAlert } from './alert-context';
 import { readSmsFromDeviceWithMeta, requestSmsPermissionDetails } from './sms-reader';
 import { parseSmsToTransactions } from './parse-sms';
 import { performSmsSync, SmsSyncPhase } from './sms-sync-task';
+import { cancelAllScheduledNotifications } from './notifications';
 
 const STORAGE_KEYS = {
   BUDGET: '@lifewise_budget',
@@ -75,6 +76,8 @@ interface ExpenseContextValue {
   addTransaction: (draft: ExpenseDraft) => Promise<Transaction | null>;
   /** Create many expenses at once (CSV / PDF statement import). Returns the saved count. */
   addTransactionsBulk: (drafts: ExpenseDraft[]) => Promise<number>;
+  /** Re-tag an existing transaction's category (e.g. an SMS-synced transfer to Other Expense). */
+  updateTransactionCategory: (transactionId: string, category: CategoryType) => Promise<boolean>;
   monthlyBudget: number;
   setMonthlyBudget: (budget: number) => void;
   quickAddReminder: (text: string) => Promise<void>;
@@ -639,6 +642,26 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     [token, buildPayload, loadData],
   );
 
+  const updateTransactionCategory = useCallback(
+    async (transactionId: string, category: CategoryType): Promise<boolean> => {
+      if (!token) return false;
+      try {
+        const res = await fetchWithAuth(token, `/api/transactions/${transactionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category }),
+        });
+        if (!res.ok) return false;
+        const updated = (await res.json()) as Transaction;
+        setTransactions((prev) => prev.map((tx) => (tx.id === transactionId ? { ...tx, ...updated } : tx)));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [token],
+  );
+
   const refreshData = useCallback(async () => {
     await loadData();
   }, [loadData]);
@@ -660,6 +683,12 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   const updateReminderSettings = useCallback(async (settings: ReminderSettings) => {
+    // The master toggle turning off must kill everything already scheduled,
+    // not just block future scheduling — otherwise a reminder armed minutes
+    // earlier still fires today with the switch off.
+    if (reminderSettings.notificationsEnabled && !settings.notificationsEnabled) {
+      cancelAllScheduledNotifications().catch(() => {});
+    }
     setReminderSettings(settings);
     await AsyncStorage.setItem(STORAGE_KEYS.REMINDER_SETTINGS, JSON.stringify(settings));
     if (token) {
@@ -673,7 +702,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
         // ignore
       }
     }
-  }, [token]);
+  }, [token, reminderSettings.notificationsEnabled]);
 
   const getReports = useCallback(async (start: string, end: string): Promise<ReportsData | null> => {
     if (!token) return null;
@@ -706,6 +735,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       syncSmsFromDevice,
       addTransaction,
       addTransactionsBulk,
+      updateTransactionCategory,
       monthlyBudget,
       setMonthlyBudget,
       quickAddReminder,
@@ -741,6 +771,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
       syncSmsFromDevice,
       addTransaction,
       addTransactionsBulk,
+      updateTransactionCategory,
       setMonthlyBudget,
       quickAddReminder,
       addReminder,

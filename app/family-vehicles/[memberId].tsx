@@ -15,6 +15,7 @@ import {
   loadVehicles,
   deleteVehicle,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 function daysUntil(dateStr?: string | null): number | null {
   if (!dateStr) return null;
@@ -28,6 +29,10 @@ export default function FamilyVehiclesScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<VehicleItem[]>([]);
 
@@ -62,9 +67,13 @@ export default function FamilyVehiclesScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyVehicles.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyVehicles.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -78,8 +87,7 @@ export default function FamilyVehiclesScreen() {
           </View>
         ) : (
           items.map((item) => (
-            <VehicleCard
-              key={item.id}
+            <VehicleCard canEdit={canEdit}               key={item.id}
               item={item}
               colors={colors}
               t={t}
@@ -94,8 +102,7 @@ export default function FamilyVehiclesScreen() {
 }
 
 function VehicleCard({
-  item, colors, onEdit, onDelete, t,
-}: { item: VehicleItem; colors: any; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string }) {
+  item, colors, onEdit, onDelete, t, canEdit }: { item: VehicleItem; colors: any; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string; canEdit: boolean }) {
   const def = VEHICLE_TYPE_LABELS[item.vehicleType];
   const insuranceDays = daysUntil(item.insuranceExpiry);
   const pucDays = daysUntil(item.pucExpiry);
@@ -113,12 +120,12 @@ function VehicleCard({
             {t(`familyVehicles.type.${item.vehicleType}`)}{item.registrationNumber ? ` · ${item.registrationNumber}` : ''}
           </Text>
         </View>
-        <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+        {canEdit && (<Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
           <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-        </Pressable>
-        <Pressable onPress={onDelete} hitSlop={10}>
+        </Pressable>)}
+        {canEdit && (<Pressable onPress={onDelete} hitSlop={10}>
           <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-        </Pressable>
+        </Pressable>)}
       </View>
       {(item.insuranceExpiry || item.pucExpiry || item.serviceDueDate) && (
         <View style={[styles.detailsBox, isWarning && { backgroundColor: colors.warningDim }]}>

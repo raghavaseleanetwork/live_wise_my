@@ -147,7 +147,8 @@ export default function EditFamilyMemberScreen() {
           if (local && local.length) {
             setSelectedFeatures(local);
           } else if (member.features) {
-            setSelectedFeatures(normalizeFeatures(member.features));
+            const normalized = normalizeFeatures(member.features);
+            if (normalized) setSelectedFeatures(normalized);
           }
         } else {
           setError(t('familyMember.errorMemberNotFound'));

@@ -4,7 +4,11 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { loadSharedMembers } from '@/lib/family-caregivers';
-import { syncFamilyReminders, type FamilyReminder } from '@/lib/family-reminders';
+import {
+  scheduleFamilyReminderNotifications,
+  syncFamilyReminders,
+  type FamilyReminder,
+} from '@/lib/family-reminders';
 import { fetchFamilyReminders } from '@/lib/family-reminders-api';
 
 /**
@@ -46,6 +50,18 @@ export function useFamilyReminders(): {
     const serverReminders = await fetchFamilyReminders(token);
     if (serverReminders) {
       setFamilyReminders(serverReminders);
+      // Schedule the SERVER's rows locally too.
+      //
+      // This early return previously skipped scheduling altogether: whenever
+      // the endpoint answered with rows, family reminders rendered in the list
+      // but nothing was ever armed, so no notification arrived. That is the
+      // "they show up but never notify" bug.
+      //
+      // This is not double-firing. `scheduleFamilyReminderNotifications`
+      // no-ops when `isServerSchedulingActive()`, which latches only once the
+      // backend actually sends push (`SERVER_PUSH_CONFIRMED`). Until then the
+      // server schedules nothing, so the device is the only thing that can.
+      await scheduleFamilyReminderNotifications(serverReminders);
       return;
     }
 
@@ -57,13 +73,13 @@ export function useFamilyReminders(): {
         apiRequest('GET', '/api/family', undefined, token),
         loadSharedMembers(token).catch(() => []),
       ]);
-      const owned = (await res.json()) as { id: string | number; name: string }[];
+      const owned = (await res.json()) as { id: string | number; name: string; avatarUrl?: string | null }[];
       // Members shared by another caregiver count too — a connected caregiver
       // sees the same family records and should get the same reminders.
       const members = [
         ...owned,
         ...shared.filter((s) => !owned.some((o) => String(o.id) === String(s.id))),
-      ].map((m) => ({ id: String(m.id), name: m.name }));
+      ].map((m) => ({ id: String(m.id), name: m.name, avatarUrl: m.avatarUrl ?? null }));
 
       setFamilyReminders(await syncFamilyReminders(members));
     } catch {

@@ -43,6 +43,7 @@
     "saveBudget": "Save Budget",
     "subscription": "Subscription",
     "managePlan": "Manage Plan",
+    "paymentHistory": "Payment History",
     "security": "Security",
     "appLock": "App Lock",
     "appLockHint": "Require {{method}} or your device PIN to open LifeWise. Applies when you open the app and after it has been in the background for a while.",
@@ -55,7 +56,8 @@
     "helpSupport": "Help & Support",
     "account": "Account",
     "logout": "Logout",
-    "logoutConfirm": "Are you sure you want to logout?"
+    "logoutConfirm": "Are you sure you want to logout?",
+    "notificationSettings": "Notification Settings"
   },
   "home": {
     "score": "Score",
@@ -144,7 +146,15 @@
     "removeReminderTitle": "Remove Reminder?",
     "removeReminderMessage": "Are you sure you want to stop tracking this reminder? You won't get any more alerts for it.",
     "noKeepIt": "No, Keep It",
-    "yesRemove": "Yes, Remove"
+    "yesRemove": "Yes, Remove",
+    "familyReminders": "Family Reminders",
+    "viewAll": "View All",
+    "familyReminderStatus": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "done": "Done"
+    }
   },
   "addExpense": {
     "title": "Add Expense",
@@ -253,7 +263,8 @@
     "endDate": "End date",
     "pickYear": "Pick year",
     "selectStartDate": "Select start date",
-    "selectEndDate": "Select end date"
+    "selectEndDate": "Select end date",
+    "changeCategory": "Change Category"
   },
   "importStatement": {
     "headerTitlePick": "Import Statement",
@@ -383,7 +394,10 @@
     "vehiclesTracked_other": "{{count}} vehicles tracked",
     "noHomeTasksTrackedYet": "No home tasks tracked yet",
     "homeTasksTracked_one": "{{count}} task tracked",
-    "homeTasksTracked_other": "{{count}} tasks tracked"
+    "homeTasksTracked_other": "{{count}} tasks tracked",
+    "medicinesTitle": "Medicines",
+    "medicinesTitleActive": "Medicines ({{count}} active)",
+    "noActiveMedications": "No active medications"
   },
   "familyCheckin": {
     "title": "Call & Check-in",
@@ -617,6 +631,26 @@
     "custom": {
       "label": "Custom Feature",
       "description": "Your own tracking option"
+    },
+    "fitness": {
+      "label": "Fitness Tracking",
+      "description": "Workout schedule & streak tracking"
+    },
+    "study": {
+      "label": "Study & Education",
+      "description": "Homework, exams & study schedule"
+    },
+    "wellness": {
+      "label": "Mental Health & Wellness",
+      "description": "Mood tracking & self-care reminders"
+    },
+    "vehicles": {
+      "label": "Vehicle Management",
+      "description": "Service, insurance & PUC reminders"
+    },
+    "homeMaintenance": {
+      "label": "Home Maintenance",
+      "description": "AMC, appliance & service reminders"
     }
   },
   "familyAppointments": {
@@ -1551,6 +1585,20 @@
     "contactHeading": "Contact",
     "contactBody": "Questions? Email Info@lifewise.app."
   },
+  "paymentHistory": {
+    "title": "Payment History",
+    "intervalMonthly": "Monthly",
+    "intervalYearly": "Yearly",
+    "active": "ACTIVE",
+    "renewsOn": "Renews on {{date}}",
+    "expiresOn": "Ended {{date}}",
+    "emptyTitle": "No payments yet",
+    "emptyDesc": "You haven't purchased a subscription. Once you upgrade, every payment and renewal will appear here.",
+    "viewPlans": "View Plans",
+    "unavailableTitle": "Payment history unavailable",
+    "unavailableDesc": "Purchase records come from the app store and can only be read in the mobile app. Open LifeWise on your phone to see your payment history.",
+    "footnote": "Amounts show the current store price for each plan. For exact charges, taxes and invoices, check your Google Play or App Store account."
+  },
   "subscription": {
     "title": "Subscription",
     "currentPlan": "Current plan",
@@ -1597,7 +1645,10 @@
       "testActivatedMsg": "Test mode: you're now on {{plan}} with no payment taken. All {{plan}} features are unlocked.",
       "testConfirmTitle": "Activate {{plan}}?",
       "testConfirmMsg": "This is a TEST activation — no payment will be taken and no real subscription is created. {{plan}} features will be unlocked on this device.",
-      "activateBtn": "Activate {{plan}}"
+      "activateBtn": "Activate {{plan}}",
+      "cancelInStoreTitle": "Cancel in Google Play",
+      "cancelInStoreMsg": "Your subscription is billed by the app store. To cancel or change it, open your store subscription settings — turning it off here would not stop the billing.",
+      "openStoreBtn": "Open store"
     },
     "planNames": {
       "free": "Free",
@@ -1645,7 +1696,8 @@
       "title": "Compare Plans",
       "yourPlan": "Your plan",
       "manageMyPlan": "Manage my plan"
-    }
+    },
+    "manageSubscription": "Manage subscription"
   },
   "paywall": {
     "startTrial": "Start 7-Day Free Trial",
@@ -1990,7 +2042,8 @@
     "snoozeMinutes": "{{count}} min",
     "doctorNotes": "Doctor's Notes",
     "doctorNotesPlaceholder": "Optional notes from the doctor",
-    "addAnotherMedicine": "Add Another Medicine"
+    "addAnotherMedicine": "Add Another Medicine",
+    "errorNotAllowed": "Only the account that added this member can add medicines."
   },
   "medicineDetails": {
     "title": "Medicine Detail",
@@ -2312,5 +2365,60 @@
   },
   "addExpenseFab": {
     "closeMenu": "Close add menu"
+  },
+  "caregiverPermissions": {
+    "headerTitle": "Caregiver Permissions",
+    "forMember": "For {{name}}",
+    "thisCaregiver": "This caregiver",
+    "thisMember": "this member",
+    "editingFor": "Access to {{name}}’s data",
+    "accessLevelLabel": "WHAT THEY CAN DO",
+    "accessLevelHint": "Controls whether this caregiver can only look, tick reminders off, or make changes.",
+    "modulesLabel": "WHAT THEY CAN SEE",
+    "modulesHint": "Choose which modules this caregiver has access to. Anything unticked stays private.",
+    "allModules": "All modules",
+    "noModules": "This member has no modules enabled yet.",
+    "savePermissions": "Save Permissions",
+    "saveFailedTitle": "Could not save",
+    "saveFailedMessage": "Please try again in a moment.",
+    "summaryAllModules": "All modules",
+    "summaryNModules_one": "{{count}} module",
+    "summaryNModules_other": "{{count}} modules",
+    "readOnlyBanner": "View only — you can see this member’s data but cannot make changes.",
+    "level": {
+      "view": {
+        "title": "View only",
+        "desc": "Can see data and receive alerts. Cannot change anything."
+      },
+      "mark_done": {
+        "title": "Mark as done",
+        "desc": "Can receive alerts and tick reminders off. Cannot add or edit."
+      },
+      "full": {
+        "title": "Full access",
+        "desc": "Can add, edit and delete records for this member."
+      }
+    }
+  },
+  "familyMedicines": {
+    "headerTitle": "Medicines",
+    "emptyTitle": "No medicines yet",
+    "emptyDesc": "Add a medicine to start tracking doses and reminders",
+    "noScheduleSet": "No schedule set"
+  },
+  "notificationSettings": {
+    "title": "Notification Settings",
+    "masterToggle": "Allow Notifications",
+    "masterToggleDesc": "Turn off to stop all reminders immediately",
+    "quietHoursSection": "QUIET HOURS",
+    "quietHours": "Quiet Hours",
+    "quietHoursDesc": "Mute sound and vibration during this window",
+    "from": "From",
+    "to": "To",
+    "quietHoursRecurringHint": "Applies to one-time reminders (bills, appointments). Daily/weekly reminders like medicines and routines still alert as usual.",
+    "soundSection": "SOUND & VIBRATION",
+    "sound": "Notification Sound",
+    "soundDesc": "Play a sound when a reminder fires",
+    "vibration": "Vibration"
   }
 }

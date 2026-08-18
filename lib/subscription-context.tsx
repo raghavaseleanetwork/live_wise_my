@@ -7,6 +7,7 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
+import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   PlanId,
@@ -100,6 +101,11 @@ interface SubscriptionContextValue {
   ) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
   /** Restore previous purchases from the store. */
   restore: () => Promise<{ success: boolean; error?: string }>;
+  /**
+   * Open the store's subscription management page (Play/App Store), where the
+   * user cancels or switches. The app cannot cancel on their behalf.
+   */
+  openManageSubscription: () => Promise<void>;
 
   /** True when RevenueCat is live (native + key present) — the store is authoritative. */
   isStoreActive: boolean;
@@ -479,6 +485,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [isStoreActive, interval, setPlanLocally]);
 
+  /**
+   * Hand the user off to the store to cancel or change their subscription.
+   *
+   * Deliberately not gated on `isStoreActive`: a user whose plan came from the
+   * store still needs this after the SDK fails to configure, and the generic
+   * fallback URL is always valid.
+   */
+  const openManageSubscription = useCallback(async () => {
+    const url = await RevenueCat.getManagementUrl();
+    try {
+      await Linking.openURL(url);
+    } catch {
+      // Nothing sensible to do — the caller surfaces the URL instead.
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       currentPlan,
@@ -498,6 +520,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       startTrial,
       purchasePlan,
       restore,
+      openManageSubscription,
       isStoreActive,
       storePrices,
       isPurchasing,
@@ -523,6 +546,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       startTrial,
       purchasePlan,
       restore,
+      openManageSubscription,
       isStoreActive,
       storePrices,
       isPurchasing,

@@ -17,6 +17,7 @@ import {
   deleteSubscription,
   daysUntilRenewal,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function FamilySubscriptionsScreen() {
   const router = useRouter();
@@ -24,7 +25,11 @@ export default function FamilySubscriptionsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { formatAmount } = useCurrency();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<FamilySubscription[]>([]);
 
@@ -61,9 +66,13 @@ export default function FamilySubscriptionsScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familySubscriptions.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familySubscriptions.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -98,12 +107,12 @@ export default function FamilySubscriptionsScreen() {
                   </Text>
                 </View>
                 <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(sub.amount)}</Money>
-                <Pressable onPress={() => router.push({ pathname: '/family-subscriptions/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: sub.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-subscriptions/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: sub.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
-                <Pressable onPress={async () => { await deleteSubscription(String(memberId), sub.id); load(); }} hitSlop={10} style={{ marginLeft: 10 }}>
+                </Pressable>)}
+                {canEdit && (<Pressable onPress={async () => { await deleteSubscription(String(memberId), sub.id); load(); }} hitSlop={10} style={{ marginLeft: 10 }}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
+                </Pressable>)}
               </Animated.View>
             );
           })

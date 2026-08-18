@@ -17,6 +17,7 @@ import {
   deleteCheckin,
   isCheckinMissed,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 const DAY_LABEL_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
@@ -25,7 +26,11 @@ export default function FamilyCheckinScreen() {
   const { t } = useTranslation();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors } = useTheme();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<CheckinItem[]>([]);
 
@@ -67,9 +72,13 @@ export default function FamilyCheckinScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyCheckin.title')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCheckin.forMember', { memberName })}</Text> : null}
       </LinearGradient>
@@ -97,21 +106,21 @@ export default function FamilyCheckinScreen() {
                   </Text>
                   {missed && <Text style={[styles.missedText, { color: colors.warning }]}>{t('familyCheckin.missedCallWarning')}</Text>}
                 </View>
-                <Pressable
+                <Pressable disabled={!canMarkDone}
                   onPress={async () => { await markCheckinDone(String(memberId), item.id); load(); }}
                   style={[styles.doneBtn, { backgroundColor: done ? '#10B981' : colors.inputBg, borderColor: done ? '#10B981' : colors.border }]}
                 >
                   <Ionicons name="checkmark" size={16} color={done ? '#FFF' : colors.textTertiary} />
                 </Pressable>
-                <Pressable onPress={async () => { await toggleCheckin(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
+                <Pressable disabled={!canMarkDone} onPress={async () => { await toggleCheckin(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name={item.enabled ? 'toggle' : 'toggle-outline'} size={30} color={item.enabled ? colors.accent : colors.textTertiary} />
                 </Pressable>
-                <Pressable onPress={() => router.push({ pathname: '/family-checkin/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-checkin/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
-                <Pressable onPress={async () => { await deleteCheckin(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
+                </Pressable>)}
+                {canEdit && (<Pressable onPress={async () => { await deleteCheckin(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
+                </Pressable>)}
               </Animated.View>
             );
           })

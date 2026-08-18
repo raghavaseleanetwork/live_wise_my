@@ -18,13 +18,18 @@ import {
   daysOfStockLeft,
   isLowStock,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function MedicationStockScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<MedicationStockItem[]>([]);
 
@@ -60,9 +65,13 @@ export default function MedicationStockScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyStock.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyStock.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -101,28 +110,28 @@ export default function MedicationStockScreen() {
                       <Text style={[styles.lowBadgeText, { color: colors.warning }]}>{t('familyStock.lowBadge')}</Text>
                     </View>
                   )}
-                  <Pressable onPress={() => router.push({ pathname: '/family-stock/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                  {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-stock/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
                     <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-                  </Pressable>
-                  <Pressable onPress={async () => { await deleteStockItem(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 10 }}>
+                  </Pressable>)}
+                  {canEdit && (<Pressable onPress={async () => { await deleteStockItem(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 10 }}>
                     <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                  </Pressable>
+                  </Pressable>)}
                 </View>
                 <View style={styles.stockControls}>
-                  <Pressable
+                  <Pressable disabled={!canMarkDone}
                     onPress={async () => { await adjustStock(String(memberId), item.id, -1); load(); }}
                     style={[styles.stockBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
                   >
                     <Ionicons name="remove" size={18} color={colors.text} />
                   </Pressable>
-                  <Pressable
+                  <Pressable disabled={!canMarkDone}
                     onPress={async () => { await logStockPurchase(String(memberId), item.id, 10); load(); }}
                     style={[styles.stockBtn, styles.stockBtnWide, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' }]}
                   >
                     <Ionicons name="refresh" size={16} color={colors.accent} />
                     <Text style={[styles.refillText, { color: colors.accent }]}>{t('familyStock.refillPlus10')}</Text>
                   </Pressable>
-                  <Pressable
+                  <Pressable disabled={!canMarkDone}
                     onPress={async () => { await adjustStock(String(memberId), item.id, 1); load(); }}
                     style={[styles.stockBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
                   >

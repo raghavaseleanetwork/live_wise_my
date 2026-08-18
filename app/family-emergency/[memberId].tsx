@@ -27,6 +27,7 @@ import {
   loadEmergencyMedicalProfile,
   saveEmergencyMedicalProfile,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 function genId(): string {
   return Date.now().toString() + Math.random().toString(36).slice(2, 9);
@@ -38,7 +39,11 @@ export default function FamilyEmergencyScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { token } = useAuth();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [settings, setSettings] = useState<EmergencySettings>(DEFAULT_EMERGENCY_SETTINGS);
   const [log, setLog] = useState<EmergencyLogEntry[]>([]);
@@ -164,9 +169,9 @@ export default function FamilyEmergencyScreen() {
               <Text style={[styles.contactName, { color: colors.text }]}>{c.name}{c.relation ? ` · ${c.relation}` : ''}</Text>
               <Text style={[styles.contactPhone, { color: colors.textTertiary }]}>{c.phone}</Text>
             </View>
-            <Pressable onPress={() => removeContact(c.id)} hitSlop={10}>
+            {canEdit && (<Pressable onPress={() => removeContact(c.id)} hitSlop={10}>
               <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-            </Pressable>
+            </Pressable>)}
           </View>
         ))}
         {profile.contacts.length < 5 && (
@@ -349,7 +354,7 @@ export default function FamilyEmergencyScreen() {
                 </Text>
               </View>
               {!entry.acknowledged && (
-                <Pressable onPress={async () => { await acknowledgeEmergencyLogEntry(String(memberId), entry.id); load(); }} hitSlop={8}>
+                <Pressable disabled={!canMarkDone} onPress={async () => { await acknowledgeEmergencyLogEntry(String(memberId), entry.id); load(); }} hitSlop={8}>
                   <Ionicons name="checkmark-circle-outline" size={22} color={colors.accent} />
                 </Pressable>
               )}

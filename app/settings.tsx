@@ -265,6 +265,12 @@ export default function SettingsScreen() {
               </View>
             }
           />
+          <SettingRow
+            icon="receipt-outline"
+            label={t('settings.paymentHistory')}
+            onPress={() => router.push('/subscription/payment-history' as any)}
+            colors={colors}
+          />
         </View>
 
         {/*
@@ -301,6 +307,7 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('settings.general')}</Text>
         <View style={[styles.settingsGroup, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <SettingRow icon="notifications-outline" label={t('settings.notifications')} onPress={() => router.push('/notifications')} colors={colors} />
+          <SettingRow icon="options-outline" label={t('settings.notificationSettings')} onPress={() => router.push('/notification-settings' as any)} colors={colors} />
           <SettingRow icon="shield-checkmark-outline" label={t('settings.privacy')} onPress={() => router.push('/privacy')} colors={colors} />
           <SettingRow icon="help-circle-outline" label={t('settings.helpSupport')} onPress={() => router.push('/support')} colors={colors} />
         </View>

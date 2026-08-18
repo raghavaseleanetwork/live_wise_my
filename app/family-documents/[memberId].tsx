@@ -17,6 +17,7 @@ import {
   loadFamilyDocuments,
   deleteFamilyDocument,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function FamilyDocumentsScreen() {
   const router = useRouter();
@@ -27,7 +28,11 @@ export default function FamilyDocumentsScreen() {
   const { presentPaywall } = usePaywall();
   const { t } = useTranslation();
 
-  const documentTypeLabel = (type: FamilyDocument['type']) => t(`familyDocuments.type.${type}`);
+  const documentTypeLabel = (type: FamilyDocument['type']) => t(`familyDocuments.type.${type}`);
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<FamilyDocument[]>([]);
 
@@ -99,12 +104,12 @@ export default function FamilyDocumentsScreen() {
                   </Text>
                   {!!doc.notes && <Text style={[styles.cardNotes, { color: colors.textSecondary }]}>{doc.notes}</Text>}
                 </View>
-                <Pressable onPress={() => router.push({ pathname: '/family-documents/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: doc.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-documents/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: doc.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
-                <Pressable onPress={async () => { await deleteFamilyDocument(String(memberId), doc.id); load(); }} hitSlop={10}>
+                </Pressable>)}
+                {canEdit && (<Pressable onPress={async () => { await deleteFamilyDocument(String(memberId), doc.id); load(); }} hitSlop={10}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
+                </Pressable>)}
               </Animated.View>
             );
           })

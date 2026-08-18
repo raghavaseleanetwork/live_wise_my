@@ -21,13 +21,18 @@ import {
   toggleAppointmentDone,
   deleteAppointment,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function AppointmentsScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<Appointment[]>([]);
 
@@ -65,9 +70,13 @@ export default function AppointmentsScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyAppointments.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? (
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyAppointments.forMember', { name: memberName })}</Text>
@@ -87,7 +96,7 @@ export default function AppointmentsScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyAppointments.upcoming')}</Text>
                 {upcoming.map((appt) => (
-                  <AppointmentCard
+                  <AppointmentCard canMarkDone={canMarkDone} canEdit={canEdit} 
                     key={appt.id}
                     appt={appt}
                     colors={colors}
@@ -103,7 +112,7 @@ export default function AppointmentsScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyAppointments.completed')}</Text>
                 {past.map((appt) => (
-                  <AppointmentCard
+                  <AppointmentCard canMarkDone={canMarkDone} canEdit={canEdit} 
                     key={appt.id}
                     appt={appt}
                     colors={colors}
@@ -128,18 +137,16 @@ function AppointmentCard({
   onToggle,
   onEdit,
   onDelete,
-  t,
-}: {
+  t, canEdit, canMarkDone }: {
   appt: Appointment;
   colors: any;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  t: (key: string, options?: any) => string;
-}) {
+  t: (key: string, options?: any) => string; canEdit: boolean; canMarkDone: boolean }) {
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Pressable onPress={onToggle} style={styles.checkCircle}>
+      <Pressable disabled={!canMarkDone} onPress={onToggle} style={styles.checkCircle}>
         <Ionicons name={appt.completed ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={appt.completed ? '#10B981' : colors.textTertiary} />
       </Pressable>
       <View style={{ flex: 1 }}>
@@ -152,12 +159,12 @@ function AppointmentCard({
           {appt.location ? ` · ${appt.location}` : ''}
         </Text>
       </View>
-      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+      {canEdit && (<Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
         <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
-      <Pressable onPress={onDelete} hitSlop={10}>
+      </Pressable>)}
+      {canEdit && (<Pressable onPress={onDelete} hitSlop={10}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
+      </Pressable>)}
     </Animated.View>
   );
 }

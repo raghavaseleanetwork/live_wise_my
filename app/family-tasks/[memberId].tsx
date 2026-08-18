@@ -15,13 +15,18 @@ import {
   toggleFamilyTask,
   deleteFamilyTask,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function FamilyTasksScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<FamilyTask[]>([]);
 
@@ -58,9 +63,13 @@ export default function FamilyTasksScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyTasks.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyTasks.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -78,7 +87,7 @@ export default function FamilyTasksScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyTasks.sectionToDo')}</Text>
                 {pending.map((task) => (
-                  <TaskRow key={task.id} task={task} colors={colors} t={t}
+                  <TaskRow canMarkDone={canMarkDone} canEdit={canEdit} key={task.id} task={task} colors={colors} t={t}
                     onToggle={async () => { await toggleFamilyTask(String(memberId), task.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-tasks/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: task.id } })}
                     onDelete={async () => { await deleteFamilyTask(String(memberId), task.id); load(); }} />
@@ -89,7 +98,7 @@ export default function FamilyTasksScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyTasks.sectionDone')}</Text>
                 {done.map((task) => (
-                  <TaskRow key={task.id} task={task} colors={colors} t={t}
+                  <TaskRow canMarkDone={canMarkDone} canEdit={canEdit} key={task.id} task={task} colors={colors} t={t}
                     onToggle={async () => { await toggleFamilyTask(String(memberId), task.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-tasks/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: task.id } })}
                     onDelete={async () => { await deleteFamilyTask(String(memberId), task.id); load(); }} />
@@ -104,11 +113,10 @@ export default function FamilyTasksScreen() {
 }
 
 function TaskRow({
-  task, colors, onToggle, onEdit, onDelete, t,
-}: { task: FamilyTask; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string }) {
+  task, colors, onToggle, onEdit, onDelete, t, canEdit, canMarkDone }: { task: FamilyTask; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string; canEdit: boolean; canMarkDone: boolean }) {
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Pressable onPress={onToggle} style={styles.checkCircle}>
+      <Pressable disabled={!canMarkDone} onPress={onToggle} style={styles.checkCircle}>
         <Ionicons name={task.completed ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={task.completed ? '#10B981' : colors.textTertiary} />
       </Pressable>
       <View style={{ flex: 1 }}>
@@ -119,12 +127,12 @@ function TaskRow({
           </Text>
         )}
       </View>
-      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+      {canEdit && (<Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
         <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
-      <Pressable onPress={onDelete} hitSlop={10}>
+      </Pressable>)}
+      {canEdit && (<Pressable onPress={onDelete} hitSlop={10}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
+      </Pressable>)}
     </Animated.View>
   );
 }

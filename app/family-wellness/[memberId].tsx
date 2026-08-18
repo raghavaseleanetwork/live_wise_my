@@ -19,6 +19,7 @@ import {
   loadMoodLogs,
   addMoodLog,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 const MOOD_EMOJI: Record<MoodValue, string> = { 1: '😞', 2: '🙁', 3: '😐', 4: '🙂', 5: '😄' };
 const KIND_ICONS: Record<WellnessReminder['kind'], string> = {
@@ -35,6 +36,10 @@ export default function FamilyWellnessScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [reminders, setReminders] = useState<WellnessReminder[]>([]);
   const [moodLogs, setMoodLogs] = useState<MoodLog[]>([]);
@@ -82,9 +87,13 @@ export default function FamilyWellnessScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyWellness.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyWellness.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -119,7 +128,7 @@ export default function FamilyWellnessScreen() {
         ) : (
           reminders.map((item) => (
             <Animated.View key={item.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Pressable onPress={async () => { await toggleWellnessReminder(String(memberId), item.id); load(); }} style={styles.checkCircle}>
+              <Pressable disabled={!canMarkDone} onPress={async () => { await toggleWellnessReminder(String(memberId), item.id); load(); }} style={styles.checkCircle}>
                 <Ionicons name={item.enabled ? 'toggle' : 'toggle-outline'} size={26} color={item.enabled ? colors.accent : colors.textTertiary} />
               </Pressable>
               <View style={[styles.iconWrap, { backgroundColor: colors.accentDim }]}>
@@ -131,12 +140,12 @@ export default function FamilyWellnessScreen() {
                   {t(`familyWellness.kind.${item.kind}`)}{item.time ? ` · ${item.time}` : ''}
                 </Text>
               </View>
-              <Pressable onPress={() => router.push({ pathname: '/family-wellness/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={styles.rowAction}>
+              {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-wellness/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={styles.rowAction}>
                 <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-              </Pressable>
-              <Pressable onPress={async () => { await deleteWellnessReminder(String(memberId), item.id); load(); }} hitSlop={10}>
+              </Pressable>)}
+              {canEdit && (<Pressable onPress={async () => { await deleteWellnessReminder(String(memberId), item.id); load(); }} hitSlop={10}>
                 <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-              </Pressable>
+              </Pressable>)}
             </Animated.View>
           ))
         )}

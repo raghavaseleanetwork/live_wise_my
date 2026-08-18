@@ -94,12 +94,22 @@ export interface ReminderSettings {
   defaultReminderDays: number[];
   soundEnabled: boolean;
   vibrationEnabled: boolean;
+  /** Master kill-switch. Off cancels every scheduled local notification and blocks new scheduling. */
+  notificationsEnabled: boolean;
+  quietHoursEnabled: boolean;
+  /** 0-23. Quiet hours can wrap past midnight (e.g. 22 -> 7). */
+  quietHoursStart: number;
+  quietHoursEnd: number;
 }
 
 export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = {
   defaultReminderDays: [3, 1, 0],
   soundEnabled: true,
   vibrationEnabled: true,
+  notificationsEnabled: true,
+  quietHoursEnabled: false,
+  quietHoursStart: 22,
+  quietHoursEnd: 7,
 };
 
 export const CATEGORIES: Record<CategoryType, { label: string; color: string; icon: string }> = {

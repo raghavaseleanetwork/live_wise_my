@@ -17,6 +17,7 @@ import {
   saveDietProfile,
 } from '@/lib/family-records';
 import { LoadingIndicator } from '@/components/PremiumLoader';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'evening_snack', 'dinner'];
 
@@ -26,6 +27,10 @@ export default function FamilyDietScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -17,13 +17,18 @@ import {
   toggleCustomItem,
   deleteCustomItem,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function FamilyCustomScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [config, setConfig] = useState<CustomFeatureConfig | null>(null);
   const [items, setItems] = useState<CustomTrackerItem[]>([]);
@@ -93,9 +98,13 @@ export default function FamilyCustomScreen() {
                 <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
               </Pressable>
             )}
+            {canEdit ? (
             <Pressable onPress={openAdd} hitSlop={12}>
               <Ionicons name="add-circle" size={30} color={colors.accent} />
             </Pressable>
+          ) : (
+            <View style={{ width: 30 }} />
+          )}
           </View>
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyCustom.forMember', { name: memberName })}</Text> : null}
@@ -111,7 +120,7 @@ export default function FamilyCustomScreen() {
         ) : (
           items.map((item) => (
             <Animated.View key={item.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Pressable onPress={async () => { await toggleCustomItem(String(memberId), item.id); load(); }} style={styles.checkCircle}>
+              <Pressable disabled={!canMarkDone} onPress={async () => { await toggleCustomItem(String(memberId), item.id); load(); }} style={styles.checkCircle}>
                 <Ionicons name={item.completed ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={item.completed ? '#10B981' : colors.textTertiary} />
               </Pressable>
               <View style={{ flex: 1 }}>
@@ -120,9 +129,9 @@ export default function FamilyCustomScreen() {
                   {new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                 </Text>
               </View>
-              <Pressable onPress={async () => { await deleteCustomItem(String(memberId), item.id); load(); }} hitSlop={10}>
+              {canEdit && (<Pressable onPress={async () => { await deleteCustomItem(String(memberId), item.id); load(); }} hitSlop={10}>
                 <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-              </Pressable>
+              </Pressable>)}
             </Animated.View>
           ))
         )}

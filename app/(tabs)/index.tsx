@@ -43,6 +43,8 @@ import { getIntentPolicy, getReminderIntentFromBill } from '@/lib/reminder-inten
 import { useSeniorMode } from '@/lib/senior-context';
 import { useAlert } from '@/lib/alert-context';
 import CategoryIcon from '@/components/CategoryIcon';
+import FamilyRemindersSection from '@/components/FamilyRemindersSection';
+import { useFamilyReminders } from '@/lib/use-family-reminders';
 import PremiumLoader from '@/components/PremiumLoader';
 import CustomModal from '@/components/CustomModal';
 import AddExpenseFab, { FAB_CONTENT_INSET, type FabAction } from '@/components/AddExpenseFab';
@@ -197,7 +199,7 @@ const TransactionRow = React.memo(({ merchant, amount, category, date, colors, f
       <Money
         style={[
           styles.txAmount,
-          { color: isDebit ? colors.text : (colors.accentMint || colors.success || colors.text) },
+          { color: isDebit ? (colors.danger || colors.accentRed || '#EF4444') : (colors.accentMint || colors.success || colors.text) },
           isSeniorMode && { fontSize: 16 },
         ]}
       >
@@ -1046,6 +1048,12 @@ export default function HomeScreen() {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 5);
 
+  // Family Hub reminders, shown as their own section below Upcoming. Kept
+  // separate from `upcomingBills` deliberately: that row is the user's OWN
+  // bills and always labels the member as "You", while these are per-member and
+  // need the photo/name/status card the client specified.
+  const { familyReminders } = useFamilyReminders();
+
   /**
    * 🟢 3+ days away · 🟠 due in 1-2 days · 🔴 due today or overdue.
    * Whole-day difference, so "3+ days" starts at exactly 3 days out.
@@ -1206,6 +1214,8 @@ export default function HomeScreen() {
               </ScrollView>
             </Animated.View>
           )}
+
+          <FamilyRemindersSection reminders={familyReminders} seniorMode />
 
           <View style={styles.seniorGrid}>
             <Pressable onPress={() => router.push('/(tabs)/transactions')} style={[styles.seniorBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -1488,6 +1498,8 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </Animated.View>
+
+        <FamilyRemindersSection reminders={familyReminders} />
 
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.delay(200).duration(500) : undefined}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.quickReach')}</Text>

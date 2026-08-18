@@ -17,6 +17,7 @@ import {
   deleteFamilyExpense,
   totalThisMonth,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 const CATEGORY_META: Record<FamilyExpense['category'], { labelKey: string; icon: string; color: string }> = {
   food: { labelKey: 'familyExpenses.categoryFood', icon: 'fast-food', color: '#F97316' },
@@ -32,7 +33,11 @@ export default function FamilyExpensesScreen() {
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { formatAmount } = useCurrency();
+  const { formatAmount } = useCurrency();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<FamilyExpense[]>([]);
 
@@ -68,9 +73,13 @@ export default function FamilyExpensesScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyExpenses.title')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyExpenses.forMember', { memberName })}</Text> : null}
       </LinearGradient>
@@ -104,12 +113,12 @@ export default function FamilyExpensesScreen() {
                   </Text>
                 </View>
                 <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(exp.amount)}</Money>
-                <Pressable onPress={() => router.push({ pathname: '/family-expenses/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: exp.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-expenses/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: exp.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
-                <Pressable onPress={async () => { await deleteFamilyExpense(String(memberId), exp.id); load(); }} hitSlop={10} style={{ marginLeft: 10 }}>
+                </Pressable>)}
+                {canEdit && (<Pressable onPress={async () => { await deleteFamilyExpense(String(memberId), exp.id); load(); }} hitSlop={10} style={{ marginLeft: 10 }}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
+                </Pressable>)}
               </Animated.View>
             );
           })

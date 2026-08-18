@@ -148,7 +148,13 @@ export default function AddFamilyMemberScreen() {
         } catch {
           // Response body parse failed — not fatal; features still went to server.
         }
-        router.back();
+        // Not router.back(): if this screen was ever pushed twice (e.g. a
+        // double-tap on the + button before the modal transition finished),
+        // "back" pops to the OTHER copy of this same screen instead of
+        // Family Hub — which read as "saving does nothing, I'm still here."
+        // Navigating to the destination explicitly is correct regardless of
+        // how many copies are on the stack.
+        router.replace('/family');
       } else {
         setError(t('familyMember.errorAddFailed'));
       }

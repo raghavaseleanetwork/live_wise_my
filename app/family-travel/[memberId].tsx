@@ -16,13 +16,18 @@ import {
   toggleTravelItem,
   deleteTravelItem,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function FamilyTravelScreen() {
   const router = useRouter();
   const { memberId, memberName } = useLocalSearchParams<{ memberId: string; memberName?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<TravelItem[]>([]);
 
@@ -59,9 +64,13 @@ export default function FamilyTravelScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyTravel.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyTravel.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -79,7 +88,7 @@ export default function FamilyTravelScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyTravel.upcoming')}</Text>
                 {upcoming.map((item) => (
-                  <TravelCard key={item.id} item={item} colors={colors} t={t}
+                  <TravelCard canMarkDone={canMarkDone} canEdit={canEdit} key={item.id} item={item} colors={colors} t={t}
                     onToggle={async () => { await toggleTravelItem(String(memberId), item.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-travel/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })}
                     onDelete={async () => { await deleteTravelItem(String(memberId), item.id); load(); }} />
@@ -90,7 +99,7 @@ export default function FamilyTravelScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyTravel.past')}</Text>
                 {past.map((item) => (
-                  <TravelCard key={item.id} item={item} colors={colors} t={t}
+                  <TravelCard canMarkDone={canMarkDone} canEdit={canEdit} key={item.id} item={item} colors={colors} t={t}
                     onToggle={async () => { await toggleTravelItem(String(memberId), item.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-travel/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })}
                     onDelete={async () => { await deleteTravelItem(String(memberId), item.id); load(); }} />
@@ -105,12 +114,11 @@ export default function FamilyTravelScreen() {
 }
 
 function TravelCard({
-  item, colors, onToggle, onEdit, onDelete, t,
-}: { item: TravelItem; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string }) {
+  item, colors, onToggle, onEdit, onDelete, t, canEdit, canMarkDone }: { item: TravelItem; colors: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string; canEdit: boolean; canMarkDone: boolean }) {
   const def = TRAVEL_TYPE_LABELS[item.type];
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Pressable onPress={onToggle} style={styles.checkCircle}>
+      <Pressable disabled={!canMarkDone} onPress={onToggle} style={styles.checkCircle}>
         <Ionicons name={item.completed ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={item.completed ? '#10B981' : colors.textTertiary} />
       </Pressable>
       <View style={[styles.iconWrap, { backgroundColor: colors.accentDim }]}>
@@ -123,12 +131,12 @@ function TravelCard({
           {item.location ? ` · ${item.location}` : ''}
         </Text>
       </View>
-      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+      {canEdit && (<Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
         <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
-      <Pressable onPress={onDelete} hitSlop={10}>
+      </Pressable>)}
+      {canEdit && (<Pressable onPress={onDelete} hitSlop={10}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
+      </Pressable>)}
     </Animated.View>
   );
 }

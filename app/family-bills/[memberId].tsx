@@ -17,6 +17,7 @@ import {
   toggleFamilyBillPaid,
   deleteFamilyBill,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 const CATEGORY_LABELS: Record<FamilyBill['category'], { labelKey: string; icon: string }> = {
   electricity: { labelKey: 'familyBills.categoryElectricity', icon: 'flash' },
@@ -40,7 +41,11 @@ export default function FamilyBillsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { formatAmount } = useCurrency();
-  const { t } = useTranslation();
+  const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<FamilyBill[]>([]);
 
@@ -77,9 +82,13 @@ export default function FamilyBillsScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyBills.title')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyBills.forMember', { memberName })}</Text> : null}
       </LinearGradient>
@@ -97,7 +106,7 @@ export default function FamilyBillsScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('familyBills.sectionDue')}</Text>
                 {unpaid.map((bill) => (
-                  <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount} t={t}
+                  <BillCard canMarkDone={canMarkDone} canEdit={canEdit} key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount} t={t}
                     onToggle={async () => { await toggleFamilyBillPaid(String(memberId), bill.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: bill.id } })}
                     onDelete={async () => { await deleteFamilyBill(String(memberId), bill.id); load(); }} />
@@ -108,7 +117,7 @@ export default function FamilyBillsScreen() {
               <>
                 <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 20 }]}>{t('familyBills.sectionPaid')}</Text>
                 {paid.map((bill) => (
-                  <BillCard key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount} t={t}
+                  <BillCard canMarkDone={canMarkDone} canEdit={canEdit} key={bill.id} bill={bill} colors={colors} formatAmount={formatAmount} t={t}
                     onToggle={async () => { await toggleFamilyBillPaid(String(memberId), bill.id); load(); }}
                     onEdit={() => router.push({ pathname: '/family-bills/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: bill.id } })}
                     onDelete={async () => { await deleteFamilyBill(String(memberId), bill.id); load(); }} />
@@ -123,12 +132,11 @@ export default function FamilyBillsScreen() {
 }
 
 function BillCard({
-  bill, colors, formatAmount, t, onToggle, onEdit, onDelete,
-}: { bill: FamilyBill; colors: any; formatAmount: (n: number) => string; t: (key: string, opts?: any) => string; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
+  bill, colors, formatAmount, t, onToggle, onEdit, onDelete, canEdit, canMarkDone }: { bill: FamilyBill; colors: any; formatAmount: (n: number) => string; t: (key: string, opts?: any) => string; onToggle: () => void; onEdit: () => void; onDelete: () => void; canEdit: boolean; canMarkDone: boolean }) {
   const def = CATEGORY_LABELS[bill.category];
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Pressable onPress={onToggle} style={styles.checkCircle}>
+      <Pressable disabled={!canMarkDone} onPress={onToggle} style={styles.checkCircle}>
         <Ionicons name={bill.isPaid ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={bill.isPaid ? '#10B981' : colors.textTertiary} />
       </Pressable>
       <View style={[styles.iconWrap, { backgroundColor: colors.accentDim }]}>
@@ -141,12 +149,12 @@ function BillCard({
         </Text>
       </View>
       <Money style={[styles.cardAmount, { color: colors.text }]}>{formatAmount(bill.amount)}</Money>
-      <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+      {canEdit && (<Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
         <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
-      <Pressable onPress={onDelete} hitSlop={10} style={{ marginLeft: 10 }}>
+      </Pressable>)}
+      {canEdit && (<Pressable onPress={onDelete} hitSlop={10} style={{ marginLeft: 10 }}>
         <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-      </Pressable>
+      </Pressable>)}
     </Animated.View>
   );
 }

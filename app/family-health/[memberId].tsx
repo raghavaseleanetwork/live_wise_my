@@ -17,6 +17,7 @@ import {
   deleteHealthLog,
   isHealthLogOutOfRange,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 const ALL_METRICS: HealthMetricType[] = ['bp', 'sugar', 'weight', 'temperature', 'oxygen', 'heart_rate', 'cholesterol'];
 
@@ -27,7 +28,11 @@ export default function HealthMonitoringScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
 
-  const metricLabel = (type: HealthMetricType) => t(`familyHealth.metric.${type}`);
+  const metricLabel = (type: HealthMetricType) => t(`familyHealth.metric.${type}`);
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<HealthLog[]>([]);
   const [filterType, setFilterType] = useState<HealthMetricType | 'all'>('all');
@@ -64,9 +69,13 @@ export default function HealthMonitoringScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyHealth.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyHealth.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -116,9 +125,9 @@ export default function HealthMonitoringScreen() {
                   {!!log.notes && <Text style={[styles.cardNotes, { color: colors.textSecondary }]}>{log.notes}</Text>}
                   {outOfRange && <Text style={[styles.outOfRangeText, { color: colors.warning }]}>{t('familyHealth.outOfRangeWarning')}</Text>}
                 </View>
-                <Pressable onPress={async () => { await deleteHealthLog(String(memberId), log.id); load(); }} hitSlop={10}>
+                {canEdit && (<Pressable onPress={async () => { await deleteHealthLog(String(memberId), log.id); load(); }} hitSlop={10}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
+                </Pressable>)}
               </Animated.View>
             );
           })
@@ -136,8 +145,8 @@ const styles = StyleSheet.create({
   addBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: 'Inter_700Bold', fontSize: 18 },
   headerSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: 4, textAlign: 'center' },
-  filterScroll: { paddingTop: 14, paddingBottom: 6 },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
+  filterScroll: { flexGrow: 0, flexShrink: 0, paddingTop: 14, paddingBottom: 6 },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20 },
   filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
   outOfRangeText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 4 },
   filterChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },

@@ -184,6 +184,7 @@ export default function SubscriptionScreen() {
     startTrial,
     purchasePlan,
     restore,
+    openManageSubscription,
     isStoreActive,
     storePrices,
     isPurchasing,
@@ -233,6 +234,26 @@ export default function SubscriptionScreen() {
         buttons: [
           { text: t('common.cancel'), style: 'cancel' },
           { text: t('subscription.alerts.activateBtn', { plan: planName }), onPress: () => applyTestPlan(plan) },
+        ],
+      });
+      return;
+    }
+
+    // DOWNGRADE TO FREE with a live store subscription. The app cannot cancel
+    // on the user's behalf — only Google/Apple can. Flipping local state here
+    // would hide a subscription that keeps billing, so send them to the store
+    // instead of pretending we cancelled anything.
+    if (plan === 'free' && isStoreActive && !isTestMode) {
+      showAlert({
+        title: t('subscription.alerts.cancelInStoreTitle'),
+        message: t('subscription.alerts.cancelInStoreMsg'),
+        type: 'info',
+        buttons: [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('subscription.alerts.openStoreBtn'),
+            onPress: () => { void openManageSubscription(); },
+          },
         ],
       });
       return;
@@ -449,6 +470,19 @@ export default function SubscriptionScreen() {
               ]}
             >
               {t('subscription.restorePurchases')}
+            </Text>
+          </Pressable>
+        )}
+
+        {/*
+          Cancellation and payment-method changes live in the store, not here.
+          Shown only to users who actually hold a paid plan — there is nothing
+          to manage on Free.
+        */}
+        {isStoreActive && !isTestMode && ownedPlan !== 'free' && (
+          <Pressable onPress={() => { void openManageSubscription(); }} style={styles.restoreLink}>
+            <Text style={[styles.restoreLinkText, { color: colors.textSecondary }]}>
+              {t('subscription.manageSubscription')}
             </Text>
           </Pressable>
         )}

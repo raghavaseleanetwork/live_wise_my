@@ -41,7 +41,10 @@ import {
   addNotificationReceivedListener,
   registerForPushNotifications,
   addPushTokenListener,
+  SNOOZE_ACTION_ID,
+  DONE_ACTION_ID,
 } from "@/lib/notifications";
+import { handleNotificationAction } from "@/lib/notification-actions";
 import { emitCaregiverSync } from "@/lib/caregiver-sync";
 import { registerSmsSyncTask } from "@/lib/sms-sync-task";
 import { SeniorProvider } from "@/lib/senior-context";
@@ -233,6 +236,17 @@ function AuthGate() {
       const nextSub = await addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data as any;
 
+        // Snooze / Done buttons first. These run without opening the app, so
+        // they must NOT fall through to the navigation below — a button press
+        // that also launched the app would defeat the point of the button.
+        if (
+          response.actionIdentifier === SNOOZE_ACTION_ID ||
+          response.actionIdentifier === DONE_ACTION_ID
+        ) {
+          void handleNotificationAction(response as any);
+          return;
+        }
+
         // Most specific match first, then a generic `data.route` fallback.
         //
         // The fallback matters: it lets the backend add a new notification kind
@@ -364,6 +378,7 @@ function AuthGate() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="notification-settings" />
         <Stack.Screen name="subscription/index" />
         <Stack.Screen name="subscription/compare" />
         <Stack.Screen name="life-memory" />
@@ -377,6 +392,7 @@ function AuthGate() {
         <Stack.Screen name="family-appointments/[memberId]" />
         <Stack.Screen name="family-health/[memberId]" />
         <Stack.Screen name="family-stock/[memberId]" />
+        <Stack.Screen name="family-medicines/[memberId]" />
         <Stack.Screen name="family-routine/[memberId]" />
         <Stack.Screen name="family-bills/[memberId]" />
         <Stack.Screen name="family-subscriptions/[memberId]" />
@@ -408,6 +424,7 @@ function AuthGate() {
         <Stack.Screen name="family-custom/add" />
         <Stack.Screen name="family-custom/setup" />
         <Stack.Screen name="family-caregivers/add" />
+        <Stack.Screen name="family-caregivers/permissions" />
         <Stack.Screen name="family-fitness/add" />
         <Stack.Screen name="family-wellness/add" />
         <Stack.Screen name="family-vehicles/add" />

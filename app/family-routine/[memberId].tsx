@@ -19,6 +19,7 @@ import {
   markRoutineDoneToday,
   routineWeeklyCompliance,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 function isRoutineDoneToday(item: RoutineItem): boolean {
   const now = new Date();
@@ -34,7 +35,11 @@ export default function DailyRoutineScreen() {
   const { t } = useTranslation();
 
   const routineTypeLabel = (type: RoutineType) => t(`familyRoutine.type.${type}`);
-  const DAY_LABELS = [t('common.dayShort.sun'), t('common.dayShort.mon'), t('common.dayShort.tue'), t('common.dayShort.wed'), t('common.dayShort.thu'), t('common.dayShort.fri'), t('common.dayShort.sat')];
+  const DAY_LABELS = [t('common.dayShort.sun'), t('common.dayShort.mon'), t('common.dayShort.tue'), t('common.dayShort.wed'), t('common.dayShort.thu'), t('common.dayShort.fri'), t('common.dayShort.sat')];
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<RoutineItem[]>([]);
 
@@ -70,9 +75,13 @@ export default function DailyRoutineScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyRoutine.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyRoutine.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -91,7 +100,7 @@ export default function DailyRoutineScreen() {
             const compliance = routineWeeklyCompliance(item);
             return (
               <Animated.View key={item.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Pressable onPress={async () => { await markRoutineDoneToday(String(memberId), item.id); load(); }} style={styles.checkCircle}>
+                <Pressable disabled={!canMarkDone} onPress={async () => { await markRoutineDoneToday(String(memberId), item.id); load(); }} style={styles.checkCircle}>
                   <Ionicons name={doneToday ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={doneToday ? '#10B981' : colors.textTertiary} />
                 </Pressable>
                 <View style={[styles.iconWrap, { backgroundColor: colors.accentDim }]}>
@@ -104,15 +113,15 @@ export default function DailyRoutineScreen() {
                     {compliance > 0 ? ` · ${t('familyRoutine.weeklyCompliance', { percent: compliance })}` : ''}
                   </Text>
                 </View>
-                <Pressable onPress={async () => { await toggleRoutine(String(memberId), item.id); load(); }} hitSlop={10}>
+                <Pressable disabled={!canMarkDone} onPress={async () => { await toggleRoutine(String(memberId), item.id); load(); }} hitSlop={10}>
                   <Ionicons name={item.enabled ? 'toggle' : 'toggle-outline'} size={32} color={item.enabled ? colors.accent : colors.textTertiary} />
                 </Pressable>
-                <Pressable onPress={() => router.push({ pathname: '/family-routine/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
+                {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-routine/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
-                <Pressable onPress={async () => { await deleteRoutine(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
+                </Pressable>)}
+                {canEdit && (<Pressable onPress={async () => { await deleteRoutine(String(memberId), item.id); load(); }} hitSlop={10} style={{ marginLeft: 8 }}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
+                </Pressable>)}
               </Animated.View>
             );
           })

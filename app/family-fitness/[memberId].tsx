@@ -16,6 +16,7 @@ import {
   markFitnessDone,
   deleteFitnessItem,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function FamilyFitnessScreen() {
   const router = useRouter();
@@ -23,6 +24,10 @@ export default function FamilyFitnessScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<FitnessItem[]>([]);
 
@@ -58,9 +63,13 @@ export default function FamilyFitnessScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyFitness.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyFitness.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -78,7 +87,7 @@ export default function FamilyFitnessScreen() {
             const done = isDoneToday(item);
             return (
               <Animated.View key={item.id} entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Pressable
+                <Pressable disabled={!canMarkDone}
                   onPress={async () => { if (!done) { await markFitnessDone(String(memberId), item.id); load(); } }}
                   style={styles.checkCircle}
                 >
@@ -95,12 +104,12 @@ export default function FamilyFitnessScreen() {
                     {item.streak > 0 ? ` · ${t('familyFitness.streakDays', { count: item.streak })}` : ''}
                   </Text>
                 </View>
-                <Pressable onPress={() => router.push({ pathname: '/family-fitness/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={styles.rowAction}>
+                {canEdit && (<Pressable onPress={() => router.push({ pathname: '/family-fitness/add', params: { memberId: String(memberId), memberName: memberName ? String(memberName) : '', editId: item.id } })} hitSlop={10} style={styles.rowAction}>
                   <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
-                <Pressable onPress={async () => { await deleteFitnessItem(String(memberId), item.id); load(); }} hitSlop={10}>
+                </Pressable>)}
+                {canEdit && (<Pressable onPress={async () => { await deleteFitnessItem(String(memberId), item.id); load(); }} hitSlop={10}>
                   <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-                </Pressable>
+                </Pressable>)}
               </Animated.View>
             );
           })

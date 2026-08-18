@@ -11,7 +11,91 @@ import { apiRequest } from '@/lib/query-client';
  * free-text "caregiver contact" feature, which is unrelated.
  */
 
+import type { FamilyFeatureKey } from '@/lib/family-features';
+
 export type CaregiverRole = 'owner' | 'caregiver';
+
+/**
+ * What a caregiver is allowed to DO with the modules they can see.
+ *
+ * Deliberately ordered least->most capable; `ACCESS_LEVEL_RANK` below relies
+ * on that order so a check can ask "at least this level?" rather than
+ * enumerating every case.
+ *
+ * - `view`      read only. Cannot tick anything off.
+ * - `mark_done` read + complete/snooze a reminder. The PRD's default caregiver:
+ *               "receive alerts, mark reminders done".
+ * - `full`      read + complete + create/edit/delete records.
+ */
+export type CaregiverAccessLevel = 'view' | 'mark_done' | 'full';
+
+export const ACCESS_LEVEL_RANK: Record<CaregiverAccessLevel, number> = {
+  view: 0,
+  mark_done: 1,
+  full: 2,
+};
+
+/**
+ * A caregiver's permissions for one member.
+ *
+ * Two independent dimensions, per the client's request:
+ *  1. WHICH modules (`allowedModules`) — scope of data.
+ *  2. WHAT they may do in them (`accessLevel`) — scope of action.
+ *
+ * `allowedModules: null` means "every module the member has enabled", which is
+ * how every caregiver connected before this feature existed behaves. That is
+ * deliberate: an absent field must not silently revoke access for people who
+ * are already relying on it. Restriction is opt-in by the owner.
+ */
+export interface CaregiverPermissions {
+  allowedModules: FamilyFeatureKey[] | null;
+  accessLevel: CaregiverAccessLevel;
+}
+
+/** Applied when the server sends no permissions — full access, see above. */
+export const DEFAULT_CAREGIVER_PERMISSIONS: CaregiverPermissions = {
+  allowedModules: null,
+  accessLevel: 'full',
+};
+
+/** Normalises whatever the server returned into a usable permissions object. */
+export function normalizeCaregiverPermissions(input: unknown): CaregiverPermissions {
+  if (!input || typeof input !== 'object') return { ...DEFAULT_CAREGIVER_PERMISSIONS };
+  const raw = input as Partial<CaregiverPermissions>;
+  const level = raw.accessLevel;
+  return {
+    allowedModules: Array.isArray(raw.allowedModules) ? (raw.allowedModules as FamilyFeatureKey[]) : null,
+    accessLevel: level === 'view' || level === 'mark_done' || level === 'full' ? level : 'full',
+  };
+}
+
+/**
+ * Can this caregiver see `module` at all?
+ *
+ * The OWNER is never restricted — `permissions` is only ever consulted for a
+ * connected caregiver, and callers pass `isOwner` so this stays a single
+ * decision point rather than an `if (isOwner)` at every call site.
+ */
+export function canAccessModule(
+  module: FamilyFeatureKey,
+  permissions: CaregiverPermissions | null | undefined,
+  isOwner: boolean,
+): boolean {
+  if (isOwner) return true;
+  if (!permissions || permissions.allowedModules === null) return true;
+  return permissions.allowedModules.includes(module);
+}
+
+/** Does this caregiver hold at least `required` on the modules they can see? */
+export function hasAccessLevel(
+  required: CaregiverAccessLevel,
+  permissions: CaregiverPermissions | null | undefined,
+  isOwner: boolean,
+): boolean {
+  if (isOwner) return true;
+  const level = permissions?.accessLevel ?? 'full';
+  return ACCESS_LEVEL_RANK[level] >= ACCESS_LEVEL_RANK[required];
+}
 export type CaregiverInviteStatus = 'pending' | 'accepted' | 'declined';
 
 export interface Caregiver {
@@ -22,6 +106,11 @@ export interface Caregiver {
   avatarUrl?: string | null;
   role: CaregiverRole;
   connectedAt: string;
+  /**
+   * Absent on the owner, and on caregivers connected before scoped access
+   * existed. `normalizeCaregiverPermissions` turns either into full access.
+   */
+  permissions?: CaregiverPermissions | null;
 }
 
 export interface CaregiverInvite {
@@ -43,9 +132,40 @@ export async function loadCaregivers(memberId: string, token: string | null): Pr
 }
 
 /** Sends an invite to another LifeWise account by email. Owner-only. */
-export async function inviteCaregiver(memberId: string, email: string, token: string | null): Promise<CaregiverInvite> {
-  const res = await apiRequest('POST', `/api/family/${memberId}/connected-caregivers/invite`, { email: email.trim().toLowerCase() }, token);
+export async function inviteCaregiver(
+  memberId: string,
+  email: string,
+  token: string | null,
+  permissions?: CaregiverPermissions,
+): Promise<CaregiverInvite> {
+  const res = await apiRequest(
+    'POST',
+    `/api/family/${memberId}/connected-caregivers/invite`,
+    { email: email.trim().toLowerCase(), ...(permissions ? { permissions } : {}) },
+    token,
+  );
   return (await res.json()) as CaregiverInvite;
+}
+
+/**
+ * Owner-only: change what an already-connected caregiver may see and do.
+ *
+ * Separate from the invite call because permissions are far more likely to be
+ * edited later than set correctly up front — the owner usually only discovers
+ * they over-shared once the caregiver is already in.
+ */
+export async function updateCaregiverPermissions(
+  memberId: string,
+  caregiverUserId: string,
+  permissions: CaregiverPermissions,
+  token: string | null,
+): Promise<void> {
+  await apiRequest(
+    'PATCH',
+    `/api/family/${memberId}/connected-caregivers/${caregiverUserId}/permissions`,
+    permissions,
+    token,
+  );
 }
 
 /** Owner removes any caregiver; a caregiver may only remove themself. */

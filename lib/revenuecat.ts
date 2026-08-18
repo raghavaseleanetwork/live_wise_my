@@ -298,6 +298,169 @@ export function addCustomerInfoListener(cb: (info: any) => void): () => void {
 }
 
 /**
+ * One row in the subscription payment history.
+ *
+ * `amount` is deliberately optional and usually absent — see the note on
+ * `getPurchaseHistory` about what the SDK does and does not expose.
+ */
+export interface PurchaseRecord {
+  /** Store product id, e.g. `lifewise_family_monthly`. Unique per row with `date`. */
+  productId: string;
+  /** Plan this product maps to, or null when the id isn't one of ours. */
+  plan: PlanId | null;
+  interval: BillingInterval | null;
+  /** ISO date the purchase/renewal was recorded by the store. */
+  date: string;
+  /** ISO date this term expires or renews. Absent for non-renewing purchases. */
+  expiresDate: string | null;
+  /** True when this is the term currently granting access. */
+  isActive: boolean;
+  /** Whether the subscription is set to renew at `expiresDate`. */
+  willRenew: boolean;
+  /** 'App Store' | 'Play Store' | 'Test Store' etc., as the SDK reports it. */
+  store: string | null;
+  /**
+   * Localised price. Only present when the current offering still sells this
+   * product — the SDK has no per-transaction amount, so historic prices for
+   * products no longer on sale cannot be recovered client-side.
+   */
+  amount?: string;
+}
+
+/**
+ * Subscription payment history, newest first.
+ *
+ * ## What this can and cannot show
+ *
+ * RevenueCat's client SDK is an *entitlement* API, not a billing ledger. From
+ * `CustomerInfo` we can read which products the user owns, when each term began
+ * (`allPurchaseDates`), and when it expires (`allExpirationDates`). That is
+ * enough for "what did you buy and when".
+ *
+ * It does **not** expose a per-transaction amount, currency, payment method,
+ * invoice number, or refund status — those live in the store account and in
+ * RevenueCat's server-side API. Prices here are therefore looked up from the
+ * *current* offering, so a product whose price has since changed (or which was
+ * pulled from sale) shows no amount rather than a wrong one.
+ *
+ * A complete, auditable payment history with real charged amounts requires the
+ * backend to consume RevenueCat webhooks and serve them. See
+ * `backend-team/SUBSCRIPTION-PAYMENT-HISTORY-backend-requirements.md`.
+ *
+ * Returns `[]` when the SDK is unconfigured (web build, missing key), which the
+ * UI renders as an explicit "not available" state rather than an error.
+ */
+export async function getPurchaseHistory(): Promise<PurchaseRecord[]> {
+  const info = await getCustomerInfo();
+  if (!info) return [];
+
+  const purchaseDates: Record<string, string> = info.allPurchaseDates ?? {};
+  const expirationDates: Record<string, string> = info.allExpirationDates ?? {};
+  const activeSubs: string[] = info.activeSubscriptions ?? [];
+
+  // Best-effort price lookup. Failure here must not lose the history itself.
+  let prices: Record<string, string> = {};
+  try {
+    prices = await getProductPriceStrings();
+  } catch {
+    prices = {};
+  }
+
+  const rows: PurchaseRecord[] = [];
+  for (const [productId, purchasedAt] of Object.entries(purchaseDates)) {
+    if (!purchasedAt) continue;
+
+    const expiresAt = expirationDates[productId] ?? null;
+    const entitlement = findEntitlementForProduct(info, productId);
+
+    rows.push({
+      productId,
+      plan: planForProductId(productId),
+      interval: intervalForProductId(productId),
+      date: purchasedAt,
+      expiresDate: expiresAt,
+      isActive: activeSubs.includes(productId),
+      willRenew: entitlement?.willRenew ?? false,
+      store: entitlement?.store ?? null,
+      amount: prices[productId],
+    });
+  }
+
+  return rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+/** The entitlement (active or not) backed by a given product id. */
+function findEntitlementForProduct(info: any, productId: string): any | null {
+  const all = info?.entitlements?.all ?? {};
+  for (const key of Object.keys(all)) {
+    if (all[key]?.productIdentifier === productId) return all[key];
+  }
+  return null;
+}
+
+/** Reverse of `PLAN_META[*].productIdMonthly/Yearly` — product id back to plan. */
+function planForProductId(productId: string): PlanId | null {
+  for (const plan of PLAN_ORDER) {
+    if (plan === 'free') continue;
+    const meta = PLAN_META[plan];
+    if (meta?.productIdMonthly === productId || meta?.productIdYearly === productId) {
+      return plan;
+    }
+  }
+  return null;
+}
+
+/** Billing interval implied by a product id. */
+function intervalForProductId(productId: string): BillingInterval | null {
+  for (const plan of PLAN_ORDER) {
+    if (plan === 'free') continue;
+    const meta = PLAN_META[plan];
+    if (meta?.productIdMonthly === productId) return 'month';
+    if (meta?.productIdYearly === productId) return 'year';
+  }
+  // Fall back to the naming convention for anything not in PLAN_META.
+  if (productId.includes('yearly') || productId.includes('annual')) return 'year';
+  if (productId.includes('monthly')) return 'month';
+  return null;
+}
+
+/**
+ * Where the user manages or cancels their subscription.
+ *
+ * Cancellation is NOT something the app can perform — Google and Apple own it.
+ * An in-app "cancel" that only flips local state leaves the store still
+ * billing, which is both a support nightmare and a Play policy problem, so the
+ * UI must send users here instead.
+ *
+ * Prefers RevenueCat's `managementURL`, which deep-links to the *specific*
+ * subscription when the store provides it. Falls back to the platform's generic
+ * subscriptions page, which always exists.
+ */
+export async function getManagementUrl(): Promise<string> {
+  const fallback =
+    Platform.OS === 'ios'
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+
+  const info = await getCustomerInfo();
+  return info?.managementURL ?? fallback;
+}
+
+/** Localised price strings keyed by *product id* rather than plan+interval. */
+async function getProductPriceStrings(): Promise<Record<string, string>> {
+  const offering = await getOfferings();
+  if (!offering?.availablePackages?.length) return {};
+
+  const prices: Record<string, string> = {};
+  for (const pkg of offering.availablePackages) {
+    const id = pkg?.product?.identifier;
+    const priceString = pkg?.product?.priceString;
+    if (id && priceString) prices[id] = priceString;
+  }
+  return prices;
+}
+
+/**
  * Store-localised price strings keyed by `${plan}_${interval}` (e.g. "₹199").
  *
  * Apple and Google own displayed pricing — showing the hardcoded INR values from

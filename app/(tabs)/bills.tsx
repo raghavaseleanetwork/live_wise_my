@@ -941,7 +941,7 @@ export default function BillsScreen() {
         visible={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         settings={reminderSettings}
-        onSave={updateReminderSettings}
+        onSave={(partial) => updateReminderSettings({ ...reminderSettings, ...partial })}
       />
     </View>
   );

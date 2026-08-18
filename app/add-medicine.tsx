@@ -21,6 +21,7 @@ import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { toLocalDateString } from '@/lib/data';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 type MedAppearance = 'capsule' | 'tablet' | 'round' | 'liquid';
 type MedInstruction = 'before_meal' | 'after_meal' | 'any';
@@ -45,7 +46,15 @@ export default function AddMedicineScreen() {
   const { token } = useAuth();
   const { t } = useTranslation();
 
-  // Form State
+  // Form State
+  // Creating a medicine is OWNER-ONLY server-side today: POST
+  // /api/family/:id/medicines queries { userId: requesterId } and has no
+  // caregiver path at all, so it rejects EVERY caregiver regardless of
+  // their access level. Without this guard a caregiver fills in the whole
+  // form and the save silently fails, which reads as a broken form rather
+  // than a permission they don't have.
+  const { isOwner, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
+  const mayAddMedicine = isOwner && canEdit;
   const [medName, setMedName] = useState('');
   const [medDosage, setMedDosage] = useState('');
   // Nothing preselected — the user picks the form the medicine comes in.
@@ -99,6 +108,10 @@ export default function AddMedicineScreen() {
   };
 
   const handleSave = async (addAnother: boolean = false) => {
+    if (!mayAddMedicine) {
+      setError(t('addMedicine.errorNotAllowed'));
+      return;
+    }
     if (!medName.trim()) {
       setError(t('addMedicine.errorEnterName'));
       return;
@@ -473,7 +486,7 @@ export default function AddMedicineScreen() {
               />
             </View>
 
-            <Pressable onPress={() => handleSave(true)} disabled={isSaving} style={styles.addAnotherBtn}>
+            <Pressable onPress={() => handleSave(true)} disabled={isSaving || !mayAddMedicine} style={[styles.addAnotherBtn, !mayAddMedicine && { opacity: 0.4 }]}>
               <Ionicons name="add-circle-outline" size={18} color={colors.accent} />
               <Text style={[styles.addAnotherText, { color: colors.accent }]}>{t('addMedicine.addAnotherMedicine')}</Text>
             </Pressable>
@@ -482,7 +495,7 @@ export default function AddMedicineScreen() {
 
         {/* Footer Save */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <Pressable onPress={() => handleSave(false)} disabled={isSaving} style={styles.saveBtn}>
+          <Pressable onPress={() => handleSave(false)} disabled={isSaving || !mayAddMedicine} style={[styles.saveBtn, !mayAddMedicine && { opacity: 0.4 }]}>
             <LinearGradient
               colors={colors.buttonGradient as any}
               style={styles.saveGradient}

@@ -10,6 +10,7 @@ function isExpoGo() {
 
 let handlerConfigured = false;
 let channelConfigured = false;
+let categoryConfigured = false;
 let lastRegisteredToken: string | null = null;
 /** The registration request currently in flight, if any. See its use below. */
 let inFlightRegistration: Promise<string | undefined> | null = null;
@@ -24,6 +25,38 @@ const SILENT_CHANNEL_ID = "reminders_silent";
 const NO_VIBRATE_CHANNEL_ID = "reminders_novibrate";
 const SILENT_NO_VIBRATE_CHANNEL_ID = "reminders_silent_novibrate";
 
+/**
+ * The app's own notification sound.
+ *
+ * Bundled at `assets/sounds/reminder.wav` and registered via the
+ * `expo-notifications` config plugin in `app.json`, which copies it into the
+ * native projects. Referenced by **filename only** — that is what both
+ * platforms expect, and a path here silently falls back to the system default.
+ *
+ * ⚠️ On Android the sound is a property of the CHANNEL, fixed at creation. The
+ * channel ids below carry a version suffix so that changing the sound creates
+ * new channels rather than leaving existing installs on the old one.
+ */
+export const REMINDER_SOUND_FILE = "reminder.wav";
+
+/**
+ * Notification category carrying the Snooze / Done action buttons.
+ *
+ * Any notification that sets `categoryIdentifier` to this value renders the two
+ * buttons. The server must send the same string (see
+ * `backend-team/NOTIFICATION-ACTIONS-backend-requirements.md`) for push
+ * notifications to show them — a push without it still arrives, just with no
+ * buttons.
+ */
+export const REMINDER_CATEGORY_ID = "lifewise_reminder_actions";
+
+/** Action ids. These exact strings are what the response listener switches on. */
+export const SNOOZE_ACTION_ID = "SNOOZE_10_MIN";
+export const DONE_ACTION_ID = "MARK_DONE";
+
+/** How long the Snooze button defers a reminder, per the product spec. */
+export const SNOOZE_MINUTES = 10;
+
 /** Mirrors `STORAGE_KEYS.REMINDER_SETTINGS` in `lib/expense-context.tsx`. */
 const REMINDER_SETTINGS_KEY = '@lifewise_reminder_settings';
 
@@ -35,18 +68,51 @@ const REMINDER_SETTINGS_KEY = '@lifewise_reminder_settings';
  * call site would mean each one could forget it. Defaults to on if unreadable —
  * a missed reminder is worse than an unwanted sound.
  */
-async function getAlertPrefs(): Promise<{ sound: boolean; vibration: boolean }> {
+interface AlertPrefs {
+  sound: boolean;
+  vibration: boolean;
+  /** Master toggle. False means no local notification should ever be scheduled. */
+  enabled: boolean;
+  quietHoursEnabled: boolean;
+  quietHoursStart: number;
+  quietHoursEnd: number;
+}
+
+const DEFAULT_ALERT_PREFS: AlertPrefs = {
+  sound: true,
+  vibration: true,
+  enabled: true,
+  quietHoursEnabled: false,
+  quietHoursStart: 22,
+  quietHoursEnd: 7,
+};
+
+async function getAlertPrefs(): Promise<AlertPrefs> {
   try {
     const raw = await AsyncStorage.getItem(REMINDER_SETTINGS_KEY);
-    if (!raw) return { sound: true, vibration: true };
+    if (!raw) return { ...DEFAULT_ALERT_PREFS };
     const parsed = JSON.parse(raw);
     return {
       sound: parsed?.soundEnabled !== false,
       vibration: parsed?.vibrationEnabled !== false,
+      enabled: parsed?.notificationsEnabled !== false,
+      quietHoursEnabled: parsed?.quietHoursEnabled === true,
+      quietHoursStart: Number.isInteger(parsed?.quietHoursStart) ? parsed.quietHoursStart : 22,
+      quietHoursEnd: Number.isInteger(parsed?.quietHoursEnd) ? parsed.quietHoursEnd : 7,
     };
   } catch {
-    return { sound: true, vibration: true };
+    return { ...DEFAULT_ALERT_PREFS };
   }
+}
+
+/**
+ * Whether a clock hour falls inside the quiet-hours window. Handles the
+ * overnight case (e.g. 22 -> 7) where start > end wraps past midnight.
+ */
+function hourInQuietWindow(hour: number, start: number, end: number): boolean {
+  if (start === end) return false;
+  if (start < end) return hour >= start && hour < end;
+  return hour >= start || hour < end;
 }
 
 /** Which Android channel matches the current preferences. */
@@ -101,6 +167,7 @@ async function getNotificationsModule() {
           importance: mod.AndroidImportance.HIGH,
           vibrationPattern,
           lightColor: "#4F46E5",
+          sound: REMINDER_SOUND_FILE,
         }),
         mod.setNotificationChannelAsync(NO_VIBRATE_CHANNEL_ID, {
           name: "Reminders (no vibration)",
@@ -108,6 +175,7 @@ async function getNotificationsModule() {
           vibrationPattern: null,
           enableVibrate: false,
           lightColor: "#4F46E5",
+          sound: REMINDER_SOUND_FILE,
         }),
         mod.setNotificationChannelAsync(SILENT_CHANNEL_ID, {
           name: "Reminders (silent)",
@@ -126,6 +194,33 @@ async function getNotificationsModule() {
         }),
       ]);
       channelConfigured = true;
+    }
+
+    // Snooze / Done buttons on the notification itself.
+    //
+    // Registered once per process. Both actions are configured so the OS does
+    // NOT open the app: the handler runs in the background and the notification
+    // dismisses itself, which is the whole point — the user shouldn't have to
+    // launch the app to snooze a reminder.
+    if (!categoryConfigured) {
+      try {
+        await mod.setNotificationCategoryAsync(REMINDER_CATEGORY_ID, [
+          {
+            identifier: SNOOZE_ACTION_ID,
+            buttonTitle: `Snooze ${SNOOZE_MINUTES} min`,
+            options: { opensAppToForeground: false },
+          },
+          {
+            identifier: DONE_ACTION_ID,
+            buttonTitle: "Done",
+            options: { opensAppToForeground: false },
+          },
+        ]);
+        categoryConfigured = true;
+      } catch {
+        // A failed registration costs the buttons, not the notification —
+        // it still arrives and is still tappable.
+      }
     }
 
     return mod;
@@ -316,9 +411,18 @@ export async function scheduleLocalNotification(opts: {
   body: string;
   data?: Record<string, any>;
   triggerAt: Date;
+  /**
+   * Show the Snooze / Done buttons. Defaults to true — every locally-scheduled
+   * notification in this app is an actionable reminder. Pass false for purely
+   * informational ones.
+   */
+  withActions?: boolean;
 }) {
   const Notifications = await getNotificationsModule();
-  if (!Notifications) return;
+  if (!Notifications) {
+    console.log('[Push] scheduleLocalNotification: MODULE NULL -> dropped:', opts.title);
+    return;
+  }
 
   // A trigger in the past never fires. Deliver immediately instead of
   // scheduling a notification that would be silently dropped.
@@ -328,22 +432,49 @@ export async function scheduleLocalNotification(opts: {
   // properties of the channel; on iOS `sound` on the content is what matters.
   const prefs = await getAlertPrefs();
 
+  // Master toggle: skip scheduling entirely. Anything already scheduled is
+  // cancelled separately when the toggle flips off — this only stops NEW
+  // notifications, since a one-shot trigger this old wouldn't exist yet.
+  if (!prefs.enabled) return;
+
+  // Quiet hours only apply to one-shot reminders, where the exact fire time
+  // is known up front and the notification can be routed to the silent
+  // channel for that single occurrence. Recurring reminders (daily/weekly)
+  // reuse one fixed OS trigger forever and cannot be silenced for only some
+  // of their future firings, so they are deliberately exempt — see
+  // scheduleRepeatingLocalNotification.
+  const fireHour = msUntil <= 0 ? new Date().getHours() : opts.triggerAt.getHours();
+  const inQuietHours = prefs.quietHoursEnabled && hourInQuietWindow(fireHour, prefs.quietHoursStart, prefs.quietHoursEnd);
+  const effectivePrefs = inQuietHours ? { sound: false, vibration: false } : prefs;
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: opts.title,
       body: opts.body,
       data: opts.data || {},
-      sound: prefs.sound ? 'default' : false,
+      // The app's own sound rather than 'default'. iOS reads this filename
+      // directly; on Android the channel's sound wins, which is why the
+      // channels above set it too.
+      sound: effectivePrefs.sound ? REMINDER_SOUND_FILE : false,
+      ...(opts.withActions === false ? {} : { categoryIdentifier: REMINDER_CATEGORY_ID }),
     },
     // Must be a trigger object, not a bare Date — a raw Date is not a valid
     // trigger in expo-notifications v0.32 and the notification never fires.
+    // Even the "fire now" case must name the channel -- a bare `null` trigger
+    // routes through expo's fallback "Miscellaneous" channel, which uses the
+    // phone's default sound instead of the app's reminder sound.
     trigger:
       msUntil <= 0
-        ? null
+        ? {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: 1,
+            repeats: false,
+            channelId: channelIdFor(effectivePrefs),
+          }
         : {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: opts.triggerAt,
-            channelId: channelIdFor(prefs),
+            channelId: channelIdFor(effectivePrefs),
           },
   });
 }
@@ -380,15 +511,58 @@ export async function scheduleRepeatingLocalNotification(opts: {
   if (!Notifications) return [];
 
   const prefs = await getAlertPrefs();
+  // Master toggle only. Quiet hours is deliberately not applied here — see
+  // the function doc: a repeating trigger reuses one channel for every
+  // future firing, so it cannot be silenced for only some of them.
+  if (!prefs.enabled) return [];
+
   const content = {
     title: opts.title,
     body: opts.body,
     data: opts.data || {},
-    sound: prefs.sound ? 'default' : false,
+    sound: prefs.sound ? REMINDER_SOUND_FILE : false,
+    categoryIdentifier: REMINDER_CATEGORY_ID,
   } as const;
   const channelId = channelIdFor(prefs);
 
   const days = (opts.weekdays ?? []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
+
+  // A DAILY/WEEKLY trigger only ever fires at the NEXT matching occurrence. If
+  // the chosen time is a minute or two in the past -- which is exactly what
+  // happens when the user sets a reminder for "a few minutes from now" and the
+  // sync runs just after that moment -- the OS schedules it for TOMORROW, and
+  // the user sees nothing today.
+  //
+  // Cover that gap with a one-shot notification for the occurrence that was
+  // just missed. The repeating trigger below is still registered, so every
+  // later day works normally; this only fills in today.
+  const now = new Date();
+  const todaysOccurrence = new Date(now);
+  todaysOccurrence.setHours(opts.hour, opts.minute, 0, 0);
+  const msSinceOccurrence = now.getTime() - todaysOccurrence.getTime();
+  const dayMatchesToday = days.length === 0 || days.includes(now.getDay());
+  const MISSED_GRACE_MS = 5 * 60 * 1000;
+  if (dayMatchesToday && msSinceOccurrence > 0 && msSinceOccurrence <= MISSED_GRACE_MS) {
+    try {
+      // MUST carry channelId. A `trigger: null` with no channel makes
+      // expo-notifications fall back to its own
+      // `expo_notifications_fallback_notification_channel` ("Miscellaneous"),
+      // whose sound is the phone's default -- so the custom reminder sound is
+      // silently replaced. The sound lives on the CHANNEL on Android, not on
+      // the notification content.
+      await Notifications.scheduleNotificationAsync({
+        content,
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 1,
+          repeats: false,
+          channelId,
+        },
+      });
+    } catch {
+      // Best-effort catch-up; the repeating trigger below is the real schedule.
+    }
+  }
 
   // No specific days selected → a single DAILY trigger. Using seven WEEKLY
   // triggers here would work but burns seven of the OS's limited scheduled-
@@ -421,6 +595,47 @@ export async function scheduleRepeatingLocalNotification(opts: {
     ids.push(id);
   }
   return ids;
+}
+
+/**
+ * The ids the OS currently holds scheduled.
+ *
+ * Lets a caller verify its own ledger against reality. AsyncStorage bookkeeping
+ * and the OS queue drift apart for reasons outside the app's control -- the
+ * notification already fired, the user cleared it, the OS dropped it, or an
+ * earlier bug cancelled it -- and a ledger that claims something is scheduled
+ * when it is not means it never gets re-armed.
+ *
+ * Returns null (not an empty set) when the module is unavailable, so callers
+ * can tell "nothing is scheduled" apart from "cannot know".
+ */
+export async function getScheduledNotificationIds(): Promise<Set<string> | null> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return null;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    return new Set(scheduled.map((n) => n.identifier));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cancels every notification the OS currently has scheduled for this app.
+ *
+ * Used by the master notification toggle: turning it off must stop
+ * everything already armed, not just block new scheduling — otherwise a
+ * routine scheduled minutes earlier keeps firing today even with the switch
+ * off.
+ */
+export async function cancelAllScheduledNotifications(): Promise<void> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {
+    // Best-effort; nothing else can be done here.
+  }
 }
 
 /** Cancels scheduled notifications by id, ignoring ones already gone. */

@@ -43,6 +43,7 @@
     "saveBudget": "બજેટ સેવ કરો",
     "subscription": "સબ્સ્ક્રિપ્શન",
     "managePlan": "પ્લાન મેનેજ કરો",
+    "paymentHistory": "ચુકવણી ઇતિહાસ",
     "security": "સુરક્ષા",
     "appLock": "એપ લોક",
     "appLockHint": "LifeWise ખોલવા માટે {{method}} અથવા તમારા ડિવાઇસનો પિન જરૂરી રહેશે. આ એપ ખોલતી વખતે અને થોડા સમય માટે બેકગ્રાઉન્ડમાં રહ્યા પછી લાગુ પડે છે.",
@@ -55,7 +56,8 @@
     "helpSupport": "મદદ અને સપોર્ટ",
     "account": "એકાઉન્ટ",
     "logout": "લોગઆઉટ",
-    "logoutConfirm": "શું તમે ખરેખર લોગઆઉટ કરવા માંગો છો?"
+    "logoutConfirm": "શું તમે ખરેખર લોગઆઉટ કરવા માંગો છો?",
+    "notificationSettings": "સૂચના સેટિંગ્સ"
   },
   "home": {
     "score": "સ્કોર",
@@ -144,7 +146,15 @@
     "removeReminderTitle": "રિમાઇન્ડર દૂર કરવું છે?",
     "removeReminderMessage": "શું તમે ખરેખર આ રિમાઇન્ડરને ટ્રેક કરવાનું બંધ કરવા માંગો છો? હવે તમને તેના માટે કોઈ એલર્ટ મળશે નહીં.",
     "noKeepIt": "ના, રહેવા દો",
-    "yesRemove": "હા, દૂર કરો"
+    "yesRemove": "હા, દૂર કરો",
+    "familyReminders": "પરિવાર રિમાઇન્ડર",
+    "viewAll": "બધા જુઓ",
+    "familyReminderStatus": {
+      "overdue": "મુદત વીતી",
+      "today": "આજે",
+      "upcoming": "આગામી",
+      "done": "પૂર્ણ"
+    }
   },
   "addExpense": {
     "title": "ખર્ચ ઉમેરો",
@@ -253,7 +263,8 @@
     "endDate": "અંતિમ તારીખ",
     "pickYear": "વર્ષ પસંદ કરો",
     "selectStartDate": "શરૂઆતની તારીખ પસંદ કરો",
-    "selectEndDate": "અંતિમ તારીખ પસંદ કરો"
+    "selectEndDate": "અંતિમ તારીખ પસંદ કરો",
+    "changeCategory": "શ્રેણી બદલો"
   },
   "importStatement": {
     "headerTitlePick": "સ્ટેટમેન્ટ ઇમ્પોર્ટ કરો",
@@ -383,7 +394,10 @@
     "vehiclesTracked_other": "{{count}} વાહનો ટ્રેક કરેલા",
     "noHomeTasksTrackedYet": "હજુ સુધી કોઈ ઘરકામ ટ્રેક કરેલું નથી",
     "homeTasksTracked_one": "{{count}} કામ ટ્રેક કરેલું",
-    "homeTasksTracked_other": "{{count}} કામો ટ્રેક કરેલા"
+    "homeTasksTracked_other": "{{count}} કામો ટ્રેક કરેલા",
+    "medicinesTitle": "દવાઓ",
+    "medicinesTitleActive": "દવાઓ ({{count}} સક્રિય)",
+    "noActiveMedications": "કોઈ સક્રિય દવા નથી"
   },
   "familyCheckin": {
     "title": "કૉલ અને ચેક-ઇન",
@@ -617,6 +631,26 @@
     "custom": {
       "label": "કસ્ટમ ફીચર",
       "description": "તમારો પોતાનો ટ્રેકિંગ વિકલ્પ"
+    },
+    "fitness": {
+      "label": "ફિટનેસ ટ્રેકિંગ",
+      "description": "વર્કઆઉટ શેડ્યૂલ અને સ્ટ્રીક ટ્રેકિંગ"
+    },
+    "study": {
+      "label": "અભ્યાસ અને શિક્ષણ",
+      "description": "હોમવર્ક, પરીક્ષા અને અભ્યાસ શેડ્યૂલ"
+    },
+    "wellness": {
+      "label": "માનસિક સ્વાસ્થ્ય અને વેલનેસ",
+      "description": "મૂડ ટ્રેકિંગ અને સેલ્ફ-કેર રિમાઇન્ડર"
+    },
+    "vehicles": {
+      "label": "વાહન વ્યવસ્થાપન",
+      "description": "સર્વિસ, વીમો અને પીયુસી રિમાઇન્ડર"
+    },
+    "homeMaintenance": {
+      "label": "ઘરની જાળવણી",
+      "description": "એએમસી, ઉપકરણ અને સર્વિસ રિમાઇન્ડર"
     }
   },
   "familyAppointments": {
@@ -1551,6 +1585,20 @@
     "contactHeading": "સંપર્ક કરો",
     "contactBody": "કોઈ પ્રશ્નો? Info@lifewise.app પર ઈમેલ કરો."
   },
+  "paymentHistory": {
+    "title": "ચુકવણી ઇતિહાસ",
+    "intervalMonthly": "માસિક",
+    "intervalYearly": "વાર્ષિક",
+    "active": "સક્રિય",
+    "renewsOn": "{{date}} ના રોજ નવીકરણ",
+    "expiresOn": "{{date}} ના રોજ સમાપ્ત",
+    "emptyTitle": "હજી સુધી કોઈ ચુકવણી નથી",
+    "emptyDesc": "તમે કોઈ સબ્સ્ક્રિપ્શન ખરીદ્યું નથી. અપગ્રેડ કર્યા પછી, દરેક ચુકવણી અને નવીકરણ અહીં દેખાશે.",
+    "viewPlans": "પ્લાન જુઓ",
+    "unavailableTitle": "ચુકવણી ઇતિહાસ ઉપલબ્ધ નથી",
+    "unavailableDesc": "ખરીદીના રેકોર્ડ એપ સ્ટોરમાંથી આવે છે અને ફક્ત મોબાઇલ એપમાં જ વાંચી શકાય છે. તમારો ચુકવણી ઇતિહાસ જોવા માટે તમારા ફોન પર LifeWise ખોલો.",
+    "footnote": "રકમ દરેક પ્લાનની વર્તમાન સ્ટોર કિંમત દર્શાવે છે. ચોક્કસ ચાર્જ, કર અને ઇન્વોઇસ માટે તમારું Google Play અથવા App Store ખાતું તપાસો."
+  },
   "subscription": {
     "title": "સબ્સ્ક્રિપ્શન",
     "currentPlan": "હાલનો પ્લાન",
@@ -1597,7 +1645,10 @@
       "testActivatedMsg": "ટેસ્ટ મોડ: હવે તમે વગર ચુકવણીએ {{plan}} પર છો. બધી {{plan}} સુવિધાઓ અનલૉક થઈ ગઈ છે.",
       "testConfirmTitle": "{{plan}} સક્રિય કરવો છે?",
       "testConfirmMsg": "આ એક ટેસ્ટ સક્રિયકરણ છે — કોઈ ચુકવણી લેવાશે નહીં અને કોઈ વાસ્તવિક સબ્સ્ક્રિપ્શન બનશે નહીં. {{plan}} સુવિધાઓ આ ડિવાઇસ પર અનલૉક થશે.",
-      "activateBtn": "{{plan}} સક્રિય કરો"
+      "activateBtn": "{{plan}} સક્રિય કરો",
+      "cancelInStoreTitle": "Google Play માં રદ કરો",
+      "cancelInStoreMsg": "તમારા સબ્સ્ક્રિપ્શનનું બિલિંગ એપ સ્ટોર કરે છે. તેને રદ કરવા અથવા બદલવા માટે તમારી સ્ટોર સબ્સ્ક્રિપ્શન સેટિંગ્સ ખોલો — અહીં બંધ કરવાથી બિલિંગ બંધ થશે નહીં.",
+      "openStoreBtn": "સ્ટોર ખોલો"
     },
     "planNames": {
       "free": "ફ્રી",
@@ -1645,7 +1696,8 @@
       "title": "પ્લાનની સરખામણી કરો",
       "yourPlan": "તમારો પ્લાન",
       "manageMyPlan": "મારો પ્લાન મેનેજ કરો"
-    }
+    },
+    "manageSubscription": "સબ્સ્ક્રિપ્શન મેનેજ કરો"
   },
   "paywall": {
     "startTrial": "7-દિવસનો ફ્રી ટ્રાયલ શરૂ કરો",
@@ -1990,7 +2042,8 @@
     "snoozeMinutes": "{{count}} મિનિટ",
     "doctorNotes": "ડૉક્ટરની નોંધ",
     "doctorNotesPlaceholder": "ડૉક્ટરની વૈકલ્પિક નોંધ",
-    "addAnotherMedicine": "બીજી દવા ઉમેરો"
+    "addAnotherMedicine": "બીજી દવા ઉમેરો",
+    "errorNotAllowed": "ફક્ત આ સભ્યને ઉમેરનાર ખાતું જ દવા ઉમેરી શકે છે."
   },
   "medicineDetails": {
     "title": "દવાની વિગત",
@@ -2312,5 +2365,60 @@
   },
   "addExpenseFab": {
     "closeMenu": "ઉમેરો મેનૂ બંધ કરો"
+  },
+  "caregiverPermissions": {
+    "headerTitle": "સંભાળ રાખનારની પરવાનગીઓ",
+    "forMember": "{{name}} માટે",
+    "thisCaregiver": "આ સંભાળ રાખનાર",
+    "thisMember": "આ સભ્ય",
+    "editingFor": "{{name}} ના ડેટાની ઍક્સેસ",
+    "accessLevelLabel": "તેઓ શું કરી શકે",
+    "accessLevelHint": "નક્કી કરો કે આ સંભાળ રાખનાર ફક્ત જોઈ શકે, રિમાઇન્ડર પૂર્ણ કરી શકે, કે ફેરફાર કરી શકે.",
+    "modulesLabel": "તેઓ શું જોઈ શકે",
+    "modulesHint": "પસંદ કરો કે આ સંભાળ રાખનારને કયા મોડ્યુલની ઍક્સેસ છે. પસંદ ન કરેલા ખાનગી રહેશે.",
+    "allModules": "બધા મોડ્યુલ",
+    "noModules": "આ સભ્ય માટે હજી કોઈ મોડ્યુલ ચાલુ નથી.",
+    "savePermissions": "પરવાનગીઓ સેવ કરો",
+    "saveFailedTitle": "સેવ થઈ શક્યું નહીં",
+    "saveFailedMessage": "કૃપા કરીને થોડી વારમાં ફરી પ્રયાસ કરો.",
+    "summaryAllModules": "બધા મોડ્યુલ",
+    "summaryNModules_one": "{{count}} મોડ્યુલ",
+    "summaryNModules_other": "{{count}} મોડ્યુલ",
+    "readOnlyBanner": "ફક્ત જોવા માટે — તમે ડેટા જોઈ શકો છો પણ બદલી શકતા નથી.",
+    "level": {
+      "view": {
+        "title": "ફક્ત જુઓ",
+        "desc": "ડેટા જોઈ શકે અને અલર્ટ મેળવી શકે. કંઈ બદલી શકતા નથી."
+      },
+      "mark_done": {
+        "title": "પૂર્ણ તરીકે ચિહ્નિત કરો",
+        "desc": "અલર્ટ મેળવી અને રિમાઇન્ડર પૂર્ણ કરી શકે. ઉમેરી શકતા નથી."
+      },
+      "full": {
+        "title": "સંપૂર્ણ ઍક્સેસ",
+        "desc": "આ સભ્યના રેકોર્ડ ઉમેરી, સંપાદિત અને કાઢી શકે."
+      }
+    }
+  },
+  "familyMedicines": {
+    "headerTitle": "દવાઓ",
+    "emptyTitle": "હજુ કોઈ દવા નથી",
+    "emptyDesc": "ડોઝ અને રિમાઇન્ડર ટ્રેક કરવાનું શરૂ કરવા માટે દવા ઉમેરો",
+    "noScheduleSet": "કોઈ શેડ્યૂલ સેટ નથી"
+  },
+  "notificationSettings": {
+    "title": "સૂચના સેટિંગ્સ",
+    "masterToggle": "સૂચનાઓને મંજૂરી આપો",
+    "masterToggleDesc": "બધા રિમાઇન્ડર તરત જ બંધ કરવા માટે બંધ કરો",
+    "quietHoursSection": "શાંત કલાકો",
+    "quietHours": "શાંત કલાકો",
+    "quietHoursDesc": "આ સમય દરમિયાન અવાજ અને વાઇબ્રેશન મ્યૂટ કરો",
+    "from": "થી",
+    "to": "સુધી",
+    "quietHoursRecurringHint": "આ ફક્ત એક વખતના રિમાઇન્ડર (બિલ, એપોઇન્ટમેન્ટ) પર લાગુ થાય છે. દવા અને રૂટિન જેવા દૈનિક/સાપ્તાહિક રિમાઇન્ડર હંમેશની જેમ ચેતવણી આપતા રહેશે.",
+    "soundSection": "અવાજ અને વાઇબ્રેશન",
+    "sound": "સૂચના અવાજ",
+    "soundDesc": "રિમાઇન્ડર આવે ત્યારે અવાજ વગાડો",
+    "vibration": "વાઇબ્રેશન"
   }
 }

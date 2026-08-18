@@ -55,7 +55,9 @@
     "helpSupport": "मदत आणि सपोर्ट",
     "account": "खाते",
     "logout": "लॉगआउट",
-    "logoutConfirm": "तुम्हाला खरंच लॉगआउट करायचे आहे का?"
+    "logoutConfirm": "तुम्हाला खरंच लॉगआउट करायचे आहे का?",
+    "paymentHistory": "पेमेंट इतिहास",
+    "notificationSettings": "सूचना सेटिंग्ज"
   },
   "home": {
     "score": "स्कोअर",
@@ -144,7 +146,15 @@
     "removeReminderTitle": "रिमाइंडर काढायचा का?",
     "removeReminderMessage": "तुम्हाला खरंच हा रिमाइंडर ट्रॅक करणे थांबवायचे आहे का? यापुढे तुम्हाला त्यासाठी कोणतेही अलर्ट मिळणार नाहीत.",
     "noKeepIt": "नाही, राहू द्या",
-    "yesRemove": "हो, काढून टाका"
+    "yesRemove": "हो, काढून टाका",
+    "familyReminders": "कौटुंबिक स्मरणपत्रे",
+    "viewAll": "सर्व पहा",
+    "familyReminderStatus": {
+      "overdue": "मुदत उलटली",
+      "today": "आज",
+      "upcoming": "आगामी",
+      "done": "पूर्ण"
+    }
   },
   "addExpense": {
     "title": "खर्च जोडा",
@@ -253,7 +263,8 @@
     "endDate": "शेवटची तारीख",
     "pickYear": "वर्ष निवडा",
     "selectStartDate": "सुरुवातीची तारीख निवडा",
-    "selectEndDate": "शेवटची तारीख निवडा"
+    "selectEndDate": "शेवटची तारीख निवडा",
+    "changeCategory": "श्रेणी बदला"
   },
   "importStatement": {
     "headerTitlePick": "स्टेटमेंट इम्पोर्ट करा",
@@ -383,7 +394,10 @@
     "vehiclesTracked_other": "{{count}} वाहने ट्रॅक केली",
     "noHomeTasksTrackedYet": "अद्याप कोणतेही घरकाम ट्रॅक केलेले नाही",
     "homeTasksTracked_one": "{{count}} काम ट्रॅक केले",
-    "homeTasksTracked_other": "{{count}} कामे ट्रॅक केली"
+    "homeTasksTracked_other": "{{count}} कामे ट्रॅक केली",
+    "medicinesTitle": "औषधे",
+    "medicinesTitleActive": "औषधे ({{count}} सक्रिय)",
+    "noActiveMedications": "कोणतीही सक्रिय औषधे नाहीत"
   },
   "familyCheckin": {
     "title": "कॉल आणि चेक-इन",
@@ -617,6 +631,26 @@
     "custom": {
       "label": "कस्टम फीचर",
       "description": "तुमचा स्वतःचा ट्रॅकिंग पर्याय"
+    },
+    "fitness": {
+      "label": "फिटनेस ट्रॅकिंग",
+      "description": "वर्कआउट वेळापत्रक आणि स्ट्रीक ट्रॅकिंग"
+    },
+    "study": {
+      "label": "अभ्यास आणि शिक्षण",
+      "description": "गृहपाठ, परीक्षा आणि अभ्यास वेळापत्रक"
+    },
+    "wellness": {
+      "label": "मानसिक आरोग्य आणि वेलनेस",
+      "description": "मूड ट्रॅकिंग आणि सेल्फ-केअर रिमाइंडर"
+    },
+    "vehicles": {
+      "label": "वाहन व्यवस्थापन",
+      "description": "सर्व्हिस, विमा आणि पीयूसी रिमाइंडर"
+    },
+    "homeMaintenance": {
+      "label": "घराची देखभाल",
+      "description": "एएमसी, उपकरण आणि सर्व्हिस रिमाइंडर"
     }
   },
   "familyAppointments": {
@@ -1597,7 +1631,10 @@
       "testActivatedMsg": "टेस्ट मोड: आता तुम्ही कोणतेही पेमेंट न करता {{plan}} वर आहात. सर्व {{plan}} सुविधा अनलॉक झाल्या आहेत.",
       "testConfirmTitle": "{{plan}} सक्रिय करायचा?",
       "testConfirmMsg": "ही एक टेस्ट सक्रियता आहे — कोणतेही पेमेंट घेतले जाणार नाही आणि कोणतीही खरी सदस्यता तयार होणार नाही. {{plan}} सुविधा या डिव्हाइसवर अनलॉक होतील.",
-      "activateBtn": "{{plan}} सक्रिय करा"
+      "activateBtn": "{{plan}} सक्रिय करा",
+      "cancelInStoreTitle": "स्टोअरमध्ये रद्द करा",
+      "cancelInStoreMsg": "सदस्यता स्टोअरद्वारे व्यवस्थापित केली जाते. रद्द करण्यासाठी स्टोअर उघडा.",
+      "openStoreBtn": "स्टोअर उघडा"
     },
     "planNames": {
       "free": "फ्री",
@@ -1645,7 +1682,8 @@
       "title": "प्लॅनची तुलना करा",
       "yourPlan": "तुमचा प्लॅन",
       "manageMyPlan": "माझा प्लॅन व्यवस्थापित करा"
-    }
+    },
+    "manageSubscription": "सदस्यता व्यवस्थापित करा"
   },
   "paywall": {
     "startTrial": "7-दिवसांचा फ्री ट्रायल सुरू करा",
@@ -1990,7 +2028,8 @@
     "snoozeMinutes": "{{count}} मिनिटे",
     "doctorNotes": "डॉक्टरांच्या नोंदी",
     "doctorNotesPlaceholder": "डॉक्टरांच्या पर्यायी नोंदी",
-    "addAnotherMedicine": "आणखी एक औषध जोडा"
+    "addAnotherMedicine": "आणखी एक औषध जोडा",
+    "errorNotAllowed": "फक्त या सदस्याला जोडणारे खातेच औषधे जोडू शकते."
   },
   "medicineDetails": {
     "title": "औषधाचा तपशील",
@@ -2312,5 +2351,74 @@
   },
   "addExpenseFab": {
     "closeMenu": "मेनू जोडा बंद करा"
+  },
+  "paymentHistory": {
+    "title": "पेमेंट इतिहास",
+    "intervalMonthly": "मासिक",
+    "intervalYearly": "वार्षिक",
+    "active": "सक्रिय",
+    "renewsOn": "{{date}} रोजी नूतनीकरण होईल",
+    "expiresOn": "{{date}} रोजी संपेल",
+    "emptyTitle": "अद्याप कोणतेही पेमेंट नाही",
+    "emptyDesc": "तुमची खरेदी येथे दिसेल.",
+    "viewPlans": "योजना पहा",
+    "unavailableTitle": "इतिहास उपलब्ध नाही",
+    "unavailableDesc": "पेमेंट इतिहास सध्या लोड करता आला नाही.",
+    "footnote": "पेमेंट स्टोअरद्वारे व्यवस्थापित केली जातात."
+  },
+  "caregiverPermissions": {
+    "headerTitle": "काळजीवाहक परवानग्या",
+    "forMember": "{{name}} साठी",
+    "thisCaregiver": "हा काळजीवाहक",
+    "thisMember": "हा सदस्य",
+    "editingFor": "{{name}} साठी संपादन",
+    "accessLevelLabel": "प्रवेश स्तर",
+    "accessLevelHint": "हा काळजीवाहक काय करू शकतो ते निवडा.",
+    "modulesLabel": "मॉड्यूल",
+    "modulesHint": "हा काळजीवाहक कोणते विभाग पाहू शकतो ते निवडा.",
+    "allModules": "सर्व मॉड्यूल",
+    "noModules": "कोणतेही मॉड्यूल निवडलेले नाही",
+    "savePermissions": "परवानग्या जतन करा",
+    "saveFailedTitle": "जतन करता आले नाही",
+    "saveFailedMessage": "परवानग्या जतन करता आल्या नाहीत. कृपया पुन्हा प्रयत्न करा.",
+    "summaryAllModules": "सर्व मॉड्यूल",
+    "summaryNModules_one": "{{count}} मॉड्यूल",
+    "summaryNModules_other": "{{count}} मॉड्यूल",
+    "readOnlyBanner": "या परवानग्या बदलण्याची तुम्हाला परवानगी नाही.",
+    "level": {
+      "view": {
+        "title": "फक्त पहा",
+        "desc": "माहिती पाहू शकतात, बदल करू शकत नाहीत."
+      },
+      "mark_done": {
+        "title": "पूर्ण म्हणून चिन्हांकित करा",
+        "desc": "कामे पूर्ण म्हणून पाहू आणि चिन्हांकित करू शकतात."
+      },
+      "full": {
+        "title": "पूर्ण प्रवेश",
+        "desc": "नोंदी जोडू, संपादित करू आणि हटवू शकतात."
+      }
+    }
+  },
+  "familyMedicines": {
+    "headerTitle": "औषधे",
+    "emptyTitle": "अद्याप कोणतीही औषधे नाहीत",
+    "emptyDesc": "डोस आणि रिमाइंडर ट्रॅक करणे सुरू करण्यासाठी औषध जोडा",
+    "noScheduleSet": "कोणतेही वेळापत्रक सेट केलेले नाही"
+  },
+  "notificationSettings": {
+    "title": "सूचना सेटिंग्ज",
+    "masterToggle": "सूचनांना अनुमती द्या",
+    "masterToggleDesc": "सर्व स्मरणपत्रे त्वरित थांबवण्यासाठी बंद करा",
+    "quietHoursSection": "शांत तास",
+    "quietHours": "शांत तास",
+    "quietHoursDesc": "या वेळेत आवाज आणि कंपन म्यूट करा",
+    "from": "पासून",
+    "to": "पर्यंत",
+    "quietHoursRecurringHint": "हे फक्त एक-वेळच्या स्मरणपत्रांना (बिले, अपॉइंटमेंट) लागू होते. औषधे आणि दिनचर्येसारखी दैनिक/साप्ताहिक स्मरणपत्रे नेहमीप्रमाणे सूचित करत राहतील.",
+    "soundSection": "आवाज आणि कंपन",
+    "sound": "सूचना आवाज",
+    "soundDesc": "स्मरणपत्र आल्यावर आवाज वाजवा",
+    "vibration": "कंपन"
   }
 }

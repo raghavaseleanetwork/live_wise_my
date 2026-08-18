@@ -19,7 +19,7 @@ import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { Avatar } from '../components/Avatar';
 import { FamilyFeatureKey, normalizeFeatures, loadMemberFeatures } from '@/lib/family-features';
-import { loadMyInvites, loadSharedMembers } from '@/lib/family-caregivers';
+import { loadMyInvites, loadSharedMembers, loadCaregivers, normalizeCaregiverPermissions, canAccessModule } from '@/lib/family-caregivers';
 import { onCaregiverSync } from '@/lib/caregiver-sync';
 import { useSubscription } from '@/lib/subscription-context';
 import { usePaywall } from '@/lib/paywall-context';
@@ -50,7 +50,7 @@ export default function FamilyScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { checkLimit } = useSubscription();
   const { presentPaywall } = usePaywall();
   const [members, setMembers] = useState<FamilyMember[]>([]);
@@ -82,7 +82,26 @@ export default function FamilyScreen() {
         data.map(async (m) => {
           const id = String(m.id);
           const local = await loadMemberFeatures(id);
-          const featureKeys = local && local.length ? local : normalizeFeatures(m.features);
+          let featureKeys = local ?? normalizeFeatures(m.features) ?? [];
+
+          // Shared members: the "N features managed" summary must reflect
+          // what this caregiver can actually see, not the member's full set
+          // (which would leak the existence of modules they were not
+          // granted, e.g. always showing 20 regardless of scope).
+          if (m.isSharedWithMe) {
+            try {
+              const caregivers = await loadCaregivers(id, token);
+              const me = caregivers.find((c) => String(c.userId) === String(user?.id));
+              if (me && me.role !== 'owner') {
+                const permissions = normalizeCaregiverPermissions(me.permissions);
+                featureKeys = featureKeys.filter((k) => canAccessModule(k, permissions, false));
+              }
+            } catch {
+              // Fail open, matching useCaregiverPermissions: an unreachable
+              // caregiver list must not hide a member's summary entirely.
+            }
+          }
+
           return { ...m, featureKeys, isSharedWithMe: !!m.isSharedWithMe } as FamilyMember;
         }),
       );
@@ -144,14 +163,22 @@ export default function FamilyScreen() {
   // Gate: adding a family member beyond the plan's limit shows the paywall
   // (doc §5.1 — "3rd member on Free"). Only members this user owns count toward
   // the limit; members shared in by another caregiver don't.
+  const addMemberNavInFlight = useRef(false);
   const handleAddMember = () => {
+    // A fast double-tap fires before the modal transition finishes and
+    // pushes this screen twice. Saving then landed the user back on the
+    // second copy instead of Family Hub — see the fix in
+    // add-family-member.tsx. Guarding here stops the duplicate push itself.
+    if (addMemberNavInFlight.current) return;
     const ownedCount = members.filter((m) => !m.isSharedWithMe).length;
     const check = checkLimit('familyMembers', ownedCount);
     if (!check.allowed && check.triggerKey) {
       presentPaywall(check.triggerKey);
       return;
     }
+    addMemberNavInFlight.current = true;
     router.push('/add-family-member');
+    setTimeout(() => { addMemberNavInFlight.current = false; }, 1000);
   };
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;

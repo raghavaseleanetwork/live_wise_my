@@ -4,7 +4,7 @@
 **Reported by:** Client, 2026-08-07 (with screenshots showing two different icons for the same app)
 **Status:** Investigated and confirmed. **All fixes are backend-only.** No frontend/app changes are required.
 **File to edit:** `server/routes.ts` (all changes), plus one optional index.
-
+  
 ---
 
 ## 0. TL;DR — what to change

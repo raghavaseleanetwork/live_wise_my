@@ -21,8 +21,19 @@ import {
   Caregiver,
   loadCaregivers,
   removeCaregiver,
+  normalizeCaregiverPermissions,
 } from '@/lib/family-caregivers';
 import { LoadingIndicator } from '@/components/PremiumLoader';
+
+/** One-line summary of what a caregiver may see and do, for the row. */
+function permissionSummary(c: Caregiver, t: (k: string, o?: any) => string): string {
+  const p = normalizeCaregiverPermissions(c.permissions);
+  const scope =
+    p.allowedModules === null
+      ? t('caregiverPermissions.summaryAllModules')
+      : t('caregiverPermissions.summaryNModules', { count: p.allowedModules.length });
+  return `${t(`caregiverPermissions.level.${p.accessLevel}.title`)} · ${scope}`;
+}
 
 export default function FamilyCaregiversScreen() {
   const router = useRouter();
@@ -142,7 +153,32 @@ export default function FamilyCaregiversScreen() {
                     )}
                   </View>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>{c.email}</Text>
+                  {c.role !== 'owner' && (
+                    <Text style={[styles.permSummary, { color: colors.accent }]} numberOfLines={1}>
+                      {permissionSummary(c, t)}
+                    </Text>
+                  )}
                 </View>
+                {c.role !== 'owner' && isOwner && (
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: '/family-caregivers/permissions',
+                        params: {
+                          memberId: String(memberId),
+                          memberName: memberName ? String(memberName) : '',
+                          caregiverUserId: c.userId,
+                          caregiverName: c.name,
+                          caregiverAvatarUrl: c.avatarUrl ?? '',
+                        },
+                      })
+                    }
+                    hitSlop={10}
+                    style={styles.removeBtn}
+                  >
+                    <Ionicons name="options-outline" size={20} color={colors.accent} />
+                  </Pressable>
+                )}
                 {c.role !== 'owner' && isOwner && (
                   <Pressable onPress={() => confirmRemove(c)} hitSlop={10} style={styles.removeBtn}>
                     <Ionicons name="close-circle" size={22} color={colors.danger} />
@@ -182,6 +218,7 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
+  permSummary: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 3 },
   ownerBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   ownerBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.5 },
   removeBtn: { padding: 2 },

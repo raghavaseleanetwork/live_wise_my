@@ -34,6 +34,27 @@ import type { FamilyReminder } from '@/lib/family-reminders';
  */
 const SERVER_SCHEDULING_KEY = '@lifewise_family_reminders_server_scheduling';
 
+/**
+ * Whether the backend actually SENDS PUSH for family reminders yet.
+ *
+ * This is deliberately separate from "does the endpoint return rows". As of
+ * 2026-08-17 the backend returns real rows but its scheduler
+ * (`startReminderScheduler`) still reads only the `bills` collection and emits
+ * nothing for Family Hub reminders — their own status doc confirms §4 is
+ * unstarted.
+ *
+ * Handing scheduling to a server that isn't scheduling means the local
+ * notifications get cancelled and nothing replaces them: the user silently
+ * stops getting family reminders altogether. That is worse than the local-only
+ * fallback, which at least works on the device that created the record.
+ *
+ * **Flip this to `true` only when the backend confirms §4 of
+ * `backend-team/FAMILY-REMINDERS-HOME-backend-requirements.md` is live** — i.e.
+ * push actually fires for a row this endpoint returned. Verify on a device
+ * before flipping; there is no way to detect it from the response shape.
+ */
+const SERVER_PUSH_CONFIRMED = false;
+
 /** The local scheduling ledger, cleared once at cutover. */
 const LOCAL_SCHEDULED_KEY = '@lifewise_family_reminder_scheduled';
 
@@ -186,8 +207,27 @@ export async function fetchFamilyReminders(
       return null;
     }
 
-    // A server returning real rows owns their scheduling too.
-    await markServerSchedulingActive();
+    // A server returning real rows owns their scheduling too — but ONLY once
+    // the server actually sends push for them.
+    //
+    // 2026-08-17: the backend confirmed `GET /api/reminders/family` now returns
+    // real rows (with `memberAvatarUrl` and `recurrence`), but that
+    // `startReminderScheduler` still reads only the `bills` collection and
+    // sends NO push for Family Hub reminders. Cutting over on the row response
+    // alone would cancel local notifications and leave those users with zero
+    // family reminders — strictly worse than the local-only fallback.
+    //
+    // So the cutover is gated behind SERVER_PUSH_CONFIRMED until the backend
+    // ships §4 of FAMILY-REMINDERS-HOME-backend-requirements.md. Rows are still
+    // used for display (they include other devices' records, which local
+    // projection cannot see); only the scheduling handover waits.
+    if (SERVER_PUSH_CONFIRMED) {
+      await markServerSchedulingActive();
+    } else {
+      // Undo a cutover an earlier build may already have latched, so anyone
+      // affected gets local notifications back on the next fetch.
+      await clearStaleServerScheduling();
+    }
 
     return data as FamilyReminder[];
   } catch {

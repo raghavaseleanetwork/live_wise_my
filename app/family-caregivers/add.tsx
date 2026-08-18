@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -16,7 +16,14 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth } from '@/lib/auth-context';
 import { useAlert } from '@/lib/alert-context';
-import { inviteCaregiver } from '@/lib/family-caregivers';
+import {
+  inviteCaregiver,
+  CaregiverPermissions,
+  DEFAULT_CAREGIVER_PERMISSIONS,
+} from '@/lib/family-caregivers';
+import CaregiverPermissionEditor from '@/components/CaregiverPermissionEditor';
+import { FamilyFeatureKey, loadMemberFeatures, normalizeFeatures } from '@/lib/family-features';
+import { apiRequest } from '@/lib/query-client';
 import { LoadingIndicator } from '@/components/PremiumLoader';
 
 export default function InviteCaregiverScreen() {
@@ -31,6 +38,31 @@ export default function InviteCaregiverScreen() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [permissions, setPermissions] = useState<CaregiverPermissions>({ ...DEFAULT_CAREGIVER_PERMISSIONS });
+  const [availableModules, setAvailableModules] = useState<FamilyFeatureKey[]>([]);
+
+  // Only modules the member actually has enabled can be shared. Local store
+  // is the Phase 1 source of truth; the server list is the fallback.
+  useEffect(() => {
+    if (!memberId) return;
+    let cancelled = false;
+    (async () => {
+      const local = await loadMemberFeatures(String(memberId));
+      if (local != null) {
+        if (!cancelled) setAvailableModules(local);
+        return;
+      }
+      try {
+        const res = await apiRequest('GET', '/api/family', undefined, token);
+        const list = (await res.json()) as any[];
+        const m = list.find((x) => String(x.id) === String(memberId));
+        if (!cancelled) setAvailableModules(normalizeFeatures(m?.features) ?? []);
+      } catch {
+        // Editor renders its empty-state hint; invite still works (full access).
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, token]);
 
   const handleInvite = async () => {
     const trimmed = email.trim();
@@ -41,7 +73,7 @@ export default function InviteCaregiverScreen() {
     setSending(true);
     setError('');
     try {
-      await inviteCaregiver(String(memberId), trimmed, token);
+      await inviteCaregiver(String(memberId), trimmed, token, permissions);
       showAlert({ title: t('familyCaregivers.inviteSentTitle'), message: t('familyCaregivers.inviteSentMessage', { email: trimmed }), type: 'success' });
       router.back();
     } catch (e: any) {
@@ -91,6 +123,14 @@ export default function InviteCaregiverScreen() {
           keyboardType="email-address"
           autoFocus
         />
+
+        <View style={{ marginTop: 24 }}>
+          <CaregiverPermissionEditor
+            availableModules={availableModules}
+            value={permissions}
+            onChange={setPermissions}
+          />
+        </View>
 
         <Pressable onPress={handleInvite} disabled={sending} style={[styles.primaryBtn, { backgroundColor: colors.accent, opacity: sending ? 0.6 : 1 }]}>
           {sending ? <LoadingIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnLabel}>{t('familyCaregivers.sendInvite')}</Text>}

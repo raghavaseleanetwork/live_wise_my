@@ -34,8 +34,13 @@ import { ThemeColors } from '@/constants/colors';
 import CategoryIcon from '@/components/CategoryIcon';
 import Money from '@/components/Money';
 
-const FILTER_OPTIONS: { key: string; labelKey: string; icon?: string }[] = [
-  { key: 'all', labelKey: 'transactions.filterAll' },
+/**
+ * Category options for the "change category" picker on a transaction row.
+ * Kept separate from the Activity filter chips below — that picker sets the
+ * REAL stored category via PATCH, so 'others' and 'other_expense' must stay
+ * distinct choices there even though the filter merges them into one chip.
+ */
+const CATEGORY_OPTIONS: { key: string; labelKey: string; icon?: string }[] = [
   { key: 'food', labelKey: 'transactions.filterFood', icon: 'fast-food' },
   { key: 'shopping', labelKey: 'transactions.filterShopping', icon: 'cart' },
   { key: 'transport', labelKey: 'transactions.filterTransport', icon: 'car' },
@@ -46,6 +51,27 @@ const FILTER_OPTIONS: { key: string; labelKey: string; icon?: string }[] = [
   { key: 'investment', labelKey: 'transactions.filterInvest', icon: 'trending-up' },
   { key: 'other_expense', labelKey: 'transactions.filterOtherExpense', icon: 'swap-horizontal' },
   { key: 'others', labelKey: 'transactions.filterOthers', icon: 'ellipsis-horizontal' },
+];
+
+/**
+ * Activity filter chips. 'others' and 'other_expense' are merged into one
+ * "Other Expense" chip here — selecting it matches EITHER underlying
+ * category. This is a filter-UI simplification only: the categories
+ * themselves stay distinct everywhere else (storage, leak exemption,
+ * category picker above), so an 'others' transaction is still not excluded
+ * from Leaks Analysis just because it now shares a filter chip.
+ */
+const FILTER_OPTIONS: { key: string; labelKey: string; icon?: string; matches?: string[] }[] = [
+  { key: 'all', labelKey: 'transactions.filterAll' },
+  { key: 'food', labelKey: 'transactions.filterFood', icon: 'fast-food' },
+  { key: 'shopping', labelKey: 'transactions.filterShopping', icon: 'cart' },
+  { key: 'transport', labelKey: 'transactions.filterTransport', icon: 'car' },
+  { key: 'entertainment', labelKey: 'transactions.filterFun', icon: 'film' },
+  { key: 'bills', labelKey: 'transactions.filterBills', icon: 'flash' },
+  { key: 'health', labelKey: 'transactions.filterHealth', icon: 'medkit' },
+  { key: 'education', labelKey: 'transactions.filterEdu', icon: 'book' },
+  { key: 'investment', labelKey: 'transactions.filterInvest', icon: 'trending-up' },
+  { key: 'other_expense', labelKey: 'transactions.filterOtherExpense', icon: 'swap-horizontal', matches: ['other_expense', 'others'] },
 ];
 
 const MONTH_KEYS = [
@@ -68,11 +94,13 @@ const TIME_FILTER_CHIPS: Array<{ key: TimeFilterKey; labelKey: string; icon: str
   { key: 'custom', labelKey: 'transactions.timeCustom', icon: 'apps' },
 ];
 
-const TransactionItem = React.memo(({ item, colors, isDark, formatAmountOn, isSeniorMode }: { item: Transaction; colors: ThemeColors; isDark: boolean; formatAmountOn: (n: number, date: Date | string) => string; isSeniorMode: boolean }) => {
+const TransactionItem = React.memo(({ item, colors, isDark, formatAmountOn, isSeniorMode, onLongPress }: { item: Transaction; colors: ThemeColors; isDark: boolean; formatAmountOn: (n: number, date: Date | string) => string; isSeniorMode: boolean; onLongPress: (item: Transaction) => void }) => {
   const safeCat = (item.category || 'others').toLowerCase() as CategoryType;
   const cat = CATEGORIES[safeCat] || CATEGORIES.others;
   return (
-    <View
+    <Pressable
+      onLongPress={() => onLongPress(item)}
+      delayLongPress={350}
       style={[
         styles.txCard,
         {
@@ -104,7 +132,7 @@ const TransactionItem = React.memo(({ item, colors, isDark, formatAmountOn, isSe
           {formatTime(item.date)}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 });
 
@@ -114,7 +142,9 @@ export default function TransactionsScreen() {
   const tabBarInset = useTabBarContentInset();
   const { colors, isDark } = useTheme();
   const { formatAmountOn, convertForDisplayOn, formatConverted } = useCurrency();
-  const { transactions, isLoading } = useExpenses();
+  const { transactions, isLoading, updateTransactionCategory } = useExpenses();
+  const [categoryPickerTx, setCategoryPickerTx] = useState<Transaction | null>(null);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   const { isSeniorMode } = useSeniorMode();
   const [activeFilter, setActiveFilter] = useState('all');
   const [showSearch, setShowSearch] = useState(false);
@@ -215,7 +245,11 @@ export default function TransactionsScreen() {
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return transactions.filter(tx => {
-      const catOk = activeFilter === 'all' || (tx.category || 'others').toLowerCase() === activeFilter.toLowerCase();
+      const txCat = (tx.category || 'others').toLowerCase();
+      const activeOpt = FILTER_OPTIONS.find((o) => o.key === activeFilter);
+      const catOk =
+        activeFilter === 'all' ||
+        (activeOpt?.matches ? activeOpt.matches.includes(txCat) : txCat === activeFilter.toLowerCase());
       if (!catOk || !matchesTime(tx.date)) return false;
       if (!q) return true;
       const merchant = (tx.merchant || '').toLowerCase();
@@ -352,7 +386,7 @@ export default function TransactionsScreen() {
       <SectionList
         sections={sections}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <TransactionItem item={item} colors={colors} isDark={isDark} formatAmountOn={formatAmountOn} isSeniorMode={isSeniorMode} />}
+        renderItem={({ item }) => <TransactionItem item={item} colors={colors} isDark={isDark} formatAmountOn={formatAmountOn} isSeniorMode={isSeniorMode} onLongPress={setCategoryPickerTx} />}
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
@@ -519,6 +553,51 @@ export default function TransactionsScreen() {
         </Pressable>
       </CustomModal>
 
+      {/* Change-category picker, opened by long-pressing a transaction row.
+          Exists mainly to move SMS-synced P2P transfers into Other Expense
+          after the fact — they arrive auto-categorized and never see the
+          Add Expense category picker. */}
+      <CustomModal visible={!!categoryPickerTx} onClose={() => setCategoryPickerTx(null)}>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t('transactions.changeCategory')}</Text>
+        {categoryPickerTx && (
+          <Text style={[styles.categoryPickerSubtitle, { color: colors.textTertiary }]} numberOfLines={1}>
+            {categoryPickerTx.merchant}
+          </Text>
+        )}
+        <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+          <View style={styles.modalChipsWrap}>
+            {CATEGORY_OPTIONS.map((opt) => {
+              const active = categoryPickerTx ? (categoryPickerTx.category || 'others').toLowerCase() === opt.key : false;
+              return (
+                <Pressable
+                  key={opt.key}
+                  disabled={isUpdatingCategory}
+                  onPress={async () => {
+                    if (!categoryPickerTx) return;
+                    setIsUpdatingCategory(true);
+                    const ok = await updateTransactionCategory(categoryPickerTx.id, opt.key as CategoryType);
+                    setIsUpdatingCategory(false);
+                    if (ok) setCategoryPickerTx(null);
+                  }}
+                  style={[
+                    styles.timeChip,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    active && { backgroundColor: colors.accentDim, borderColor: colors.accent + '40' },
+                  ]}
+                >
+                  {opt.icon ? (
+                    <Ionicons name={opt.icon as any} size={15} color={active ? colors.accent : colors.textTertiary} />
+                  ) : null}
+                  <Text style={[styles.timeChipText, { color: active ? colors.accent : colors.textSecondary }]}>
+                    {t(opt.labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </CustomModal>
+
       {/* Year picker */}
       <DatePickerModal
         visible={showYearPicker}
@@ -633,6 +712,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.5,
     marginBottom: 10,
+  },
+  categoryPickerSubtitle: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: -8,
+    marginBottom: 16,
   },
   modalChipsWrap: {
     flexDirection: 'row',

@@ -92,8 +92,29 @@ const STORAGE_PREFIX = '@lifewise_family_features_';
  * the new `FamilyFeatureKey[]` list, so members created before Phase 1 keep
  * working. Accepts either shape and always returns a clean key list.
  */
-export function normalizeFeatures(input: unknown): FamilyFeatureKey[] {
+/**
+ * Turns whatever a member record carries into a clean feature-key list.
+ *
+ * ## Returns `null` when there is NO DATA, not a default
+ *
+ * This used to fall back to `DEFAULT_FEATURES` (`['medicines']`) whenever the
+ * input was absent or unrecognised. That silently invented a module the member
+ * did not have, which produced two user-visible bugs:
+ *
+ *  1. Every member card showed one more feature than it had ("0 features" read
+ *     as 1, "4 features" as 5), because `GET /api/family` does not return a
+ *     `features` field at all — so the fallback fired for every member.
+ *  2. A caregiver restricted to specific modules saw an EMPTY dashboard: the
+ *     list being filtered was the fabricated `['medicines']`, which the
+ *     caregiver had not been granted, so the intersection was empty.
+ *
+ * "I could not read this" and "this member genuinely has no modules" are
+ * different answers and must not collapse into the same value. Callers that
+ * want a default now have to ask for one explicitly.
+ */
+export function normalizeFeatures(input: unknown): FamilyFeatureKey[] | null {
   if (Array.isArray(input)) {
+    // A real array — even an empty one — is an answer. Honour it.
     return input.filter((k): k is FamilyFeatureKey => k in FAMILY_FEATURE_MAP);
   }
   if (input && typeof input === 'object') {
@@ -103,9 +124,18 @@ export function normalizeFeatures(input: unknown): FamilyFeatureKey[] {
     // Legacy "reminders" maps to Bill Management; "reports" has no 1:1 modern
     // equivalent (it was a link-out), so we drop it rather than guess.
     if (legacy.reminders) out.push('bills');
-    return out.length ? out : [...DEFAULT_FEATURES];
+    return out;
   }
-  return [...DEFAULT_FEATURES];
+  // undefined / null / a string / a number: nothing usable was supplied.
+  return null;
+}
+
+/**
+ * `normalizeFeatures` with an explicit fallback, for the one place that truly
+ * wants one: seeding a brand-new member's selection.
+ */
+export function normalizeFeaturesOrDefault(input: unknown): FamilyFeatureKey[] {
+  return normalizeFeatures(input) ?? [...DEFAULT_FEATURES];
 }
 
 /** Reads a member's enabled features from local storage. */

@@ -51,6 +51,7 @@ import {
 } from '@/lib/family-records';
 import { useCurrency } from '@/lib/currency-context';
 import { calculateAge } from '@/lib/data';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 import { LoadingIndicator } from '@/components/PremiumLoader';
 
 const RELATIONSHIPS = [
@@ -132,6 +133,10 @@ export default function FamilyMemberDetailScreen() {
   const [member, setMember] = useState<FamilyMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Scoped caregiver access (PRD 5.5): a caregiver only sees the modules the
+  // owner granted. The owner is unaffected.
+  const { canAccess, isOwner, canMarkDone } = useCaregiverPermissions(memberId ? String(memberId) : null);
+
   const loadMember = useCallback(async () => {
     if (!token || !memberId) return;
     try {
@@ -152,7 +157,7 @@ export default function FamilyMemberDetailScreen() {
 
       const id = String(m.id);
       const local = await loadMemberFeatures(id);
-      const featureKeys = local && local.length ? local : normalizeFeatures(m.features);
+      const featureKeys = local ?? normalizeFeatures(m.features) ?? [];
 
       const [appts, healthLogs, stockItems, routines, bills, subs, expenses, tasks, documents, checkins, travelItems, emergencyLog, customItems, customConfig, dietProfile, fitnessItems, studyProfile, wellnessReminders, moodLogs, vehicles, homeMaintenanceItems] = await Promise.all([
         loadAppointments(id),
@@ -228,24 +233,6 @@ export default function FamilyMemberDetailScreen() {
     return () => sub.remove();
   }, [memberId, loadMember]);
 
-  const markMedicine = (medId: string, action: 'taken' | 'snooze' | 'skip') => {
-    if (!token || !member) return;
-    (async () => {
-      try {
-        const res = await apiRequest(
-          'PATCH',
-          `/api/family/${member.id}/medicines/${medId}`,
-          { action },
-          token,
-        );
-        const updatedMember = (await res.json()) as FamilyMember;
-        setMember((prev) => (prev ? { ...prev, medicines: updatedMember.medicines } : prev));
-      } catch (e) {
-        console.error('Update medicine status error:', e);
-      }
-    })();
-  };
-
   const headerHeight = 88 + insets.top;
 
   if (isLoading) {
@@ -303,6 +290,16 @@ export default function FamilyMemberDetailScreen() {
         </LinearGradient>
 
         <View style={styles.content}>
+          {/* View-only caregivers get told why nothing is tappable, rather
+              than being left to wonder if the app is broken. */}
+          {!isOwner && !canMarkDone && (
+            <View style={[styles.readOnlyBanner, { backgroundColor: colors.warningDim, borderColor: colors.warning }]}>
+              <Ionicons name="eye-outline" size={16} color={colors.warning} />
+              <Text style={[styles.readOnlyText, { color: colors.warning }]}>
+                {t('caregiverPermissions.readOnlyBanner')}
+              </Text>
+            </View>
+          )}
           <View style={styles.featuresDashboard}>
             {member.featureKeys.length === 0 && (
               <View style={[styles.noMedsBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}>
@@ -312,9 +309,31 @@ export default function FamilyMemberDetailScreen() {
               </View>
             )}
 
-            {member.featureKeys.map((key) => {
-              // Medicines list is hidden from the member detail page.
-              if (key === 'medicines') return null;
+            {member.featureKeys.filter((key) => canAccess(key)).map((key) => {
+              if (key === 'medicines') {
+                const activeMedCount = member.medicines.filter((m) => !m.taken).length;
+                const subtitle = member.medicines.length === 0
+                  ? t('family.noActiveMedications')
+                  : t('family.medicinesTitleActive', { count: activeMedCount });
+                const route = { pathname: '/family-medicines/[memberId]', params: { memberId: member.id, memberName: member.name } };
+
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => router.push(route as any)}
+                    style={[styles.featureCard, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                  >
+                    <View style={[styles.featureIconWrap, { backgroundColor: colors.accentDim }]}>
+                      <Ionicons name="medkit" size={18} color={colors.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.featureTitle, { color: colors.text }]}>{t('family.medicinesTitle')}</Text>
+                      <Text style={[styles.featureSubtitle, { color: colors.textTertiary }]}>{subtitle}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                  </Pressable>
+                );
+              }
 
               const def = FAMILY_FEATURE_MAP[key];
               if (!def) return null;
@@ -495,6 +514,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
   },
+  readOnlyBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 12,
+  },
+  readOnlyText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12, lineHeight: 17 },
   featuresDashboard: {
     gap: 12,
   },

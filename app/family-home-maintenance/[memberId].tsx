@@ -15,6 +15,7 @@ import {
   loadHomeMaintenanceItems,
   deleteHomeMaintenanceItem,
 } from '@/lib/family-records';
+import { useCaregiverPermissions } from '@/lib/use-caregiver-permissions';
 
 export default function FamilyHomeMaintenanceScreen() {
   const router = useRouter();
@@ -22,6 +23,10 @@ export default function FamilyHomeMaintenanceScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { t } = useTranslation();
+
+  // Scoped caregiver access (PRD 5.5). The owner is unrestricted; a
+  // caregiver only gets the actions their access level allows.
+  const { canMarkDone, canEdit } = useCaregiverPermissions(memberId ? String(memberId) : null);
 
   const [items, setItems] = useState<HomeMaintenanceItem[]>([]);
 
@@ -56,9 +61,13 @@ export default function FamilyHomeMaintenanceScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('familyHomeMaintenance.headerTitle')}</Text>
-          <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
+          {canEdit ? (
+            <Pressable onPress={openAdd} style={styles.addBtn} hitSlop={12}>
             <Ionicons name="add-circle" size={30} color={colors.accent} />
           </Pressable>
+          ) : (
+            <View style={styles.addBtn} />
+          )}
         </View>
         {memberName ? <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('familyHomeMaintenance.forMember', { name: memberName })}</Text> : null}
       </LinearGradient>
@@ -72,8 +81,7 @@ export default function FamilyHomeMaintenanceScreen() {
           </View>
         ) : (
           items.map((item) => (
-            <TaskCard
-              key={item.id}
+            <TaskCard canEdit={canEdit}               key={item.id}
               item={item}
               colors={colors}
               t={t}
@@ -88,8 +96,7 @@ export default function FamilyHomeMaintenanceScreen() {
 }
 
 function TaskCard({
-  item, colors, onEdit, onDelete, t,
-}: { item: HomeMaintenanceItem; colors: any; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string }) {
+  item, colors, onEdit, onDelete, t, canEdit }: { item: HomeMaintenanceItem; colors: any; onEdit: () => void; onDelete: () => void; t: (key: string, opts?: any) => string; canEdit: boolean }) {
   const def = HOME_TASK_TYPE_LABELS[item.taskType];
   const dueDays = item.nextDueDate ? Math.ceil((new Date(item.nextDueDate).getTime() - Date.now()) / 86400000) : null;
   const isWarning = dueDays !== null && dueDays <= 7;
@@ -107,12 +114,12 @@ function TaskCard({
             {item.vendorName ? ` · ${item.vendorName}` : ''}
           </Text>
         </View>
-        <Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
+        {canEdit && (<Pressable onPress={onEdit} hitSlop={10} style={styles.rowAction}>
           <Ionicons name="create-outline" size={18} color={colors.textTertiary} />
-        </Pressable>
-        <Pressable onPress={onDelete} hitSlop={10}>
+        </Pressable>)}
+        {canEdit && (<Pressable onPress={onDelete} hitSlop={10}>
           <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
-        </Pressable>
+        </Pressable>)}
       </View>
       {item.nextDueDate && (
         <View style={[styles.detailsBox, isWarning && { backgroundColor: colors.warningDim }]}>

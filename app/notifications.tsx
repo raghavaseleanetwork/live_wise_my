@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View, Text, FlatList, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useTheme } from '@/lib/theme-context';
@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-context';
 import { apiRequest } from '@/lib/query-client';
 import { useFamilyReminders } from '@/lib/use-family-reminders';
 import { familyReminderLabel, type FamilyReminder } from '@/lib/family-reminders';
+import { onNotificationActionHandled } from '@/lib/caregiver-sync';
 
 type NotificationItem = {
   id: string;
@@ -142,24 +143,49 @@ export default function NotificationsScreen() {
   // Only server rows have a persisted read state; family rows are projections.
   const hasUnreadServerItems = items.some((n) => !n.read);
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        const res = await apiRequest('GET', '/api/notifications', undefined, token);
-        const json = (await res.json()) as NotificationItem[];
-        setItems(json);
-        const unreadIds = json.filter(n => !n.read).map(n => n.id);
-        if (unreadIds.length) {
-          await apiRequest('POST', '/api/notifications/mark-read', { ids: unreadIds }, token);
-        }
-      } catch {
-        // ignore, keep empty list
-      } finally {
-        setLoading(false);
+  const loadNotifications = useCallback(async () => {
+    try {
+      const res = await apiRequest('GET', '/api/notifications', undefined, token);
+      const json = (await res.json()) as NotificationItem[];
+      setItems(json);
+      const unreadIds = json.filter(n => !n.read).map(n => n.id);
+      if (unreadIds.length) {
+        await apiRequest('POST', '/api/notifications/mark-read', { ids: unreadIds }, token);
       }
-    };
-    run();
+    } catch {
+      // ignore, keep whatever was already loaded
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  // Tapping Done/Snooze on a notification (from the shade, or on one already
+  // showing while the app is open) changes server-side state — a bill gets
+  // marked paid, a family record gets marked done — but that happens in
+  // `handleNotificationAction`, which runs with no mounted screen and cannot
+  // update this list itself. Without this, the row for that reminder keeps
+  // showing as active until the user manually leaves and reopens this screen.
+  useFocusEffect(
+    useCallback(() => {
+      loadNotifications();
+    }, [loadNotifications]),
+  );
+
+  // Fires once handleNotificationAction's server call (mark bill paid, mark
+  // family record done, snooze) has actually finished — not just when the
+  // button was tapped — so this doesn't refetch before the change has
+  // landed. Covers Done/Snooze pressed on a notification while this screen
+  // is already open in the foreground.
+  useEffect(() => {
+    const sub = onNotificationActionHandled(() => {
+      loadNotifications();
+    });
+    return () => sub.remove();
+  }, [loadNotifications]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: topInset + 16 }]}>
