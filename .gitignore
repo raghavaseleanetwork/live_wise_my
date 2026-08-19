@@ -63,3 +63,8 @@ server/firebase-service-account.json
 .env
 # Removed *.json to allow package.json and app.json to be tracked
 # *.json
+
+# Android build artifacts (too large for GitHub)
+*.apk
+*.aab
+build-output/
