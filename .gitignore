@@ -68,3 +68,7 @@ server/firebase-service-account.json
 *.apk
 *.aab
 build-output/
+
+# Env files and backups (may contain secrets)
+.env.*
+!.env.example
