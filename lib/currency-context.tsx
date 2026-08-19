@@ -182,6 +182,45 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const decimalsFor = (target: string) => (target === 'INR' || target === 'JPY' ? 0 : 2);
 
   /**
+   * Two decimals, with trailing zeros trimmed: 2.50 -> "2.5", 3.00 -> "3",
+   * 2.65 -> "2.65".
+   *
+   * `toFixed(2)` then strip, rather than `maximumFractionDigits`, because the
+   * rounding has to happen at 2 places BEFORE the trim — otherwise 2.649 and
+   * 2.65 disagree at the boundary.
+   */
+  const trimDecimals = (n: number): string =>
+    n.toFixed(2).replace(/\.?0+$/, '');
+
+  /**
+   * Indian-numbering abbreviation for large rupee amounts.
+   *
+   * Returns `null` when the value is below a lakh, which is the caller's signal
+   * to fall through to grouped digits — per the client spec, thousands are
+   * shown in full (`₹50,000`, not `₹50K`).
+   *
+   * INR-ONLY BY DESIGN. Lakh and crore are Indian-numbering conventions;
+   * "$1.2L" is meaningless to a dollar user, so non-INR currencies fall through
+   * here and get K/M/B from `formatCompactAmount` instead.
+   *
+   * Shared by `render` and `formatCompactAmount`. Those two previously carried
+   * separate copies of this logic and had drifted: `render` had no crore case
+   * at all, so ₹1,20,00,000 rendered as "₹120.0L" instead of "₹1.2Cr" at all 89
+   * call sites that reach it.
+   */
+  const abbreviateINR = (sym: string, value: number): string | null => {
+    // Magnitude drives the tier, sign is re-applied after. Comparing the raw
+    // value would leave every negative below the thresholds, so a -2,50,000
+    // refund printed in full while +2,50,000 abbreviated — the same figure
+    // formatted two different ways depending on its sign.
+    const abs = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    if (abs >= 10000000) return `${sign}${sym}${trimDecimals(abs / 10000000)}Cr`;
+    if (abs >= 100000) return `${sign}${sym}${trimDecimals(abs / 100000)}L`;
+    return null;
+  };
+
+  /**
    * Renders an already-converted value. Shared by the dated and undated
    * formatters so they cannot drift apart in symbol, grouping, or decimals.
    */
@@ -189,11 +228,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     const sym = currentCurrency.symbol;
     const decimals = decimalsFor(code);
 
-    // Lakh is an Indian-numbering convention. Applying it to dollars ("$1.2L")
-    // is meaningless, so the compact form is INR-only; other currencies use
-    // grouped digits here and get K/M/B in formatCompactAmount.
-    if (code === 'INR' && value >= 100000) {
-      return `${sym}${(value / 100000).toFixed(1)}L`;
+    if (code === 'INR') {
+      const abbreviated = abbreviateINR(sym, value);
+      if (abbreviated) return abbreviated;
     }
 
     return `${sym}${value.toLocaleString(code === 'INR' ? 'en-IN' : 'en-US', {
@@ -228,14 +265,16 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
 
     if (code === 'INR') {
-      if (value >= 10000000) return `${sym}${(value / 10000000).toFixed(1)}Cr`;
-      if (value >= 100000) return `${sym}${(value / 100000).toFixed(1)}L`;
-      return `${sym}${(value / 1000).toFixed(1)}K`;
+      // Same lakh/crore rendering as `render`, so a value cannot abbreviate one
+      // way on a card and another in a list. Only the K tier is extra here —
+      // this formatter is for space-constrained spots that abbreviate
+      // thousands too, which `render` deliberately does not.
+      return abbreviateINR(sym, value) ?? `${sym}${trimDecimals(value / 1000)}K`;
     }
 
-    if (value >= 1000000000) return `${sym}${(value / 1000000000).toFixed(1)}B`;
-    if (value >= 1000000) return `${sym}${(value / 1000000).toFixed(1)}M`;
-    return `${sym}${(value / 1000).toFixed(1)}K`;
+    if (value >= 1000000000) return `${sym}${trimDecimals(value / 1000000000)}B`;
+    if (value >= 1000000) return `${sym}${trimDecimals(value / 1000000)}M`;
+    return `${sym}${trimDecimals(value / 1000)}K`;
   }, [code, currentCurrency, rateTable, formatAmount]);
 
   const value = useMemo(() => ({

@@ -1345,9 +1345,9 @@
     "repeatOneTime": "ఒకసారి",
     "errorNameRequired": "పేరు అవసరం",
     "errorInvalidAmount": "దయచేసి సరైన మొత్తాన్ని నమోదు చేయండి",
-    "notificationDueTitle": "{{name}} గడువు",
+    "notificationDueTitle": "రిమైండర్: {{name}}",
     "notificationDueBody": "₹{{amount}} ఈరోజు గడువు.",
-    "notificationReminderTitle": "రిమైండర్",
+    "notificationReminderTitle": "రిమైండర్: {{title}}",
     "loading": "రిమైండర్ లోడ్ అవుతోంది...",
     "statusDone": "పూర్తయింది",
     "statusSnoozed": "వాయిదా వేయబడింది",
@@ -1391,7 +1391,10 @@
     "actionPaid": "చెల్లించబడింది",
     "actionSnoozed": "వాయిదా వేయబడింది",
     "actionCancelled": "రద్దు చేయబడింది",
-    "actionRestored": "పునరుద్ధరించబడింది"
+    "actionRestored": "పునరుద్ధరించబడింది",
+    "markDoneConfirmTitle": "పూర్తయినట్లు గుర్తించాలా?",
+    "markDoneConfirmMessage": "\"{{name}}\" పూర్తయినట్లు గుర్తించాలా?",
+    "markDoneConfirmAction": "పూర్తయింది"
   },
   "billHistory": {
     "title": "చెల్లింపు చరిత్ర",
@@ -1920,7 +1923,7 @@
     "selectTimeTitle": "సమయాన్ని ఎంచుకోండి",
     "repeatModalTitle": "పునరావృతం",
     "expenseSavedTitle": "ఖర్చు సేవ్ చేయబడింది",
-    "notificationTitle": "రిమైండర్"
+    "notificationTitle": "రిమైండర్: {{title}}"
   },
   "scanBill": {
     "headerTitle": "బిల్లును స్కాన్ చేయండి",
@@ -1993,7 +1996,7 @@
     "notPaidYetSaveReminder": "ఇంకా చెల్లించలేదు — బిల్లు రిమైండర్‌గా సేవ్ చేయండి",
     "alreadyPaidSaveExpense": "ఇప్పటికే చెల్లించబడింది — ఖర్చుగా సేవ్ చేయండి",
     "billFallback": "బిల్లు",
-    "dueSoonNotificationTitle": "{{name}} త్వరలో చెల్లించాలి",
+    "dueSoonNotificationTitle": "రిమైండర్: {{name}}",
     "categoryFallback": "యుటిలిటీ"
   },
   "addMedicine": {

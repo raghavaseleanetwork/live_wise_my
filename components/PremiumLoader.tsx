@@ -6,7 +6,6 @@ import Animated, {
   withTiming,
   useSharedValue,
   interpolate,
-  withDelay,
   Easing,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
@@ -115,7 +114,6 @@ export default function PremiumLoader({
 }: PremiumLoaderProps) {
   const { colors, isDark } = useTheme();
   const progress = useSharedValue(0);
-  const ring2Progress = useSharedValue(0);
 
   const showLogo = logo ?? true;
 
@@ -125,25 +123,11 @@ export default function PremiumLoader({
       -1,
       true
     );
-    ring2Progress.value = withRepeat(
-      withDelay(400, withTiming(1, { duration: 2000, easing: Easing.out(Easing.ease) })),
-      -1,
-      true
-    );
   }, []);
 
   const pulseStyle = useAnimatedStyle(() => {
     const scale = interpolate(progress.value, [0, 1], [0.85, 1.15]);
     const opacity = interpolate(progress.value, [0, 1], [0.4, 0.8]);
-    return {
-      transform: [{ scale }],
-      opacity,
-    };
-  });
-
-  const ring2Style = useAnimatedStyle(() => {
-    const scale = interpolate(ring2Progress.value, [0, 1], [1, 1.6]);
-    const opacity = interpolate(ring2Progress.value, [0, 1], [0.4, 0]);
     return {
       transform: [{ scale }],
       opacity,
@@ -185,12 +169,17 @@ export default function PremiumLoader({
   return (
     <View style={styles.container}>
       <View style={[styles.loaderWrapper, { width: size * wrapperRatio, height: size * wrapperRatio }]}>
-        {/* Outer Glow / Ring 2 */}
-        <Animated.View style={[
-          styles.ring2,
-          { width: size, height: size, borderColor: colors.accent, borderRadius: size / 2 },
-          ring2Style
-        ]} />
+        {/*
+          NOTE: there used to be an expanding "halo" ring here — a `size` circle
+          with a hard 2px accent border, scaled 1x -> 1.6x on a 2s loop.
+          Removed 2026-08-19: it was the ONLY layer outside the BlurView, so it
+          was not clipped or blurred like everything else, and it expanded to
+          exactly `size * 1.6` — the glass disc's own diameter — so it read as a
+          stray purple line sweeping out to the rim and vanishing, unrelated to
+          the gradient ring it sat behind. The pulse + orbiting dot already
+          carry the motion. Do not reintroduce it without reconciling both the
+          stroke treatment and the end radius.
+        */}
 
         {/* Glass Container */}
         <BlurView
@@ -319,11 +308,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  ring2: {
-    position: 'absolute',
-    borderWidth: 2,
-  },
   outerRing: {
+    position: 'absolute',
     borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',

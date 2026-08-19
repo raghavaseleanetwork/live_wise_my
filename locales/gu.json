@@ -1345,9 +1345,9 @@
     "repeatOneTime": "એક વખત",
     "errorNameRequired": "નામ જરૂરી છે",
     "errorInvalidAmount": "કૃપા કરી માન્ય રકમ દાખલ કરો",
-    "notificationDueTitle": "{{name}} બાકી છે",
+    "notificationDueTitle": "રિમાઇન્ડર: {{name}}",
     "notificationDueBody": "₹{{amount}} આજે બાકી છે.",
-    "notificationReminderTitle": "રિમાઇન્ડર",
+    "notificationReminderTitle": "રિમાઇન્ડર: {{title}}",
     "loading": "રિમાઇન્ડર લોડ થઈ રહ્યું છે...",
     "statusDone": "પૂર્ણ",
     "statusSnoozed": "સ્નૂઝ કરેલ",
@@ -1391,7 +1391,10 @@
     "actionPaid": "ચૂકવેલ",
     "actionSnoozed": "સ્નૂઝ કરેલ",
     "actionCancelled": "રદ કરેલ",
-    "actionRestored": "પુનઃસ્થાપિત કરેલ"
+    "actionRestored": "પુનઃસ્થાપિત કરેલ",
+    "markDoneConfirmTitle": "પૂર્ણ તરીકે ચિહ્નિત કરવું?",
+    "markDoneConfirmMessage": "\"{{name}}\" પૂર્ણ તરીકે ચિહ્નિત કરવું?",
+    "markDoneConfirmAction": "પૂર્ણ કરો"
   },
   "billHistory": {
     "title": "ચુકવણી ઇતિહાસ",
@@ -1920,7 +1923,7 @@
     "selectTimeTitle": "સમય પસંદ કરો",
     "repeatModalTitle": "પુનરાવર્તન",
     "expenseSavedTitle": "ખર્ચ સેવ થયો",
-    "notificationTitle": "રિમાઇન્ડર"
+    "notificationTitle": "રિમાઇન્ડર: {{title}}"
   },
   "scanBill": {
     "headerTitle": "બિલ સ્કેન કરો",
@@ -1993,7 +1996,7 @@
     "notPaidYetSaveReminder": "હજુ ચૂકવણી થઈ નથી — બિલ રિમાઇન્ડર તરીકે સેવ કરો",
     "alreadyPaidSaveExpense": "પહેલેથી ચૂકવણી થઈ ગઈ — ખર્ચ તરીકે સેવ કરો",
     "billFallback": "બિલ",
-    "dueSoonNotificationTitle": "{{name}} ટૂંક સમયમાં દેય",
+    "dueSoonNotificationTitle": "રિમાઇન્ડર: {{name}}",
     "categoryFallback": "યુટિલિટી"
   },
   "addMedicine": {

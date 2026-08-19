@@ -1345,9 +1345,9 @@
     "repeatOneTime": "ஒரு முறை",
     "errorNameRequired": "பெயர் தேவை",
     "errorInvalidAmount": "சரியான தொகையை உள்ளிடவும்",
-    "notificationDueTitle": "{{name}} செலுத்த வேண்டும்",
+    "notificationDueTitle": "நினைவூட்டல்: {{name}}",
     "notificationDueBody": "₹{{amount}} இன்று செலுத்த வேண்டும்.",
-    "notificationReminderTitle": "நினைவூட்டல்",
+    "notificationReminderTitle": "நினைவூட்டல்: {{title}}",
     "loading": "நினைவூட்டல் ஏற்றப்படுகிறது...",
     "statusDone": "முடிந்தது",
     "statusSnoozed": "தள்ளிவைக்கப்பட்டது",
@@ -1391,7 +1391,10 @@
     "actionPaid": "செலுத்தப்பட்டது",
     "actionSnoozed": "தள்ளிவைக்கப்பட்டது",
     "actionCancelled": "ரத்து செய்யப்பட்டது",
-    "actionRestored": "மீட்டெடுக்கப்பட்டது"
+    "actionRestored": "மீட்டெடுக்கப்பட்டது",
+    "markDoneConfirmTitle": "முடிந்ததாகக் குறிக்கவா?",
+    "markDoneConfirmMessage": "\"{{name}}\" முடிந்ததாகக் குறிக்கவா?",
+    "markDoneConfirmAction": "முடிந்தது"
   },
   "billHistory": {
     "title": "பணம் செலுத்திய வரலாறு",
@@ -1920,7 +1923,7 @@
     "selectTimeTitle": "நேரத்தைத் தேர்ந்தெடுக்கவும்",
     "repeatModalTitle": "மீண்டும் நிகழ்வு",
     "expenseSavedTitle": "செலவு சேமிக்கப்பட்டது",
-    "notificationTitle": "நினைவூட்டல்"
+    "notificationTitle": "நினைவூட்டல்: {{title}}"
   },
   "scanBill": {
     "headerTitle": "பில் ஸ்கேன் செய்",
@@ -1993,7 +1996,7 @@
     "notPaidYetSaveReminder": "இன்னும் செலுத்தவில்லை — பில் நினைவூட்டலாகச் சேமி",
     "alreadyPaidSaveExpense": "ஏற்கனவே செலுத்தப்பட்டது — செலவாகச் சேமி",
     "billFallback": "பில்",
-    "dueSoonNotificationTitle": "{{name}} விரைவில் செலுத்த வேண்டும்",
+    "dueSoonNotificationTitle": "நினைவூட்டல்: {{name}}",
     "categoryFallback": "பயன்பாடு"
   },
   "addMedicine": {

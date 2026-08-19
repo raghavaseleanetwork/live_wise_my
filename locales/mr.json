@@ -1345,9 +1345,9 @@
     "repeatOneTime": "एकदाच",
     "errorNameRequired": "नाव आवश्यक आहे",
     "errorInvalidAmount": "कृपया वैध रक्कम टाका",
-    "notificationDueTitle": "{{name}} देय आहे",
+    "notificationDueTitle": "आठवण: {{name}}",
     "notificationDueBody": "₹{{amount}} आज देय आहे.",
-    "notificationReminderTitle": "आठवण",
+    "notificationReminderTitle": "आठवण: {{title}}",
     "loading": "आठवण लोड होत आहे...",
     "statusDone": "पूर्ण",
     "statusSnoozed": "स्नूझ केले",
@@ -1391,7 +1391,10 @@
     "actionPaid": "भरले",
     "actionSnoozed": "स्नूझ केले",
     "actionCancelled": "रद्द केले",
-    "actionRestored": "पुनर्संचयित केले"
+    "actionRestored": "पुनर्संचयित केले",
+    "markDoneConfirmTitle": "पूर्ण म्हणून चिन्हांकित करायचे?",
+    "markDoneConfirmMessage": "\"{{name}}\" पूर्ण म्हणून चिन्हांकित करायचे?",
+    "markDoneConfirmAction": "पूर्ण करा"
   },
   "billHistory": {
     "title": "पेमेंट इतिहास",
@@ -1906,7 +1909,7 @@
     "selectTimeTitle": "वेळ निवडा",
     "repeatModalTitle": "पुनरावृत्ती",
     "expenseSavedTitle": "खर्च सेव्ह झाला",
-    "notificationTitle": "रिमाइंडर"
+    "notificationTitle": "आठवण: {{title}}"
   },
   "scanBill": {
     "headerTitle": "बिल स्कॅन करा",
@@ -1979,7 +1982,7 @@
     "notPaidYetSaveReminder": "अजून पैसे दिले नाहीत — बिल रिमाइंडर म्हणून सेव्ह करा",
     "alreadyPaidSaveExpense": "आधीच पैसे दिले आहेत — खर्च म्हणून सेव्ह करा",
     "billFallback": "बिल",
-    "dueSoonNotificationTitle": "{{name}} लवकरच देय",
+    "dueSoonNotificationTitle": "आठवण: {{name}}",
     "categoryFallback": "युटिलिटी"
   },
   "addMedicine": {

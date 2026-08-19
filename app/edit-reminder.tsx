@@ -287,7 +287,7 @@ export default function EditReminderScreen() {
                       isSelected && { borderColor: catColor, backgroundColor: catColor + '10' }
                     ]}
                   >
-                    <CategoryIcon category={opt.key} size={24} color={isSelected ? catColor : colors.textTertiary} />
+                    <CategoryIcon category={opt.key} size={32} color={isSelected ? catColor : colors.textTertiary} />
                     <Text
                       style={[styles.categoryLabel, { color: colors.textSecondary }, isSelected && { color: catColor, fontFamily: 'Inter_600SemiBold' }]}
                       numberOfLines={1}

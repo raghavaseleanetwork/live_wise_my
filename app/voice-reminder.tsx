@@ -340,7 +340,6 @@ export default function VoiceReminderScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [isOfflineSaved, setIsOfflineSaved] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
   const [serverParsed, setServerParsed] = useState<ParsedReminder | null>(null);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -726,11 +725,31 @@ export default function VoiceReminderScreen() {
       // Save to backend (best-effort). If offline, we still store locally.
       const created = await addReminder(newBill);
 
+      /*
+        NAVIGATE FIRST, then do the best-effort follow-up work.
+
+        These two side effects (scheduling the local notification, writing the
+        offline draft) used to be awaited BEFORE the redirect, adding their
+        latency to a screen the user had already finished with — and the
+        `setIsOfflineSaved(true)` that followed re-rendered that screen one more
+        time on the way out. That was the tail end of the reported flicker.
+
+        Neither one gates the redirect: the reminder is already created and its
+        id is in hand, and both are explicitly best-effort (`.catch(() => {})`).
+        They are fire-and-forget so the transition happens on the frame after
+        the record exists.
+      */
+      if (created?.id) {
+        router.replace(`/bill-details/${created.id}`);
+      } else {
+        router.back();
+      }
+
       // Local notification (best-effort)
       if (effective.date) {
         const dueDate = new Date(dueDateIso);
-        await scheduleLocalNotification({
-          title: t('voiceReminder.notificationTitle'),
+        void scheduleLocalNotification({
+          title: t('voiceReminder.notificationTitle', { title: effective.title }),
           body: effective.title,
           data: { type: 'reminder', billId: created?.id },
           triggerAt: dueDate,
@@ -739,33 +758,40 @@ export default function VoiceReminderScreen() {
 
       // Offline fallback: persist the draft so it can be recreated later if network fails.
       // (We can't reliably detect offline here; this is a lightweight safety net.)
-      await AsyncStorage.setItem(
+      void AsyncStorage.setItem(
         '@lifewise_last_voice_reminder_draft',
         JSON.stringify({ at: Date.now(), bill: newBill }),
       ).catch(() => {});
-      setIsOfflineSaved(true);
-
-      if (created?.id) {
-        router.replace(`/bill-details/${created.id}`);
-      } else {
-        router.back();
-      }
     } catch {
       setError(t('voiceReminder.errorCouldNotCreateReminder'));
       setState('review');
     }
   }
 
+  /**
+   * `confirming` is a save in flight on top of the review screen, not a
+   * separate stage. It is grouped with `review` everywhere the LAYOUT is
+   * decided, so the review UI stays mounted while the record is being written.
+   *
+   * Previously `confirming` fell through to the `stageIdle` branch here and
+   * failed every `state === 'review'` guard below, so the whole review body
+   * unmounted the instant Save was pressed and the screen reverted to its empty
+   * initial state for the length of the request — read by users as the "Add
+   * Reminder screen appearing" mid-flow. Buttons still gate on `canInteract`,
+   * so the UI is visible but not interactive while saving.
+   */
+  const isReviewLayout = state === 'review' || state === 'confirming';
+
   const titleLine =
     state === 'recording'
       ? t('voiceReminder.stageRecording')
       : state === 'transcribing'
         ? t('voiceReminder.stageProcessing')
-      : state === 'review'
+      : isReviewLayout
         ? t('voiceReminder.stageReview')
         : t('voiceReminder.stageIdle');
 
-  const showTranscript = state === 'review' && !!(isEditing ? draftText.trim() : spokenText.trim());
+  const showTranscript = isReviewLayout && !!(isEditing ? draftText.trim() : spokenText.trim());
   const heroText = (isEditing ? draftText : spokenText).trim();
   const canInteract = state !== 'transcribing' && state !== 'confirming';
   const hasTranscript = !!spokenText.trim();
@@ -875,13 +901,13 @@ export default function VoiceReminderScreen() {
           </View>
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
-          {state === 'review' && detectedLanguage && (
+          {isReviewLayout && detectedLanguage && (
             <Text style={[styles.langPill, { backgroundColor: colors.accentDim, borderColor: colors.accent + '40', color: colors.accent }]}>{t('voiceReminder.detectedLanguage', { language: detectedLanguage.toUpperCase() })}</Text>
           )}
         </View>
 
         <View style={styles.bottomSheet}>
-          {state === 'review' && effectiveParsedForUI ? (
+          {isReviewLayout && effectiveParsedForUI ? (
             <View style={[styles.confirmCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.confirmTitle, { color: colors.text }]} numberOfLines={1}>{effectiveParsedForUI.title}</Text>
               {!isEditing && (
@@ -954,7 +980,7 @@ export default function VoiceReminderScreen() {
             </View>
           ) : null}
 
-          {state === 'review' && hasTranscript && (
+          {isReviewLayout && hasTranscript && (
             <View style={styles.actionsRow}>
               <Pressable
                 onPress={async () => {

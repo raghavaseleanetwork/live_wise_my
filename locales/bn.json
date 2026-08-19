@@ -1345,9 +1345,9 @@
     "repeatOneTime": "একবার",
     "errorNameRequired": "নাম আবশ্যক",
     "errorInvalidAmount": "অনুগ্রহ করে একটি বৈধ পরিমাণ লিখুন",
-    "notificationDueTitle": "{{name}} দেয়",
+    "notificationDueTitle": "রিমাইন্ডার: {{name}}",
     "notificationDueBody": "₹{{amount}} আজ দেয়।",
-    "notificationReminderTitle": "রিমাইন্ডার",
+    "notificationReminderTitle": "রিমাইন্ডার: {{title}}",
     "loading": "রিমাইন্ডার লোড হচ্ছে...",
     "statusDone": "সম্পন্ন",
     "statusSnoozed": "স্নুজ করা হয়েছে",
@@ -1391,7 +1391,10 @@
     "actionPaid": "পরিশোধিত",
     "actionSnoozed": "স্নুজ করা হয়েছে",
     "actionCancelled": "বাতিল করা হয়েছে",
-    "actionRestored": "পুনরুদ্ধার করা হয়েছে"
+    "actionRestored": "পুনরুদ্ধার করা হয়েছে",
+    "markDoneConfirmTitle": "সম্পন্ন হিসেবে চিহ্নিত করবেন?",
+    "markDoneConfirmMessage": "\"{{name}}\" সম্পন্ন হিসেবে চিহ্নিত করবেন?",
+    "markDoneConfirmAction": "সম্পন্ন করুন"
   },
   "billHistory": {
     "title": "পেমেন্ট ইতিহাস",
@@ -1920,7 +1923,7 @@
     "selectTimeTitle": "সময় নির্বাচন করুন",
     "repeatModalTitle": "পুনরাবৃত্তি",
     "expenseSavedTitle": "খরচ সংরক্ষিত হয়েছে",
-    "notificationTitle": "রিমাইন্ডার"
+    "notificationTitle": "রিমাইন্ডার: {{title}}"
   },
   "scanBill": {
     "headerTitle": "বিল স্ক্যান করুন",
@@ -1993,7 +1996,7 @@
     "notPaidYetSaveReminder": "এখনও পরিশোধ করা হয়নি — বিল রিমাইন্ডার হিসেবে সংরক্ষণ করুন",
     "alreadyPaidSaveExpense": "ইতিমধ্যে পরিশোধ করা হয়েছে — খরচ হিসেবে সংরক্ষণ করুন",
     "billFallback": "বিল",
-    "dueSoonNotificationTitle": "{{name}} শীঘ্রই দেয়",
+    "dueSoonNotificationTitle": "রিমাইন্ডার: {{name}}",
     "categoryFallback": "ইউটিলিটি"
   },
   "addMedicine": {

@@ -1345,9 +1345,9 @@
     "repeatOneTime": "One-time",
     "errorNameRequired": "Name is required",
     "errorInvalidAmount": "Please enter a valid amount",
-    "notificationDueTitle": "{{name}} Due",
+    "notificationDueTitle": "Reminder: {{name}}",
     "notificationDueBody": "₹{{amount}} is due today.",
-    "notificationReminderTitle": "Reminder",
+    "notificationReminderTitle": "Reminder: {{title}}",
     "loading": "Loading reminder...",
     "statusDone": "Done",
     "statusSnoozed": "Snoozed",
@@ -1391,7 +1391,10 @@
     "actionPaid": "Paid",
     "actionSnoozed": "Snoozed",
     "actionCancelled": "Cancelled",
-    "actionRestored": "Restored"
+    "actionRestored": "Restored",
+    "markDoneConfirmTitle": "Mark as done?",
+    "markDoneConfirmMessage": "Mark \"{{name}}\" as done?",
+    "markDoneConfirmAction": "Mark done"
   },
   "billHistory": {
     "title": "Payment History",
@@ -1920,7 +1923,7 @@
     "selectTimeTitle": "Select time",
     "repeatModalTitle": "Repeat",
     "expenseSavedTitle": "Expense saved",
-    "notificationTitle": "Reminder"
+    "notificationTitle": "Reminder: {{title}}"
   },
   "scanBill": {
     "headerTitle": "Scan Bill",
@@ -1993,7 +1996,7 @@
     "notPaidYetSaveReminder": "Not paid yet — save as bill reminder",
     "alreadyPaidSaveExpense": "Already paid — save as expense",
     "billFallback": "Bill",
-    "dueSoonNotificationTitle": "{{name}} Due Soon",
+    "dueSoonNotificationTitle": "Reminder: {{name}}",
     "categoryFallback": "Utility"
   },
   "addMedicine": {

@@ -44,7 +44,12 @@ import {
   SNOOZE_ACTION_ID,
   DONE_ACTION_ID,
 } from "@/lib/notifications";
-import { handleNotificationAction } from "@/lib/notification-actions";
+// NOTE: `handleNotificationAction` (lib/notification-actions.ts) is no longer
+// called from here. Both notification buttons now open the app and route to the
+// reminder's own screen instead of acting silently in the background. The module
+// is intentionally kept — it still holds the correct per-kind Done/Snooze write
+// logic (family records, bill actions) and is the reference for what each action
+// must do if background handling is ever restored for some notification types.
 import { emitCaregiverSync } from "@/lib/caregiver-sync";
 import { registerSmsSyncTask } from "@/lib/sms-sync-task";
 import { SeniorProvider } from "@/lib/senior-context";
@@ -236,16 +241,27 @@ function AuthGate() {
       const nextSub = await addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data as any;
 
-        // Snooze / Done buttons first. These run without opening the app, so
-        // they must NOT fall through to the navigation below — a button press
-        // that also launched the app would defeat the point of the button.
-        if (
-          response.actionIdentifier === SNOOZE_ACTION_ID ||
-          response.actionIdentifier === DONE_ACTION_ID
-        ) {
-          void handleNotificationAction(response as any);
-          return;
-        }
+        /*
+          Snooze / Done buttons.
+
+          These used to be handled silently here and returned early, because
+          the actions were registered with `opensAppToForeground: false`. Both
+          now open the app (see `lib/notifications.ts`) and land on the
+          reminder's own screen with an intent param, so the user gets a
+          visible snooze picker / confirm step instead of a button that
+          appeared to do nothing.
+
+          Deliberately NOT an early return any more: this sets `pendingAction`
+          and then FALLS THROUGH to the routing below, so the destination logic
+          lives in exactly one place. A separate copy here would drift from the
+          tap-routing the moment either changed.
+        */
+        const pendingAction =
+          response.actionIdentifier === SNOOZE_ACTION_ID
+            ? "snooze"
+            : response.actionIdentifier === DONE_ACTION_ID
+              ? "done"
+              : undefined;
 
         // Most specific match first, then a generic `data.route` fallback.
         //
@@ -257,7 +273,10 @@ function AuthGate() {
         if (data?.type === "reminder" && data?.billId) {
           router.push({
             pathname: "/bill-details/[billId]",
-            params: { billId: String(data.billId) },
+            params: {
+              billId: String(data.billId),
+              ...(pendingAction ? { action: pendingAction } : {}),
+            },
           } as any);
           return;
         }
@@ -276,6 +295,7 @@ function AuthGate() {
                 data.sourceKind,
                 String(data.sourceId),
               ),
+              ...(pendingAction ? { action: pendingAction } : {}),
             },
           } as any);
           return;

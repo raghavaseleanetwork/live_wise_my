@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Pressable,
   Platform,
@@ -54,7 +54,7 @@ function formatRepeat(r: RepeatType, t: (key: string) => string) {
 }
 
 export default function BillDetailsScreen() {
-  const { billId } = useLocalSearchParams<{ billId: string }>();
+  const { billId, action } = useLocalSearchParams<{ billId: string; action?: string }>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { formatAmount } = useCurrency();
@@ -202,6 +202,48 @@ export default function BillDetailsScreen() {
     setEditError('');
   }
 
+  /**
+   * Acts on the `action` param set by a notification button press.
+   *
+   * `snooze` opens the existing duration picker; `done` opens a confirm dialog
+   * rather than marking it paid outright, because arriving here from a
+   * background button press means the user has not seen the reminder's details
+   * — a silent state change with no confirmation is what made the buttons feel
+   * broken in the first place.
+   *
+   * Guarded on `bill` because the screen renders a not-found state until the
+   * bills list has loaded, and on `handledActionRef` so the dialog does not
+   * reopen when the list refreshes or the screen refocuses.
+   */
+  const handledActionRef = useRef(false);
+  useEffect(() => {
+    if (!action || !bill || handledActionRef.current) return;
+    handledActionRef.current = true;
+
+    if (action === 'snooze') {
+      setShowSnoozeModal(true);
+      return;
+    }
+
+    if (action === 'done') {
+      showAlert({
+        title: t('billDetails.markDoneConfirmTitle'),
+        message: t('billDetails.markDoneConfirmMessage', { name: bill.name }),
+        type: 'confirm',
+        buttons: [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('billDetails.markDoneConfirmAction'),
+            onPress: () => {
+              toggleBillPaid(bill.id);
+              fetchHistory();
+            },
+          },
+        ],
+      });
+    }
+  }, [action, bill]);
+
   function onToggleDone() {
     if (!bill) return;
     toggleBillPaid(bill.id);
@@ -217,7 +259,7 @@ export default function BillDetailsScreen() {
     const snoozedUntil = new Date();
     snoozedUntil.setDate(snoozedUntil.getDate() + days);
     scheduleLocalNotification({
-      title: t('billDetails.notificationReminderTitle'),
+      title: t('billDetails.notificationReminderTitle', { title: bill.name }),
       body: bill.name,
       data: { type: 'reminder', billId: bill.id },
       triggerAt: snoozedUntil,

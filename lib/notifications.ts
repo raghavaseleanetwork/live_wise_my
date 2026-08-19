@@ -198,22 +198,31 @@ async function getNotificationsModule() {
 
     // Snooze / Done buttons on the notification itself.
     //
-    // Registered once per process. Both actions are configured so the OS does
-    // NOT open the app: the handler runs in the background and the notification
-    // dismisses itself, which is the whole point — the user shouldn't have to
-    // launch the app to snooze a reminder.
+    // Registered once per process.
+    //
+    // BOTH OPEN THE APP (`opensAppToForeground: true`). This is a deliberate
+    // reversal of the original design (2026-08-17), which ran both silently in
+    // the background so the user never had to launch the app. Client feedback
+    // was that a button with no visible response reads as broken — the work was
+    // happening, but nothing on screen ever confirmed it.
+    //
+    // So the buttons are now an entry point into the app rather than a
+    // substitute for it: Snooze opens the duration picker, Done opens a
+    // confirm step. `handleNotificationAction` still exists and still does the
+    // real work — see `_layout.tsx`, which now routes instead of calling it
+    // for these two ids.
     if (!categoryConfigured) {
       try {
         await mod.setNotificationCategoryAsync(REMINDER_CATEGORY_ID, [
           {
             identifier: SNOOZE_ACTION_ID,
             buttonTitle: `Snooze ${SNOOZE_MINUTES} min`,
-            options: { opensAppToForeground: false },
+            options: { opensAppToForeground: true },
           },
           {
             identifier: DONE_ACTION_ID,
             buttonTitle: "Done",
-            options: { opensAppToForeground: false },
+            options: { opensAppToForeground: true },
           },
         ]);
         categoryConfigured = true;

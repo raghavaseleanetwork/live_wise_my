@@ -24,6 +24,7 @@ import { useSeniorMode } from '@/lib/senior-context';
 import { useAlert } from '@/lib/alert-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { useAppLock, biometricIcon, biometricLabel } from '@/lib/app-lock-context';
+import { useTabBarContentInset } from '@/lib/tab-bar';
 import CustomModal from '@/components/CustomModal';
 import PlanBadge from '@/components/PlanBadge';
 import Money from '@/components/Money';
@@ -85,7 +86,10 @@ export default function SettingsScreen() {
   const [budgetInput, setBudgetInput] = useState(String(monthlyBudget || ''));
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
-  const bottomInset = Platform.OS === 'web' ? 34 : Math.max(insets.bottom, 20);
+  // This screen sits under the floating pill tab bar, so the safe-area inset
+  // alone is not enough clearance — it covers the gesture bar, not the pill.
+  // Same hook every other tab screen uses; keeps the clearance in one place.
+  const tabBarInset = useTabBarContentInset();
 
   const toggleSeniorMode = (val: boolean) => {
     setSeniorMode(val);
@@ -133,7 +137,7 @@ export default function SettingsScreen() {
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: topInset + 16, paddingBottom: bottomInset + 20 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: topInset + 16, paddingBottom: tabBarInset.bottom }]}
       >
         <View style={styles.headerRow}>
           <Pressable onPress={handleBack} hitSlop={10} testID="settings-back">
@@ -189,8 +193,8 @@ export default function SettingsScreen() {
               />
             }
           />
-          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+          <View style={styles.hintBlock}>
+            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
               {t('settings.seniorModeHint')}
             </Text>
           </View>
@@ -295,8 +299,8 @@ export default function SettingsScreen() {
                   />
                 }
               />
-              <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-                <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, lineHeight: 18 }}>
+              <View style={styles.hintBlock}>
+                <Text style={[styles.hintText, { color: colors.textSecondary }]}>
                   {t('settings.appLockHint', { method: biometricLabel(biometricKind, t).toLowerCase() })}
                 </Text>
               </View>
@@ -510,7 +514,29 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
     letterSpacing: 0.5,
-    marginBottom: 10,
+    // Breathing room on BOTH sides. Previously only `marginBottom` was set, so
+    // the label's separation from the card above it was whatever that card's
+    // own `marginBottom` happened to be — it read as belonging to the group it
+    // followed rather than the one it titles.
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  /**
+   * The explanatory line under a toggle row (Senior Mode, App Lock).
+   *
+   * `paddingTop` matters: the row above ends in a divider border, and without
+   * it the text sat flush against that line. Was an inline style duplicated at
+   * both call sites — extracted so the two cannot drift.
+   */
+  hintBlock: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  hintText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    lineHeight: 18,
   },
   settingsGroup: {
     borderRadius: 16,

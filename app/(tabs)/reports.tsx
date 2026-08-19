@@ -7,7 +7,7 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -769,7 +769,21 @@ export default function ReportsScreen() {
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.duration(500) : undefined}>
           <View style={styles.reportsTitleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.screenTitle, { color: colors.text }]}>{t('reports.title')}</Text>
+              {/*
+                Shrink-to-fit rather than wrap. The button no longer yields
+                space (see `exportBtnHeader.flexShrink`), so the title is the
+                half that has to adapt — and at 30px a longer localised title
+                ("அறிக்கைகள்", "નિવેદિકલુ") would otherwise wrap onto a second
+                line and push the whole header taller.
+              */}
+              <Text
+                style={[styles.screenTitle, { color: colors.text }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {t('reports.title')}
+              </Text>
               <Text style={[styles.screenSubtitle, { color: colors.textTertiary }]} numberOfLines={2}>
                 {t('reports.rangeVsPrev', { range: rangeInfo.label, prev: rangeInfo.prevShortLabel })}
               </Text>
@@ -787,7 +801,16 @@ export default function ReportsScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.exportBtnGradient}
               >
-                <Ionicons name="document-text" size={18} color="#FFF" />
+                {/*
+                  MaterialIcons, not Ionicons, for this one icon: Ionicons has
+                  no PDF glyph at all (checked its glyphmap — zero matches for
+                  /pdf/), so `document-text` was a generic page that did not
+                  read as PDF. MaterialIcons was picked over the other families
+                  that do have one because it is 348KB against
+                  MaterialCommunityIcons' 1.28MB — the smallest addition that
+                  buys a real PDF mark.
+                */}
+                <MaterialIcons name="picture-as-pdf" size={18} color="#FFF" />
                 <Text style={styles.exportBtnText}>{t('reports.pdfReport')}</Text>
               </LinearGradient>
             </Pressable>
@@ -1779,6 +1802,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.2)',
+    /**
+     * Never shrink below the icon + label.
+     *
+     * This is a flex row against a `flex: 1` title block, so on a narrow screen
+     * flexbox shrank the BUTTON rather than the title. Combined with the
+     * `overflow: 'hidden'` above (which the gradient's rounded corners need),
+     * the label was not wrapped or ellipsised — it was silently clipped, so
+     * "PDF Report" rendered as "PDF" and the icon could disappear entirely.
+     * The title text is the flexible half and yields instead.
+     */
+    flexShrink: 0,
   },
   exportBtnGradient: {
     flexDirection: 'row',
@@ -1790,6 +1824,10 @@ const styles = StyleSheet.create({
   exportBtnText: {
     fontSize: 14,
     color: '#FFF',
+    // Belt and braces with the parent's `flexShrink: 0`: keeps the label from
+    // being compressed inside the gradient even if this row is ever nested in
+    // another constrained container.
+    flexShrink: 0,
   },
   filterChip: {
     flexDirection: 'row',
