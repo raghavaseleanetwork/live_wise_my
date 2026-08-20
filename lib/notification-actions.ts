@@ -82,7 +82,7 @@ async function postBillAction(
  * rather than flipping a permanent done flag — "completed" is not a state they
  * have, and marking one permanently done would stop it recurring.
  */
-async function markFamilyRecordDone(
+export async function markFamilyRecordDone(
   memberId: string,
   sourceKind: string,
   sourceId: string,

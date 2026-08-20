@@ -1200,7 +1200,9 @@
     "errorCannotInviteSelf": "માન્ય ઇમેલ દાખલ કરો — તમે તમારી જાતને આમંત્રિત કરી શકતા નથી.",
     "errorOnlyOwner": "આ સભ્ય માટે ફક્ત માલિક જ કેરગિવરને આમંત્રિત કરી શકે છે.",
     "errorAlreadyConnected": "તે વ્યક્તિ પહેલેથી જોડાયેલ છે અથવા આમંત્રિત થઈ ચૂકી છે.",
-    "errorSendFailed": "આમંત્રણ મોકલી શકાયું નથી. કૃપા કરીને ફરી પ્રયત્ન કરો."
+    "errorSendFailed": "આમંત્રણ મોકલી શકાયું નથી. કૃપા કરીને ફરી પ્રયત્ન કરો.",
+    "pendingBadge": "બાકી",
+    "pendingSubtitle": "આમંત્રિત — સ્વીકારવાની રાહ"
   },
   "familyEmergency": {
     "headerTitle": "ઇમરજન્સી એલર્ટ",
@@ -1262,7 +1264,16 @@
     "none": "કંઈ નહીં",
     "manageInFamilyHub": "ફેમિલી હબમાં મેનેજ કરો",
     "manageSubtitle": "{{member}} ની {{kind}} યાદીમાંથી આને બદલો અથવા દૂર કરો",
-    "footnote": "આ રિમાઇન્ડર ફેમિલી હબમાંથી આવે છે. મૂળ રેકોર્ડ બદલાય ત્યારે તે આપમેળે અપડેટ થાય છે."
+    "footnote": "આ રિમાઇન્ડર ફેમિલી હબમાંથી આવે છે. મૂળ રેકોર્ડ બદલાય ત્યારે તે આપમેળે અપડેટ થાય છે.",
+    "actionTitle": "ફેમિલી હબ રિમાઇન્ડર",
+    "actionMessage": "\"{{name}}\" સાથે તમે શું કરવા માંગો છો?",
+    "markDoneTitle": "પૂર્ણ ચિહ્નિત કરવું?",
+    "markDoneMessage": "\"{{name}}\" પૂર્ણ ચિહ્નિત કરવું?",
+    "markDoneAction": "પૂર્ણ કરો",
+    "snoozeAction": "{{minutes}} મિનિટ સ્નૂઝ",
+    "snoozedTitle": "સ્નૂઝ કર્યું",
+    "snoozedMessage": "અમે {{minutes}} મિનિટમાં ફરી યાદ કરાવીશું.",
+    "snoozedBody": "સ્નૂઝ કરેલ રિમાઇન્ડર"
   },
   "bills": {
     "filterAll": "બધા",
@@ -1394,7 +1405,9 @@
     "actionRestored": "પુનઃસ્થાપિત કરેલ",
     "markDoneConfirmTitle": "પૂર્ણ તરીકે ચિહ્નિત કરવું?",
     "markDoneConfirmMessage": "\"{{name}}\" પૂર્ણ તરીકે ચિહ્નિત કરવું?",
-    "markDoneConfirmAction": "પૂર્ણ કરો"
+    "markDoneConfirmAction": "પૂર્ણ કરો",
+    "reminderActionTitle": "રિમાઇન્ડર",
+    "reminderActionMessage": "\"{{name}}\" સાથે તમે શું કરવા માંગો છો?"
   },
   "billHistory": {
     "title": "ચુકવણી ઇતિહાસ",

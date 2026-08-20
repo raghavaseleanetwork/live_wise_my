@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,7 +10,14 @@ import { useTheme } from '@/lib/theme-context';
 import { useCurrency } from '@/lib/currency-context';
 import { useSeniorMode } from '@/lib/senior-context';
 import { useFamilyReminders } from '@/lib/use-family-reminders';
-import { familyReminderLabel, type FamilyReminderKind } from '@/lib/family-reminders';
+import {
+  familyReminderLabel,
+  familyReminderNotificationTitle,
+  type FamilyReminderKind,
+} from '@/lib/family-reminders';
+import { markFamilyRecordDone } from '@/lib/notification-actions';
+import { scheduleLocalNotification, SNOOZE_MINUTES } from '@/lib/notifications';
+import { useAlert } from '@/lib/alert-context';
 import { CATEGORIES, getDaysUntil, REPEAT_OPTIONS, type RepeatType } from '@/lib/data';
 import CategoryIcon from '@/components/CategoryIcon';
 import Money from '@/components/Money';
@@ -57,7 +64,8 @@ function dueLabel(dueDate: string, t: (key: string, opts?: any) => string): { te
 }
 
 export default function FamilyReminderDetailScreen() {
-  const { reminderId } = useLocalSearchParams<{ reminderId: string }>();
+  const { reminderId, action } = useLocalSearchParams<{ reminderId: string; action?: string }>();
+  const { showAlert } = useAlert();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { formatAmount } = useCurrency();
@@ -71,6 +79,86 @@ export default function FamilyReminderDetailScreen() {
   );
 
   const topInset = Platform.OS === 'web' ? 67 : insets.top;
+
+  /**
+   * Acts on the `action` param a notification sets — 'snooze', 'done', or
+   * 'open' (the body was tapped).
+   *
+   * Must sit ABOVE the `if (!reminder)` early return: hooks cannot be called
+   * conditionally, and this screen returns a loader while the reminder list is
+   * still loading. The `reminder` guard inside handles that instead.
+   *
+   * `handledRef` stops the dialog reopening when the reminder list refreshes
+   * or the screen refocuses.
+   */
+  const handledRef = useRef(false);
+  useEffect(() => {
+    if (!action || !reminder || handledRef.current) return;
+    handledRef.current = true;
+
+    const title = reminder.name.split(' · ')[0];
+
+    const doSnooze = () => {
+      const at = new Date(Date.now() + SNOOZE_MINUTES * 60 * 1000);
+      void scheduleLocalNotification({
+        // Shared builder, not a second copy of the format string — a snoozed
+        // reminder must look identical to the original it replaces.
+        title: familyReminderNotificationTitle(reminder.memberName, title),
+        body: t('familyReminder.snoozedBody', { minutes: SNOOZE_MINUTES }),
+        data: {
+          type: 'family-reminder',
+          memberId: reminder.memberId,
+          sourceKind: reminder.sourceKind,
+          sourceId: reminder.sourceId,
+        },
+        triggerAt: at,
+      }).catch(() => {});
+      showAlert({
+        title: t('familyReminder.snoozedTitle'),
+        message: t('familyReminder.snoozedMessage', { minutes: SNOOZE_MINUTES }),
+        type: 'success',
+      });
+    };
+
+    const confirmDone = () =>
+      showAlert({
+        title: t('familyReminder.markDoneTitle'),
+        message: t('familyReminder.markDoneMessage', { name: title }),
+        type: 'confirm',
+        // No Cancel button — client decision (2026-08-19). Tapping outside the
+        // dialog still dismisses it, so the user is never trapped.
+        buttons: [
+          {
+            text: t('familyReminder.markDoneAction'),
+            onPress: () => {
+              // Dispatches per `sourceKind` — recurring kinds record a
+              // completion for today rather than flipping a permanent flag.
+              void markFamilyRecordDone(
+                reminder.memberId,
+                String(reminder.sourceKind),
+                String(reminder.sourceId),
+              ).catch(() => {});
+            },
+          },
+        ],
+      });
+
+    if (action === 'snooze') { doSnooze(); return; }
+    if (action === 'done') { confirmDone(); return; }
+
+    if (action === 'open') {
+      showAlert({
+        title: t('familyReminder.actionTitle'),
+        message: t('familyReminder.actionMessage', { name: title }),
+        type: 'confirm',
+        // No Cancel button — client decision (2026-08-19).
+        buttons: [
+          { text: t('familyReminder.snoozeAction', { minutes: SNOOZE_MINUTES }), onPress: doSnooze },
+          { text: t('familyReminder.markDoneAction'), onPress: confirmDone },
+        ],
+      });
+    }
+  }, [action, reminder]);
 
   if (!reminder) {
     // The list is loaded asynchronously, so a miss here is usually "not loaded

@@ -225,13 +225,18 @@ export default function BillDetailsScreen() {
       return;
     }
 
-    if (action === 'done') {
+    const confirmDone = () =>
       showAlert({
         title: t('billDetails.markDoneConfirmTitle'),
         message: t('billDetails.markDoneConfirmMessage', { name: bill.name }),
         type: 'confirm',
+        /*
+          No Cancel button — client decision (2026-08-19): Cancel is disabled in
+          these notification-driven popups. Dismissing is still possible by
+          tapping outside the dialog (`CustomAlert` backdrop), so the user is
+          never trapped; there is simply no button that implies cancelling.
+        */
         buttons: [
-          { text: t('common.cancel'), style: 'cancel' },
           {
             text: t('billDetails.markDoneConfirmAction'),
             onPress: () => {
@@ -239,6 +244,31 @@ export default function BillDetailsScreen() {
               fetchHistory();
             },
           },
+        ],
+      });
+
+    if (action === 'done') {
+      confirmDone();
+      return;
+    }
+
+    /*
+      Body tap. Offers the same two decisions the notification buttons do,
+      rather than silently landing the user on this screen — they arrived from
+      a reminder and the useful question is "done, or later?".
+
+      No Cancel button, per the client decision of 2026-08-19. The sheet offers
+      only the two real actions; tapping outside dismisses it if the user wants
+      neither.
+    */
+    if (action === 'open') {
+      showAlert({
+        title: t('billDetails.reminderActionTitle'),
+        message: t('billDetails.reminderActionMessage', { name: bill.name }),
+        type: 'confirm',
+        buttons: [
+          { text: t('billDetails.snooze'), onPress: () => setShowSnoozeModal(true) },
+          { text: t('billDetails.markDoneConfirmAction'), onPress: confirmDone },
         ],
       });
     }

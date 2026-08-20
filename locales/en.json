@@ -1200,7 +1200,9 @@
     "errorCannotInviteSelf": "Enter a valid email — you can’t invite yourself.",
     "errorOnlyOwner": "Only the owner can invite caregivers for this member.",
     "errorAlreadyConnected": "That person is already connected or already invited.",
-    "errorSendFailed": "Could not send invite. Please try again."
+    "errorSendFailed": "Could not send invite. Please try again.",
+    "pendingBadge": "Pending",
+    "pendingSubtitle": "Invited — waiting for them to accept"
   },
   "familyEmergency": {
     "headerTitle": "Emergency Alerts",
@@ -1262,7 +1264,16 @@
     "none": "None",
     "manageInFamilyHub": "Manage in Family Hub",
     "manageSubtitle": "Edit or remove this from {{member}}'s {{kind}}s",
-    "footnote": "This reminder comes from Family Hub. It updates automatically when the original record changes."
+    "footnote": "This reminder comes from Family Hub. It updates automatically when the original record changes.",
+    "actionTitle": "Family Hub reminder",
+    "actionMessage": "What would you like to do with \"{{name}}\"?",
+    "markDoneTitle": "Mark as done?",
+    "markDoneMessage": "Mark \"{{name}}\" as done?",
+    "markDoneAction": "Mark done",
+    "snoozeAction": "Snooze {{minutes}} min",
+    "snoozedTitle": "Snoozed",
+    "snoozedMessage": "We will remind you again in {{minutes}} minutes.",
+    "snoozedBody": "Snoozed reminder"
   },
   "bills": {
     "filterAll": "All",
@@ -1394,7 +1405,9 @@
     "actionRestored": "Restored",
     "markDoneConfirmTitle": "Mark as done?",
     "markDoneConfirmMessage": "Mark \"{{name}}\" as done?",
-    "markDoneConfirmAction": "Mark done"
+    "markDoneConfirmAction": "Mark done",
+    "reminderActionTitle": "Reminder",
+    "reminderActionMessage": "What would you like to do with \"{{name}}\"?"
   },
   "billHistory": {
     "title": "Payment History",

@@ -43,6 +43,7 @@ import {
   addPushTokenListener,
   SNOOZE_ACTION_ID,
   DONE_ACTION_ID,
+  DEFAULT_ACTION_IDENTIFIER,
 } from "@/lib/notifications";
 // NOTE: `handleNotificationAction` (lib/notification-actions.ts) is no longer
 // called from here. Both notification buttons now open the app and route to the
@@ -256,12 +257,31 @@ function AuthGate() {
           lives in exactly one place. A separate copy here would drift from the
           tap-routing the moment either changed.
         */
+        /*
+          Three entry points, all landing on the reminder's own screen:
+
+            Snooze button -> 'snooze' -> duration picker opens
+            Done button   -> 'done'   -> mark-done confirm opens
+            TAPPING THE BODY -> 'open' -> an action sheet offering both
+
+          The body tap is deliberately NOT a silent navigation. Per the client's
+          described flow, tapping the notification should surface the same
+          decision the buttons offer ("mark it as done") rather than dropping
+          the user on a screen with no indication of why they are there.
+
+          `DEFAULT_ACTION_IDENTIFIER` is what expo-notifications reports when
+          the notification body itself is tapped, as opposed to one of our
+          registered action buttons.
+        */
         const pendingAction =
           response.actionIdentifier === SNOOZE_ACTION_ID
             ? "snooze"
             : response.actionIdentifier === DONE_ACTION_ID
               ? "done"
-              : undefined;
+              : response.actionIdentifier === DEFAULT_ACTION_IDENTIFIER &&
+                  (data?.type === "reminder" || data?.type === "family-reminder")
+                ? "open"
+                : undefined;
 
         // Most specific match first, then a generic `data.route` fallback.
         //

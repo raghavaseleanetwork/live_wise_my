@@ -54,6 +54,18 @@ export const REMINDER_CATEGORY_ID = "lifewise_reminder_actions";
 export const SNOOZE_ACTION_ID = "SNOOZE_10_MIN";
 export const DONE_ACTION_ID = "MARK_DONE";
 
+/**
+ * What `actionIdentifier` is set to when the user taps the notification BODY
+ * rather than one of our action buttons.
+ *
+ * Hardcoded rather than imported from `expo-notifications` on purpose: this
+ * module gates the SDK behind a lazy `require` so the native module never
+ * reaches the web bundle (see the file header), and a static import for one
+ * string constant would defeat that. The value is part of the library's public
+ * API — `NotificationsEmitter.d.ts` declares it as this exact literal.
+ */
+export const DEFAULT_ACTION_IDENTIFIER = "expo.modules.notifications.actions.DEFAULT";
+
 /** How long the Snooze button defers a reminder, per the product spec. */
 export const SNOOZE_MINUTES = 10;
 

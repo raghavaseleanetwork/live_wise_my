@@ -173,6 +173,46 @@ export async function removeCaregiver(memberId: string, caregiverUserId: string,
   await apiRequest('DELETE', `/api/family/${memberId}/connected-caregivers/${caregiverUserId}`, undefined, token);
 }
 
+/**
+ * OUTGOING invites for one member — people the owner has invited who have not
+ * accepted yet. This is what backs the "Pending" rows in the caregiver list.
+ *
+ * Distinct from `loadMyInvites`, which is the INCOMING direction (invites
+ * addressed to me). The two are easy to confuse and answer opposite questions:
+ * this one is "who have I invited?", that one is "who has invited me?".
+ *
+ * FAILS SOFT ON 404 BY DESIGN. As of 2026-08-19 this endpoint is not
+ * implemented — probed against the deployed API, it returns 404 while
+ * `connected-caregivers` returns 401 (i.e. exists but needs auth). Until the
+ * backend ships it, this resolves to `[]` and the screen renders exactly as it
+ * does today rather than showing an error for a feature that is merely absent.
+ * The moment the route goes live, pending rows appear with no client change.
+ *
+ * Only a 404 is swallowed. Real failures (500, network) still throw, so a
+ * broken endpoint is not silently indistinguishable from an empty list.
+ */
+export async function loadPendingCaregiverInvites(
+  memberId: string,
+  token: string | null,
+): Promise<CaregiverInvite[]> {
+  try {
+    const res = await apiRequest(
+      'GET',
+      `/api/family/${memberId}/connected-caregivers/invites`,
+      undefined,
+      token,
+    );
+    const rows = (await res.json()) as CaregiverInvite[];
+    // Defensive: the list must only ever contain pending rows. If the server
+    // ever widens this to all statuses, accepted caregivers would otherwise
+    // appear twice — once here and once from `loadCaregivers`.
+    return Array.isArray(rows) ? rows.filter((r) => r.status === 'pending') : [];
+  } catch (e) {
+    if (String((e as Error)?.message ?? '').startsWith('404')) return [];
+    throw e;
+  }
+}
+
 /** Pending invites addressed to the current logged-in user, across all family members. */
 export async function loadMyInvites(token: string | null): Promise<CaregiverInvite[]> {
   const res = await apiRequest('GET', '/api/caregiver-invites', undefined, token);

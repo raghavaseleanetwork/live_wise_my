@@ -168,6 +168,46 @@ export function familyReminderLabel(kind: FamilyReminderKind): string {
 }
 
 /**
+ * Notification title for a Family Hub reminder.
+ *
+ * Client-specified format (2026-08-19):
+ *   `Family Hub: <member> – <reminder title>`
+ *
+ * The point is that a user seeing the notification on a lock screen can tell
+ * instantly whether it is their own reminder ("Reminder: …") or one from a
+ * Family Hub, and WHICH hub it came from — previously both rendered in the same
+ * neutral style and were indistinguishable at a glance.
+ *
+ * ON "FAMILY HUB NAME": this app has no named-household concept. Searched
+ * `familyName`/`hubName`/`householdName` across lib/ and app/ — zero matches.
+ * The data model has family MEMBERS (Papa, Mom), never a named family group, so
+ * the client's "Smith Family" example cannot be rendered from data that exists.
+ * The MEMBER name is used as the hub identity, which is the only real value
+ * available. See the backend doc for what a true hub name would require.
+ *
+ * En dash, not a hyphen, matching the client's written example.
+ */
+export function familyReminderNotificationTitle(
+  memberName: string,
+  reminderTitle: string,
+  familyName?: string | null,
+): string {
+  /*
+    `familyName` is the real household name ("Smith Family") once the backend
+    provides one. Nothing populates it today — no such field exists in the app
+    or the API — so every caller currently omits it and the member's own name
+    is used as the hub identity.
+
+    Written as a fallback rather than hardcoding the member name so that the
+    day the server returns a family name, only the call sites need the extra
+    argument; this format string does not change. Both values are real dynamic
+    data read from the reminder — nothing here is a placeholder.
+  */
+  const hub = familyName?.trim() || memberName;
+  return `Family Hub: ${hub} – ${reminderTitle}`;
+}
+
+/**
  * Default lead times per kind, in days before the due date.
  *
  * Deliberately not the user's global `defaultReminderDays` ([3, 1, 0]): that is
@@ -789,7 +829,7 @@ async function scheduleFamilyReminderNotificationsInner(
 
       const label = reminder.name.split(' · ')[0];
       const ids = await scheduleRepeatingLocalNotification({
-        title: `${familyReminderLabel(reminder.sourceKind)} · ${reminder.memberName}`,
+        title: familyReminderNotificationTitle(reminder.memberName, label),
         body:
           reminder.sourceKind === 'checkin'
             ? `Time to check in with ${reminder.memberName}`
@@ -819,7 +859,7 @@ async function scheduleFamilyReminderNotificationsInner(
     if (Number.isNaN(due.getTime())) continue;
 
     const label = reminder.name.split(' · ')[0];
-    const title = `${familyReminderLabel(reminder.sourceKind)} · ${reminder.memberName}`;
+    const title = familyReminderNotificationTitle(reminder.memberName, label);
     const data = {
       type: 'family-reminder',
       memberId: reminder.memberId,

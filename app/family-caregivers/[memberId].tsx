@@ -19,7 +19,9 @@ import { useAlert } from '@/lib/alert-context';
 import { Avatar } from '@/components/Avatar';
 import {
   Caregiver,
+  CaregiverInvite,
   loadCaregivers,
+  loadPendingCaregiverInvites,
   removeCaregiver,
   normalizeCaregiverPermissions,
 } from '@/lib/family-caregivers';
@@ -45,6 +47,7 @@ export default function FamilyCaregiversScreen() {
   const { t } = useTranslation();
 
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<CaregiverInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -53,11 +56,34 @@ export default function FamilyCaregiversScreen() {
     setLoading(true);
     setLoadError(false);
     try {
-      const list = await loadCaregivers(String(memberId), token);
-      setCaregivers(list);
-    } catch (e) {
-      console.error('Load caregivers error:', e);
-      setLoadError(true);
+      /*
+        Both lists in parallel. The caregiver list is the accepted people; the
+        invite list is those who have not accepted yet and is what produces the
+        "Pending" rows.
+
+        `allSettled`, not `all`: pending invites are an ENHANCEMENT to this
+        screen, so a failure there must not blank out the caregiver list that
+        already works. The endpoint is also not implemented yet (returns 404),
+        which `loadPendingCaregiverInvites` already absorbs into `[]`.
+      */
+      const [caregiverResult, inviteResult] = await Promise.allSettled([
+        loadCaregivers(String(memberId), token),
+        loadPendingCaregiverInvites(String(memberId), token),
+      ]);
+
+      if (caregiverResult.status === 'fulfilled') {
+        setCaregivers(caregiverResult.value);
+      } else {
+        console.error('Load caregivers error:', caregiverResult.reason);
+        setLoadError(true);
+      }
+
+      setPendingInvites(
+        inviteResult.status === 'fulfilled' ? inviteResult.value : [],
+      );
+      if (inviteResult.status === 'rejected') {
+        console.error('Load pending invites error:', inviteResult.reason);
+      }
     } finally {
       setLoading(false);
     }
@@ -130,7 +156,13 @@ export default function FamilyCaregiversScreen() {
           </View>
         ) : (
           <>
-            {caregivers.length === 0 && (
+            {/*
+              Empty only when there is nothing in EITHER list. A member with no
+              accepted caregivers but one outstanding invite is not empty — that
+              is precisely the "I just invited someone and they vanished" case
+              this screen was reported for.
+            */}
+            {caregivers.length === 0 && pendingInvites.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('familyCaregivers.emptyTitle')}</Text>
@@ -184,6 +216,41 @@ export default function FamilyCaregiversScreen() {
                     <Ionicons name="close-circle" size={22} color={colors.danger} />
                   </Pressable>
                 )}
+              </Animated.View>
+            ))}
+
+            {/*
+              Pending invites — people invited who have not accepted yet.
+
+              Rendered after the accepted caregivers, using the same card so the
+              list reads as one thing rather than two. The invitee has no
+              account link yet, so there is no avatar image and no permission
+              summary to show: the row is deliberately just identity + status.
+            */}
+            {pendingInvites.map((inv, idx) => (
+              <Animated.View
+                key={inv.id}
+                entering={FadeInDown.delay((caregivers.length + idx) * 60).duration(300)}
+                style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                {/* No avatarUrl exists for someone who has not accepted — the
+                    Avatar falls back to a coloured initial from the email. */}
+                <Avatar name={inv.inviteeEmail} size={44} />
+                <View style={{ flex: 1 }}>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+                      {inv.inviteeEmail}
+                    </Text>
+                    <View style={[styles.ownerBadge, { backgroundColor: colors.warningDim }]}>
+                      <Text style={[styles.ownerBadgeText, { color: colors.warning }]}>
+                        {t('familyCaregivers.pendingBadge')}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
+                    {t('familyCaregivers.pendingSubtitle')}
+                  </Text>
+                </View>
               </Animated.View>
             ))}
           </>

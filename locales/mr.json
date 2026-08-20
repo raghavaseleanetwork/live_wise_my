@@ -1200,7 +1200,9 @@
     "errorCannotInviteSelf": "वैध ईमेल टाका — तुम्ही स्वतःला आमंत्रित करू शकत नाही.",
     "errorOnlyOwner": "या सदस्यासाठी फक्त मालकच काळजीवाहकांना आमंत्रित करू शकतो.",
     "errorAlreadyConnected": "ती व्यक्ती आधीच जोडलेली आहे किंवा आधीच आमंत्रित केलेली आहे.",
-    "errorSendFailed": "आमंत्रण पाठवता आले नाही. कृपया पुन्हा प्रयत्न करा."
+    "errorSendFailed": "आमंत्रण पाठवता आले नाही. कृपया पुन्हा प्रयत्न करा.",
+    "pendingBadge": "प्रलंबित",
+    "pendingSubtitle": "आमंत्रित — स्वीकारण्याची प्रतीक्षा"
   },
   "familyEmergency": {
     "headerTitle": "आपत्कालीन अलर्ट",
@@ -1262,7 +1264,16 @@
     "none": "काहीही नाही",
     "manageInFamilyHub": "फॅमिली हबमध्ये व्यवस्थापित करा",
     "manageSubtitle": "{{member}} च्या {{kind}} यादीतून हे बदला किंवा काढा",
-    "footnote": "ही आठवण फॅमिली हबमधून येते. मूळ नोंद बदलल्यावर ती आपोआप अपडेट होते."
+    "footnote": "ही आठवण फॅमिली हबमधून येते. मूळ नोंद बदलल्यावर ती आपोआप अपडेट होते.",
+    "actionTitle": "फॅमिली हब आठवण",
+    "actionMessage": "\"{{name}}\" सोबत तुम्ही काय करू इच्छिता?",
+    "markDoneTitle": "पूर्ण चिन्हांकित करायचे?",
+    "markDoneMessage": "\"{{name}}\" पूर्ण चिन्हांकित करायचे?",
+    "markDoneAction": "पूर्ण करा",
+    "snoozeAction": "{{minutes}} मिनिटे स्नूझ",
+    "snoozedTitle": "स्नूझ केले",
+    "snoozedMessage": "आम्ही {{minutes}} मिनिटांत पुन्हा आठवण करू.",
+    "snoozedBody": "स्नूझ केलेली आठवण"
   },
   "bills": {
     "filterAll": "सर्व",
@@ -1394,7 +1405,9 @@
     "actionRestored": "पुनर्संचयित केले",
     "markDoneConfirmTitle": "पूर्ण म्हणून चिन्हांकित करायचे?",
     "markDoneConfirmMessage": "\"{{name}}\" पूर्ण म्हणून चिन्हांकित करायचे?",
-    "markDoneConfirmAction": "पूर्ण करा"
+    "markDoneConfirmAction": "पूर्ण करा",
+    "reminderActionTitle": "आठवण",
+    "reminderActionMessage": "\"{{name}}\" सोबत तुम्ही काय करू इच्छिता?"
   },
   "billHistory": {
     "title": "पेमेंट इतिहास",

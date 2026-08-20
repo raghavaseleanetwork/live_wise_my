@@ -1200,7 +1200,9 @@
     "errorCannotInviteSelf": "एक मान्य ईमेल दर्ज करें — आप खुद को आमंत्रित नहीं कर सकते।",
     "errorOnlyOwner": "इस सदस्य के लिए केवल मालिक ही केयरगिवर आमंत्रित कर सकता है।",
     "errorAlreadyConnected": "वह व्यक्ति पहले से जुड़ा है या आमंत्रित किया जा चुका है।",
-    "errorSendFailed": "आमंत्रण नहीं भेजा जा सका। कृपया फिर कोशिश करें।"
+    "errorSendFailed": "आमंत्रण नहीं भेजा जा सका। कृपया फिर कोशिश करें।",
+    "pendingBadge": "लंबित",
+    "pendingSubtitle": "आमंत्रित — स्वीकार करने की प्रतीक्षा"
   },
   "familyEmergency": {
     "headerTitle": "इमरजेंसी अलर्ट",
@@ -1262,7 +1264,16 @@
     "none": "कोई नहीं",
     "manageInFamilyHub": "फैमिली हब में प्रबंधित करें",
     "manageSubtitle": "{{member}} की {{kind}} सूची से इसे बदलें या हटाएं",
-    "footnote": "यह रिमाइंडर फैमिली हब से आता है। मूल रिकॉर्ड बदलने पर यह अपने आप अपडेट हो जाता है।"
+    "footnote": "यह रिमाइंडर फैमिली हब से आता है। मूल रिकॉर्ड बदलने पर यह अपने आप अपडेट हो जाता है।",
+    "actionTitle": "फैमिली हब रिमाइंडर",
+    "actionMessage": "\"{{name}}\" के साथ आप क्या करना चाहेंगे?",
+    "markDoneTitle": "पूर्ण चिह्नित करें?",
+    "markDoneMessage": "क्या \"{{name}}\" को पूर्ण चिह्नित करें?",
+    "markDoneAction": "पूर्ण करें",
+    "snoozeAction": "{{minutes}} मिनट स्नूज़",
+    "snoozedTitle": "स्नूज़ किया",
+    "snoozedMessage": "हम आपको {{minutes}} मिनट में फिर याद दिलाएंगे।",
+    "snoozedBody": "स्नूज़ किया रिमाइंडर"
   },
   "bills": {
     "filterAll": "सभी",
@@ -1394,7 +1405,9 @@
     "actionRestored": "पुनर्स्थापित किया गया",
     "markDoneConfirmTitle": "पूर्ण चिह्नित करें?",
     "markDoneConfirmMessage": "क्या \"{{name}}\" को पूर्ण चिह्नित करें?",
-    "markDoneConfirmAction": "पूर्ण करें"
+    "markDoneConfirmAction": "पूर्ण करें",
+    "reminderActionTitle": "रिमाइंडर",
+    "reminderActionMessage": "\"{{name}}\" के साथ आप क्या करना चाहेंगे?"
   },
   "billHistory": {
     "title": "भुगतान इतिहास",
