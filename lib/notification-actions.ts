@@ -111,9 +111,20 @@ export async function markFamilyRecordDone(
         await toggleTravelItem(memberId, sourceId);
         return true;
       default:
-        // medicine-stock and subscription have no "done" concept — a stock
-        // level isn't completed, and a subscription renews whether or not the
-        // user acknowledges it. Snooze still works on both.
+        /*
+          Kinds with no "done" concept. Returning false is correct behaviour,
+          not an oversight — each is listed so a future reader can tell these
+          were considered rather than missed:
+
+            medicine-stock — a stock level is not "completed".
+            subscription   — renews whether or not the user acknowledges it.
+            insurance      — a document tracked by EXPIRY DATE, not completion.
+                             Confirmed a real server kind by the backend team
+                             (2026-08-20); it reaches this branch deliberately.
+
+          Snooze still works on all of them. Any genuinely unknown kind from a
+          newer server also lands here and no-ops safely rather than throwing.
+        */
         return false;
     }
   } catch {

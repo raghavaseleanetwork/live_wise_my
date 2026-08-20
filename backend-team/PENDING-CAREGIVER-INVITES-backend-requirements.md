@@ -1,9 +1,29 @@
 # Pending Caregiver Invites — Backend Requirements
 
 **Created:** 2026-08-19
-**Status:** 🔴 Not implemented — verified against the deployed API
-**Priority:** High — this is a live, client-reported bug
-**Frontend:** ✅ Complete and shipped. It activates automatically when this endpoint goes live. No client release is required.
+**Status:** ✅ **RESOLVED 2026-08-20** — endpoint shipped by the backend team and verified live.
+**Priority:** ~~High~~ Closed
+**Frontend:** ✅ Complete. Activated automatically with no client release, as designed.
+
+> ### Closure note (2026-08-20)
+>
+> `GET /api/family/:memberId/connected-caregivers/invites` now returns **401**
+> unauthenticated. It returned **404** on 2026-08-19 — that transition is the
+> proof it is deployed. Pending rows went live without an app update.
+>
+> **One frontend change was needed** after reading the backend's implementation:
+> they added **`403` for non-owners** (correct — invitee emails are the owner's
+> information). The client only absorbed `404`, so a connected caregiver opening
+> the screen would have thrown. `403` and `404` now both resolve to `[]`.
+>
+> **§7 below is superseded.** The backend correctly reported 4 matches for
+> `connected-caregivers` in `server/routes.ts` on `main`. This checkout shows 0
+> because it is `aselea-frontend-fixers`, a frontend branch with a stale
+> `server/` copy. Both were true of different branches; the probing method
+> (401 = exists, 404 = missing) held regardless and is what verified this fix.
+>
+> **Invite email confirmed wired** by the backend, closing §6's first open item.
+> **Revoke-invite** remains unbuilt and unrequested — see §6.
 
 ---
 

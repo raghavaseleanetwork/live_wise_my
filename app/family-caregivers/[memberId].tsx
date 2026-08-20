@@ -177,7 +177,14 @@ export default function FamilyCaregiversScreen() {
                 <Avatar name={c.name} uri={c.avatarUrl} size={44} />
                 <View style={{ flex: 1 }}>
                   <View style={styles.nameRow}>
-                    <Text style={[styles.cardTitle, { color: colors.text }]}>{c.name}</Text>
+                    {/* Same flex pairing as the pending row below: the name
+                        yields and ellipsises so the badge keeps its width. */}
+                    <Text
+                      style={[styles.cardTitle, { color: colors.text, flex: 1 }]}
+                      numberOfLines={1}
+                    >
+                      {c.name}
+                    </Text>
                     {c.role === 'owner' && (
                       <View style={[styles.ownerBadge, { backgroundColor: colors.accentDim }]}>
                         <Text style={[styles.ownerBadgeText, { color: colors.accent }]}>{t('familyCaregivers.ownerBadge')}</Text>
@@ -238,7 +245,15 @@ export default function FamilyCaregiversScreen() {
                 <Avatar name={inv.inviteeEmail} size={44} />
                 <View style={{ flex: 1 }}>
                   <View style={styles.nameRow}>
-                    <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+                    {/*
+                      `flex: 1` pairs with the badge's `flexShrink: 0`: this is
+                      the half that yields, so a long email ellipsises inside
+                      the row instead of pushing the badge off the card.
+                    */}
+                    <Text
+                      style={[styles.cardTitle, { color: colors.text, flex: 1 }]}
+                      numberOfLines={1}
+                    >
                       {inv.inviteeEmail}
                     </Text>
                     <View style={[styles.ownerBadge, { backgroundColor: colors.warningDim }]}>
@@ -286,7 +301,15 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardSub: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 2 },
   permSummary: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 3 },
-  ownerBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  /**
+   * `flexShrink: 0` is load-bearing. `nameRow` is a flex row of
+   * [name/email] + [badge]; without it, a long invitee email
+   * ("raghavbaheti08@gmail.com") consumed the row and flexbox shrank the BADGE
+   * instead, pushing "Pending" past the card's right edge. The text is the
+   * flexible half — it has `numberOfLines={1}` and ellipsises — so the badge
+   * must keep its intrinsic width.
+   */
+  ownerBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, flexShrink: 0 },
   ownerBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.5 },
   removeBtn: { padding: 2 },
   inviteCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 14, marginTop: 8 },

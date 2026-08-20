@@ -195,20 +195,30 @@ reminder's details.
 
 ### Valid `sourceKind` values
 
+> **Corrected 2026-08-20.** The original list in this doc was wrong: it said
+> `document` and `fitness`. The server is right — the value is `insurance`, and
+> there is no `fitness` projection. **The client has been fixed to match the
+> server; no backend change is needed.** Thank you for flagging rather than
+> renaming to match our mistake — `insurance` is the documented contract of
+> `GET /api/reminders/family` and should not have moved.
+
 ```
-appointment · family-bill · subscription · task · routine · checkin
-medicine-stock · travel · fitness · document · custom
+appointment · medicine-stock · family-bill · subscription · task · routine
+checkin · travel · insurance · custom
 ```
 
 The app dispatches mark-done on this value. An unrecognised `sourceKind` means
 **Done silently does nothing** — the notification still opens correctly, but the
 record is never marked. Please send one of the values above exactly.
 
-Recurring kinds (`routine`, `checkin`, `fitness`) record a completion for
-**today** rather than flipping a permanent flag — marking them permanently done
-would stop them recurring. `medicine-stock` and `subscription` are intentional
-no-ops for Done (a stock level is not "completed"; a subscription renews
-regardless). Snooze works on all kinds.
+Recurring kinds (`routine`, `checkin`) record a completion for **today** rather
+than flipping a permanent flag — marking them permanently done would stop them
+recurring.
+
+`medicine-stock`, `subscription`, and `insurance` are **intentional no-ops for
+Done**: a stock level is not "completed", a subscription renews regardless, and
+an insurance document is tracked by expiry date rather than completion. This is
+correct behaviour, not a gap. **Snooze works on all kinds.**
 
 ---
 

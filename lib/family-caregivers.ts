@@ -203,12 +203,33 @@ export async function loadPendingCaregiverInvites(
       token,
     );
     const rows = (await res.json()) as CaregiverInvite[];
-    // Defensive: the list must only ever contain pending rows. If the server
-    // ever widens this to all statuses, accepted caregivers would otherwise
-    // appear twice — once here and once from `loadCaregivers`.
+    // Defensive: the list must only ever contain pending rows. The server does
+    // filter (confirmed by the backend team 2026-08-20), so this is a safety
+    // net against a future widening, not the contract — if it ever returned
+    // accepted rows they would appear twice, once here and once from
+    // `loadCaregivers`.
     return Array.isArray(rows) ? rows.filter((r) => r.status === 'pending') : [];
   } catch (e) {
-    if (String((e as Error)?.message ?? '').startsWith('404')) return [];
+    const message = String((e as Error)?.message ?? '');
+
+    /*
+      403 — the requester is not the owner of this member.
+
+      This is the EXPECTED response for a connected caregiver viewing the
+      screen, not a fault: invitee email addresses are the owner's information
+      and the backend deliberately withholds them. Resolving to `[]` means a
+      caregiver simply sees the accepted list with no pending rows, which is
+      correct behaviour rather than an error to surface.
+
+      404 — kept deliberately even though the endpoint shipped 2026-08-20 and
+      is verified live (returns 401 unauthenticated). It costs nothing and
+      keeps the screen working against an older server, which matters because
+      the app and the API deploy independently.
+    */
+    if (message.startsWith('403') || message.startsWith('404')) return [];
+
+    // Anything else (500, network) is a real failure and must not be silently
+    // indistinguishable from "no pending invites".
     throw e;
   }
 }

@@ -17,5 +17,19 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "android",
+    "ios",
+    "server_dist",
+    // `admin/` is a SEPARATE Next.js project with its own tsconfig.json and its
+    // own dependencies (which are not installed here). Without this it was
+    // pulled into the mobile app's program and reported hundreds of bogus
+    // "Cannot find module 'next'" errors that have nothing to do with this app.
+    "admin",
+    // Transient folders left behind when node_modules has to be renamed aside
+    // rather than deleted in place (Windows file locks).
+    "node_modules_old_*"
   ]
 }

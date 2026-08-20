@@ -49,6 +49,10 @@ const KIND_ROUTE: Record<FamilyReminderKind, string> = {
   routine: '/family-routine',
   checkin: '/family-checkin',
   travel: '/family-travel',
+  // "Insurance & Documents" — policy expiry reminders live on the documents
+  // screen, which is the feature's actual home.
+  insurance: '/family-documents',
+  custom: '/family-custom',
 };
 
 function formatRepeat(r: RepeatType, t: (key: string, opts?: any) => string) {

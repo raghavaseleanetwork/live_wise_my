@@ -46,6 +46,17 @@ import {
  */
 
 /** Family record types that project into reminders. */
+/**
+ * Must stay in sync with the server's `FamilySourceKind`, reconciled with the
+ * backend team 2026-08-20. `insurance` and `custom` were missing here even
+ * though the server has always projected them — `familyReminderLabel` already
+ * degrades unknown kinds gracefully, so they rendered rather than crashing,
+ * which is why the gap went unnoticed.
+ *
+ * NOTE: `fitness` is deliberately NOT in this list. The server has no fitness
+ * reminder projection — nothing schedules or pushes one today — so including it
+ * would imply a kind that cannot actually arrive.
+ */
 export type FamilyReminderKind =
   | 'appointment'
   | 'medicine-stock'
@@ -54,7 +65,9 @@ export type FamilyReminderKind =
   | 'task'
   | 'routine'
   | 'checkin'
-  | 'travel';
+  | 'travel'
+  | 'insurance'
+  | 'custom';
 
 /**
  * A `Bill` that came from a family record rather than the user's own bill list.
@@ -153,6 +166,10 @@ const KIND_META: Record<
   routine: { category: 'habits', icon: 'time', label: 'Routine' },
   checkin: { category: 'family', icon: 'call', label: 'Check-in' },
   travel: { category: 'travel', icon: 'airplane', label: 'Travel' },
+  // Policy/document expiry — the "Insurance & Documents" feature.
+  insurance: { category: 'bills', icon: 'shield-checkmark', label: 'Insurance' },
+  // The server's catch-all kind for reminders that fit no specific record type.
+  custom: { category: 'others', icon: 'notifications', label: 'Reminder' },
 };
 
 export function familyReminderLabel(kind: FamilyReminderKind): string {
@@ -224,6 +241,10 @@ const KIND_LEAD_DAYS: Record<FamilyReminderKind, number[]> = {
   routine: [0],
   checkin: [0],
   travel: [1, 0],
+  // Policy expiry is costly to miss and slow to act on, so it warns early —
+  // deliberately the longest lead of any kind here.
+  insurance: [30, 7, 1],
+  custom: [1, 0],
 };
 
 /**
