@@ -68,6 +68,7 @@ const billTimeWithinWindow =
   baseDate.getTime() <= windowEnd.getTime();          // windowEnd = now + 5 minutes
 
 if (!billTimeWithinWindow && daysLeft !== 0) {
+
   continue;                                            // <-- kills the reminder
 }
 ```

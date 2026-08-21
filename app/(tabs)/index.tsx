@@ -8,6 +8,7 @@ import {
   Pressable,
   Platform,
   RefreshControl,
+  StatusBar,
   TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -716,7 +717,14 @@ export default function HomeScreen() {
     } catch (e) { console.error('Save dismissed alerts error:', e); }
   }, [dismissedReminderIds]);
 
-  const topInset = Platform.OS === 'web' ? 67 : insets.top;
+  // Android edge-to-edge can report insets.top as 0 before the window insets
+  // land (and on some OEM skins never reports the punch-hole cutout at all),
+  // which drops the first banner underneath the status bar. StatusBar.currentHeight
+  // is the reliable floor there.
+  const topInset =
+    Platform.OS === 'web'
+      ? 67
+      : Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight ?? 24 : 0);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -1102,33 +1110,37 @@ export default function HomeScreen() {
           }
           contentContainerStyle={[styles.scrollContent, { paddingTop: topInset + 12, paddingBottom: tabBarInset.bottom }]}
         >
-          <TopReminderAlert
-            colors={colors}
-            upcomingBills={upcomingBills}
-            onSnooze={(id) => {
-              setActiveReminderId(id);
-              setIsSnoozeModalVisible(true);
-            }}
-            onCancel={(id) => {
-              dismissAlert(id); // Dismiss locally and persistently
-              setActiveReminderId(id);
-              setIsCancelModalVisible(true);
-            }}
-          />
-          <MustSmsSyncBanner
-            colors={colors}
-            // Only the SMS sync drives this banner. It used to be
-            // `isSyncingSms || isLoading`, so an ordinary data refresh showed
-            // the sync banner with phase still 'idle' — which fell through to
-            // the default label and sat there reading "Syncing (0/0)" forever.
-            isSyncingSms={isSyncingSms}
-            smsSyncPhase={smsSyncPhase}
-            smsSyncDetail={smsSyncDetail}
-            smsSyncStatus={smsSyncStatus}
-            smsSyncProgressCurrent={smsSyncProgressCurrent}
-            smsSyncProgressTotal={smsSyncProgressTotal}
-            lastSmsSyncCount={lastSmsSyncCount}
-          />
+          {/* See the note on the standard layout's banner stack — same clipping
+              wrapper, same reason. */}
+          <View style={styles.topBannerStack}>
+            <TopReminderAlert
+              colors={colors}
+              upcomingBills={upcomingBills}
+              onSnooze={(id) => {
+                setActiveReminderId(id);
+                setIsSnoozeModalVisible(true);
+              }}
+              onCancel={(id) => {
+                dismissAlert(id); // Dismiss locally and persistently
+                setActiveReminderId(id);
+                setIsCancelModalVisible(true);
+              }}
+            />
+            <MustSmsSyncBanner
+              colors={colors}
+              // Only the SMS sync drives this banner. It used to be
+              // `isSyncingSms || isLoading`, so an ordinary data refresh showed
+              // the sync banner with phase still 'idle' — which fell through to
+              // the default label and sat there reading "Syncing (0/0)" forever.
+              isSyncingSms={isSyncingSms}
+              smsSyncPhase={smsSyncPhase}
+              smsSyncDetail={smsSyncDetail}
+              smsSyncStatus={smsSyncStatus}
+              smsSyncProgressCurrent={smsSyncProgressCurrent}
+              smsSyncProgressTotal={smsSyncProgressTotal}
+              lastSmsSyncCount={lastSmsSyncCount}
+            />
+          </View>
           <View style={styles.header}>
             <AnimatedGreeting userName={userName} colors={colors} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1290,30 +1302,37 @@ export default function HomeScreen() {
           },
         ]}
       >
-        <TopReminderAlert
-          colors={colors}
-          upcomingBills={upcomingBills}
-          onSnooze={(id) => {
-            setActiveReminderId(id);
-            setIsSnoozeModalVisible(true);
-          }}
-          onCancel={(id) => {
-            setActiveReminderId(id);
-            setIsCancelModalVisible(true);
-          }}
-        />
-        <MustSmsSyncBanner
-          colors={colors}
-          // Same fix as the standard layout above — data loading must not
-          // trigger the SMS sync banner.
-          isSyncingSms={isSyncingSms}
-          smsSyncPhase={smsSyncPhase}
-          smsSyncDetail={smsSyncDetail}
-          smsSyncStatus={smsSyncStatus}
-          smsSyncProgressCurrent={smsSyncProgressCurrent}
-          smsSyncProgressTotal={smsSyncProgressTotal}
-          lastSmsSyncCount={lastSmsSyncCount}
-        />
+        {/* Both banners mount and unmount with enter/exit animations. As bare
+            scroll children an exiting banner kept painting while the header had
+            already reflowed up into its slot, so the sync text drew on top of
+            the greeting. This wrapper owns the layout slot and clips its
+            children, so an animating banner can never bleed onto the header. */}
+        <View style={styles.topBannerStack}>
+          <TopReminderAlert
+            colors={colors}
+            upcomingBills={upcomingBills}
+            onSnooze={(id) => {
+              setActiveReminderId(id);
+              setIsSnoozeModalVisible(true);
+            }}
+            onCancel={(id) => {
+              setActiveReminderId(id);
+              setIsCancelModalVisible(true);
+            }}
+          />
+          <MustSmsSyncBanner
+            colors={colors}
+            // Same fix as the standard layout above — data loading must not
+            // trigger the SMS sync banner.
+            isSyncingSms={isSyncingSms}
+            smsSyncPhase={smsSyncPhase}
+            smsSyncDetail={smsSyncDetail}
+            smsSyncStatus={smsSyncStatus}
+            smsSyncProgressCurrent={smsSyncProgressCurrent}
+            smsSyncProgressTotal={smsSyncProgressTotal}
+            lastSmsSyncCount={lastSmsSyncCount}
+          />
+        </View>
         <Animated.View entering={Platform.OS !== 'web' ? FadeInDown.duration(500) : undefined}>
           <View style={styles.header}>
             <AnimatedGreeting userName={userName} colors={colors} />
@@ -1819,11 +1838,21 @@ const styles = StyleSheet.create({
   syncTitle: { fontFamily: 'Inter_700Bold', fontSize: 22, marginBottom: 8 },
   syncSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 14 },
   scrollContent: { paddingHorizontal: 20, gap: 4 },
+  // Owns the layout slot for the reminder + SMS-sync banners and clips them.
+  // The banners animate in and out; without this, an exiting banner painted
+  // over the greeting on phones where the reflow lands mid-animation.
+  topBannerStack: {
+    alignSelf: 'stretch',
+    overflow: 'hidden',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    // Header sits above the banner stack in paint order so a mid-animation
+    // banner can never appear on top of the user's name.
+    zIndex: 1,
   },
   headerLeft: { flex: 1, minWidth: 0 },
   greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

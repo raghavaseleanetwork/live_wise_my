@@ -170,7 +170,11 @@ export default function EditReminderScreen() {
                 textAlignVertical="center"
                 multiline={false}
                 numberOfLines={1}
-                scrollEnabled={true}
+                // No `scrollEnabled` here. On Android it makes even a
+                // single-line input treat its box as a scroll container, which
+                // parks the caret at the end of the scroll extent — hard right —
+                // instead of at the centred text origin. The placeholder still
+                // looked centred, so the caret appeared detached from it.
                 returnKeyType="done"
               />
               <View style={[styles.nameUnderline, { backgroundColor: '#FFFFFF', opacity: 0.3 }]} />
@@ -394,8 +398,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     textAlign: 'center',
     writingDirection: 'ltr',
+    // Full width with horizontal padding, so the centred caret has room on both
+    // sides. `minWidth` is redundant against `width: '100%'` and only risked
+    // overflowing the header on narrow screens.
     width: '100%',
-    minWidth: 200,
+    paddingHorizontal: 24,
   },
   nameUnderline: {
     height: 3,

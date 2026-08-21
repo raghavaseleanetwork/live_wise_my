@@ -15,20 +15,34 @@ let lastRegisteredToken: string | null = null;
 /** The registration request currently in flight, if any. See its use below. */
 let inFlightRegistration: Promise<string | undefined> | null = null;
 
-export const ANDROID_CHANNEL_ID = "default";
+export const ANDROID_CHANNEL_ID = "reminders_v2";
 /**
  * Android channel settings are immutable once created, so a preference change
  * has to create a *new* channel rather than edit the existing one. The id
  * encodes the settings it was built with.
  */
-const SILENT_CHANNEL_ID = "reminders_silent";
-const NO_VIBRATE_CHANNEL_ID = "reminders_novibrate";
-const SILENT_NO_VIBRATE_CHANNEL_ID = "reminders_silent_novibrate";
+const SILENT_CHANNEL_ID = "reminders_silent_v2";
+const NO_VIBRATE_CHANNEL_ID = "reminders_novibrate_v2";
+const SILENT_NO_VIBRATE_CHANNEL_ID = "reminders_silent_novibrate_v2";
+
+/**
+ * Channel ids this app used before the notification sound changed.
+ *
+ * A channel's sound is fixed at creation, so bumping the ids above is the only
+ * way to move existing installs onto a new tune. These are deleted on startup
+ * so the old channels (and the old sound) do not linger.
+ */
+const LEGACY_CHANNEL_IDS = [
+  "default",
+  "reminders_silent",
+  "reminders_novibrate",
+  "reminders_silent_novibrate",
+];
 
 /**
  * The app's own notification sound.
  *
- * Bundled at `assets/sounds/reminder.wav` and registered via the
+ * Bundled at `assets/sounds/reminder2.wav` and registered via the
  * `expo-notifications` config plugin in `app.json`, which copies it into the
  * native projects. Referenced by **filename only** — that is what both
  * platforms expect, and a path here silently falls back to the system default.
@@ -37,7 +51,7 @@ const SILENT_NO_VIBRATE_CHANNEL_ID = "reminders_silent_novibrate";
  * channel ids below carry a version suffix so that changing the sound creates
  * new channels rather than leaving existing installs on the old one.
  */
-export const REMINDER_SOUND_FILE = "reminder.wav";
+export const REMINDER_SOUND_FILE = "reminder2.wav";
 
 /**
  * Notification category carrying the Snooze / Done action buttons.
@@ -173,6 +187,19 @@ async function getNotificationsModule() {
     // only way to honour a preference change.
     if (Platform.OS === "android" && !channelConfigured) {
       const vibrationPattern = [0, 250, 250, 250];
+
+      // Channels from before the sound changed are permanently bound to the old
+      // tune. Delete them, or the user is left with duplicate "Reminders" rows
+      // in Android notification settings — and anything still targeting an old
+      // id keeps playing the previous sound.
+      await Promise.all(
+        LEGACY_CHANNEL_IDS.map((id) =>
+          mod.deleteNotificationChannelAsync(id).catch(() => {
+            // Nothing to delete on a fresh install; not an error.
+          }),
+        ),
+      );
+
       await Promise.all([
         mod.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
           name: "Reminders",
