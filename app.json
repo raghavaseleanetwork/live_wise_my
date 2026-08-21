@@ -5,12 +5,12 @@
     "owner": "raghavbaheti",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./logo.png",
+    "icon": "./assets/images/lifewise-round-icon.png",
     "scheme": "lifewise",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./logo.png",
+      "image": "./assets/images/lifewise-round-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1E1B4B"
     },
@@ -29,11 +29,11 @@
       ],
       "adaptiveIcon": {
         "backgroundColor": "#B45CE8",
-        "foregroundImage": "./assets/images/adaptive-icon-foreground.png"
+        "foregroundImage": "./assets/images/lifewise-round-foreground.png"
       }
     },
     "web": {
-      "favicon": "./logo.png"
+      "favicon": "./assets/images/lifewise-round-icon.png"
     },
     "plugins": [
       "expo-dev-client",
